@@ -1,0 +1,15 @@
+.env
+.vscode/
+node_modules/
+broadcast/
+lib/
+out/
+cache/
+.~lock.test.odt#
+nethereum-gen.settings
+#hardhat
+artifacts/
+cache_hardhat/
+#drawio
+*.bkp
+*.dtmp
