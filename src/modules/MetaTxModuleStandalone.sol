@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import "../../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
+import "OZ/metatx/ERC2771Context.sol";
 
 /**
  * @dev Meta transaction (gasless) module.
