@@ -5,8 +5,12 @@ import "forge-std/Test.sol";
 import "CMTAT/CMTAT_STANDALONE.sol";
 import "../src/DebtVault.sol";
 import "../src/invariantStorage/DebtVaultInvariantStorage.sol";
+import "RuleEngine/RuleEngine.sol";
+import "RuleEngine/rules/validation/RuleWhitelist.sol";
+import "OZ/token/ERC20/IERC20.sol";
+import "OZ/token/ERC20/ERC20.sol";
 /**
-@title Constants used by the tests
+* @title Constants used by the tests
 */
 abstract contract HelperContract is DebtVaultInvariantStorage {
     // EOA to perform tests
@@ -41,5 +45,18 @@ abstract contract HelperContract is DebtVaultInvariantStorage {
     // Forwarder
     string ERC2771ForwarderDomain = 'ERC2771ForwarderDomain';
 
+
+        // Contracts
+    CMTAT_STANDALONE tokenPayment;
+    DebtVault debtVault;
+    // CMTAT value
+    uint256 FLAG = 5;
+    uint8 DECIMALS = 0;
+    uint256 ADDRESS1_INITIAL_AMOUNT = 5000;
+    uint256 CMTAT_ADMIN_INITIAL_AMOUNT = 5000;
+
+    
+    uint256 defaultSnapshotTime = block.timestamp + 50;
+    uint256 defaultDepositAmount = 2000;
     constructor() {}
 }

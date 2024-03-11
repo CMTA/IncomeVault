@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.20;
 
-import "forge-std/Test.sol";
-import "CMTAT/CMTAT_STANDALONE.sol";
+
 import "./HelperContract.sol";
-import "src/RuleEngine.sol";
+import "RuleEngine/rules/validation/abstract/RuleAddressList/RuleWhitelistInvariantStorage.sol";
 
 /**
-@title Integration test with the CMTAT
+* @title Integration test with the CMTAT
 */
-contract RuleEngineIntegration is Test, HelperContract {
+contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperContract {
     // Defined in CMTAT.sol
     uint8 constant TRANSFER_OK = 0;
     string constant TEXT_TRANSFER_OK = "No restriction";
-
+    // Contracts
     RuleEngine ruleEngineMock;
+    RuleWhitelist ruleWhitelist;
+
+    // Other variable
     uint256 resUint256;
     bool resBool;
 
@@ -22,18 +24,17 @@ contract RuleEngineIntegration is Test, HelperContract {
     uint256 ADDRESS2_BALANCE_INIT = 32;
     uint256 ADDRESS3_BALANCE_INIT = 33;
 
-    uint256 FLAG = 5;
-
+        uint256 tokenBalance = 5000;
     // Arrange
     function setUp() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         ruleWhitelist = new RuleWhitelist(DEFAULT_ADMIN_ADDRESS, ZERO_ADDRESS);
         // global arrange
         uint8 decimals = 0;
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT = new CMTAT_STANDALONE(
             ZERO_ADDRESS,
-            DEFAULT_ADMIN_ADDRESS,
+            CMTAT_ADMIN,
             IAuthorizationEngine(address(0)),
             "CMTA Token",
             "CMTAT",
@@ -50,95 +51,185 @@ contract RuleEngineIntegration is Test, HelperContract {
         ruleEngineMock = new RuleEngine(DEFAULT_ADMIN_ADDRESS, ZERO_ADDRESS);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         ruleEngineMock.addRuleValidation(ruleWhitelist);
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_BALANCE_INIT);
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        CMTAT_CONTRACT.mint(ADDRESS2, ADDRESS2_BALANCE_INIT);
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        CMTAT_CONTRACT.mint(ADDRESS3, ADDRESS3_BALANCE_INIT);
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
+
+        // Token payment
+        tokenPayment = new CMTAT_STANDALONE(
+            ZERO_ADDRESS,
+            TOKEN_PAYMENT_ADMIN,
+            IAuthorizationEngine(address(0)),
+            "CMTA Token",
+            "CMTAT",
+            DECIMALS,
+            "CMTAT_ISIN",
+            "https://cmta.ch",
+            IRuleEngine(address(0)),
+            "CMTAT_info",
+            FLAG
+        );
+
+        // Deploy DebtVault
+        debtVault = new DebtVault(
+            ZERO_ADDRESS
+        );
+        debtVault.initialize(
+            DEFAULT_ADMIN_ADDRESS,
+            tokenPayment,
+            ICMTATSnapshot(address(CMTAT_CONTRACT)),
+            IRuleEngine(ZERO_ADDRESS),
+            IAuthorizationEngine(ZERO_ADDRESS)
+        );
+
         // We set the Rule Engine
-        CMTAT_CONTRACT.setRuleEngine(ruleEngineMock);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setRuleEngine(ruleEngineMock);
+        /**
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(DEFAULT_ADMIN_ADDRESS, ADDRESS1_INITIAL_AMOUNT);
+        */
+        vm.prank(TOKEN_PAYMENT_ADMIN);
+        tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, tokenBalance);
+    }
+
+    function _performOnlyDeposit() internal {
+        // Allowance
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        tokenPayment.approve(address(debtVault), defaultDepositAmount);
+        // Act
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.deposit(defaultSnapshotTime, defaultDepositAmount);
+    }
+
+    function _performDeposit() internal {
+        _performOnlyDeposit();
+        // Configure snapshot
+
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.scheduleSnapshot(defaultSnapshotTime);
+        
+        // Mint token for Address 1
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
     }
 
     /******* Transfer *******/
-    function testCannotTransferWithoutAddressWhitelisted() public {
+    function testCannotClaimWithoutAddressWhitelisted() public {
         // Arrange
-        vm.prank(ADDRESS1);
-        vm.expectRevert(
-        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, ADDRESS1, ADDRESS2, 21));   
+        _performDeposit();
         // Act
-        CMTAT_CONTRACT.transfer(ADDRESS2, 21);
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Contract pause
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.pause();
+        
+        // Act
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, address(debtVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
     }
 
     function testCannotTransferWithoutFromAddressWhitelisted() public {
         // Arrange
-        uint256 amount = 21;
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ADDRESS2);
+        ruleWhitelist.addAddressToTheList(address(debtVault));
 
-        vm.prank(ADDRESS1);
-        vm.expectRevert(
-        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, ADDRESS1, ADDRESS2, amount));   
+        // Arrange
+        _performDeposit();
         // Act
-        CMTAT_CONTRACT.transfer(ADDRESS2, amount);
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Contract pause
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.pause();
+        
+        // Act
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, address(debtVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
     }
 
     function testCannotTransferWithoutToAddressWhitelisted() public {
         // Arrange
-        uint256 amount = 21;
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ADDRESS1);
+        ruleWhitelist.addAddressToTheList(ADDRESS1);
 
-        vm.prank(ADDRESS1);
-        vm.expectRevert(
-        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, ADDRESS1, ADDRESS2, amount));   
+        // Arrange
+        _performDeposit();
         // Act
-        CMTAT_CONTRACT.transfer(ADDRESS2, amount);
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Contract pause
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.pause();
+        
+        // Act
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(Errors.CMTAT_InvalidTransfer.selector, address(debtVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
     }
 
     function testCanMakeATransfer() public {
         // Arrange
         address[] memory whitelist = new address[](2);
         whitelist[0] = ADDRESS1;
-        whitelist[1] = ADDRESS2;
+        whitelist[1] = address(debtVault);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         (bool success, ) = address(ruleWhitelist).call(
             abi.encodeWithSignature(
-                "addAddressesToTheWhitelist(address[])",
+                "addAddressesToTheList(address[])",
                 whitelist
             )
         );
         require(success);
-        vm.prank(ADDRESS1);
-
+       
         // Act
-        CMTAT_CONTRACT.transfer(ADDRESS2, 11);
+        // Arrange
+        _performDeposit();
 
-        // Assert
-        resUint256 = CMTAT_CONTRACT.balanceOf(ADDRESS1);
-        assertEq(resUint256, 20);
-        resUint256 = CMTAT_CONTRACT.balanceOf(ADDRESS2);
-        assertEq(resUint256, 43);
-        resUint256 = CMTAT_CONTRACT.balanceOf(ADDRESS3);
-        assertEq(resUint256, 33);
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
+        
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+        
+        // Claim deposit
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
+
+        // Check balance
+        resUint256 = tokenPayment.balanceOf(ADDRESS1);
+        assertEq(resUint256, defaultDepositAmount); 
     }
 
     /******* detectTransferRestriction & messageForTransferRestriction *******/
     function testDetectAndMessageWithFromNotWhitelisted() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ADDRESS2);
-        resBool = ruleWhitelist.addressIsWhitelisted(ADDRESS2);
+        ruleWhitelist.addAddressToTheList(ADDRESS2);
+        resBool = ruleWhitelist.addressIsListed(ADDRESS2);
         // Assert
         assertEq(resBool, true);
-        uint8 res1 = CMTAT_CONTRACT.detectTransferRestriction(
+        uint8 res1 = debtVault.detectTransferRestriction(
             ADDRESS1,
             ADDRESS2,
             11
         );
         // Assert
         assertEq(res1, CODE_ADDRESS_FROM_NOT_WHITELISTED);
-        string memory message1 = CMTAT_CONTRACT.messageForTransferRestriction(
+        string memory message1 = debtVault.messageForTransferRestriction(
             res1
         );
         // Assert
@@ -149,12 +240,12 @@ contract RuleEngineIntegration is Test, HelperContract {
         // Arrange
         // We add the sender to the whitelist
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ADDRESS1);
+        ruleWhitelist.addAddressToTheList(ADDRESS1);
         // Arrange - Assert
-        resBool = ruleWhitelist.addressIsWhitelisted(ADDRESS1);
+        resBool = ruleWhitelist.addressIsListed(ADDRESS1);
         assertEq(resBool, true);
         // Act
-        uint8 res1 = CMTAT_CONTRACT.detectTransferRestriction(
+        uint8 res1 = debtVault.detectTransferRestriction(
             ADDRESS1,
             ADDRESS2,
             11
@@ -162,7 +253,7 @@ contract RuleEngineIntegration is Test, HelperContract {
         // Assert
         assertEq(res1, CODE_ADDRESS_TO_NOT_WHITELISTED);
         // Act
-        string memory message1 = CMTAT_CONTRACT.messageForTransferRestriction(
+        string memory message1 = debtVault.messageForTransferRestriction(
             res1
         );
         // Assert
@@ -171,7 +262,7 @@ contract RuleEngineIntegration is Test, HelperContract {
 
     function testDetectAndMessageWithFromAndToNotWhitelisted() public {
         // Act
-        uint8 res1 = CMTAT_CONTRACT.detectTransferRestriction(
+        uint8 res1 = debtVault.detectTransferRestriction(
             ADDRESS1,
             ADDRESS2,
             11
@@ -180,7 +271,7 @@ contract RuleEngineIntegration is Test, HelperContract {
         // Assert
         assertEq(res1, CODE_ADDRESS_FROM_NOT_WHITELISTED);
         // Act
-        string memory message1 = CMTAT_CONTRACT.messageForTransferRestriction(
+        string memory message1 = debtVault.messageForTransferRestriction(
             res1
         );
 
@@ -197,13 +288,13 @@ contract RuleEngineIntegration is Test, HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         (bool success, ) = address(ruleWhitelist).call(
             abi.encodeWithSignature(
-                "addAddressesToTheWhitelist(address[])",
+                "addAddressesToTheList(address[])",
                 whitelist
             )
         );
         require(success);
         // Act
-        uint8 res1 = CMTAT_CONTRACT.detectTransferRestriction(
+        uint8 res1 = debtVault.detectTransferRestriction(
             ADDRESS1,
             ADDRESS2,
             11
@@ -211,30 +302,10 @@ contract RuleEngineIntegration is Test, HelperContract {
         // Assert
         assertEq(res1, TRANSFER_OK);
         // Act
-        string memory message1 = CMTAT_CONTRACT.messageForTransferRestriction(
+        string memory message1 = debtVault.messageForTransferRestriction(
             res1
         );
         // Assert
         assertEq(message1, TEXT_TRANSFER_OK);
-    }
-
-    function testCanMint() public {
-        // Arrange
-        // Add address zero to the whitelist
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ZERO_ADDRESS);
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        ruleWhitelist.addAddressToTheWhitelist(ADDRESS1);
-        // Arrange - Assert
-        resBool = ruleWhitelist.addressIsWhitelisted(ZERO_ADDRESS);
-        assertEq(resBool, true);
-
-        // Act
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        CMTAT_CONTRACT.mint(ADDRESS1, 11);
-
-        // Assert
-        resUint256 = CMTAT_CONTRACT.balanceOf(ADDRESS1);
-        assertEq(resUint256, ADDRESS1_BALANCE_INIT + 11);
     }
 }

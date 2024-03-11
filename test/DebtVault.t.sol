@@ -5,8 +5,7 @@ import "forge-std/Test.sol";
 import "./HelperContract.sol";
 import "CMTAT/interfaces/engine/IRuleEngine.sol";
 import "CMTAT/interfaces/engine/IAuthorizationEngine.sol";
-import "OZ/token/ERC20/IERC20.sol";
-import "OZ/token/ERC20/ERC20.sol";
+
 /**
 * @title Test for DebtVault
 */
@@ -17,21 +16,12 @@ contract debtVaultTest is Test, HelperContract {
     bool resCallBool;
     string resString;
     uint8 CODE_NONEXISTENT = 255;
-    // Contracts
-    CMTAT_STANDALONE tokenPayment;
-    DebtVault debtVault;
-    // CMTAT value
-    uint256 FLAG = 5;
-    uint8 DECIMALS = 0;
-    uint256 ADDRESS1_INITIAL_AMOUNT = 5000;
-    uint256 CMTAT_ADMIN_INITIAL_AMOUNT = 5000;
+
 
     // ADMIN balance payment
     uint256 tokenBalance = 5000;
 
 
-    uint256 defaultSnapshotTime = block.timestamp + 50;
-    uint256 defaultDepositAmount = 2000;
     // Arrange
     function setUp() public {
         // Deploy CMTAT
