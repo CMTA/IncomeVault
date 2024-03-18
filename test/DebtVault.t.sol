@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "./HelperContract.sol";
 import "CMTAT/interfaces/engine/IRuleEngine.sol";
 import "CMTAT/interfaces/engine/IAuthorizationEngine.sol";
+import {DebtVault} from "../src/DebtVault.sol";
+//import {Upgrades,} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 /**
 * @title Test for DebtVault
@@ -17,15 +19,13 @@ contract debtVaultTest is Test, HelperContract {
     string resString;
     uint8 CODE_NONEXISTENT = 255;
 
-
     // ADMIN balance payment
     uint256 tokenBalance = 5000;
-
 
     // Arrange
     function setUp() public {
         // Deploy CMTAT
-        CMTAT_CONTRACT = new CMTAT_STANDALONE(
+                        CMTAT_CONTRACT = new CMTAT_STANDALONE(
             ZERO_ADDRESS,
             CMTAT_ADMIN,
             IAuthorizationEngine(address(0)),
@@ -53,24 +53,37 @@ contract debtVaultTest is Test, HelperContract {
             "CMTAT_info",
             FLAG
         );
-
-        // Deploy DebtVault
-        debtVault = new DebtVault(
-            ZERO_ADDRESS
+        Options memory opts;
+        opts.constructorData = abi.encode(ZERO_ADDRESS);
+        address proxy = Upgrades.deployTransparentProxy(
+            "DebtVault.sol",
+            DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(DebtVault.initialize, ( DEFAULT_ADMIN_ADDRESS,
+            tokenPayment,
+            ICMTATSnapshot(address(CMTAT_CONTRACT)),
+            IRuleEngine(ZERO_ADDRESS),
+            IAuthorizationEngine(ZERO_ADDRESS))),
+            opts
         );
-        debtVault.initialize(
+        debtVault = DebtVault(proxy);
+        // Deploy DebtVault
+        /*debtVault = new DebtVault(
+            ZERO_ADDRESS
+        );*/
+        /*debtVault.initialize(
             DEFAULT_ADMIN_ADDRESS,
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
             IAuthorizationEngine(ZERO_ADDRESS)
-        );
+        );*/
         /**
         vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT.mint(DEFAULT_ADMIN_ADDRESS, ADDRESS1_INITIAL_AMOUNT);
         */
         vm.prank(TOKEN_PAYMENT_ADMIN);
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, tokenBalance);
+
     }
 
     function testDepositRoleCanPerformDeposit() public {

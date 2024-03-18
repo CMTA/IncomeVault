@@ -10,3 +10,6 @@
 [submodule "lib/RuleEngine"]
 	path = lib/RuleEngine
 	url = https://github.com/CMTA/RuleEngine
+[submodule "lib/openzeppelin-foundry-upgrades"]
+	path = lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades

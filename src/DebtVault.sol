@@ -2,19 +2,19 @@
 
 pragma solidity ^0.8.20;
 
-import "OZ/token/ERC20/IERC20.sol";
+//import "OZ/token/ERC20/IERC20.sol";
 import "OZ/token/ERC20/utils/SafeERC20.sol"; 
-import "OZ/utils/ReentrancyGuard.sol";
+import "lib/CMTAT/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import "CMTAT/interfaces/ICMTATSnapshot.sol";
 import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 import "CMTAT/modules/wrapper/extensions/MetaTxModule.sol";
 import "./invariantStorage/DebtVaultInvariantStorage.sol";
-
+//import "OZUpgradeable/proxy/utils/Initializable.sol";
 
 /**
 * @title Debt Vault to distribute dividend
 */// AuthorizationModuleStandalone
-contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, ValidationModule {
+contract DebtVault is Initializable, ContextUpgradeable, ReentrancyGuardUpgradeable, DebtVaultInvariantStorage, MetaTxModule, ValidationModule {
     // CMTAT token
     ICMTATSnapshot  CMTAT_TOKEN;
     //IRuleEngine ruleEngine;
@@ -31,6 +31,7 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
     */
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         address forwarderIrrevocable
     ) MetaTxModule(forwarderIrrevocable) {
@@ -38,10 +39,10 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         _disableInitializers();
     }
 
-       /**
-     * @notice
-     * initialize the proxy contract
-     * The calls to this function will revert if the contract was deployed without a proxy
+    /**
+    * @notice
+    * initialize the proxy contract
+    * The calls to this function will revert if the contract was deployed without a proxy
     * @param admin Address of the contract (Access Control)
     * @param ERC20TokenPayment_ ERC20 token to perform the payment 
     */
@@ -62,8 +63,8 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
     }
 
     /**
-     * @dev calls the different initialize functions from the different modules
-     */
+    * @dev calls the different initialize functions from the different modules
+    */
     function __DebtVault_init(
          address admin,
         IERC20 ERC20TokenPayment_,
@@ -74,7 +75,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         if(admin == address(0)){
             revert AdminWithAddressZeroNotAllowed();
         }
-
         if(address(ERC20TokenPayment_) == address(0)){     
             revert TokenPaymentWithAddressZeroNotAllowed(); 
         }  
@@ -93,10 +93,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         // PauseModule_init_unchained is called before ValidationModule_init_unchained due to inheritance
         __PauseModule_init_unchained();
         __ValidationModule_init_unchained();
-    }
-
-    function  _claimDividend(uint256 time){
-
     }
 
     /**
@@ -141,7 +137,7 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         _transferDividend(time, sender, senderDividend);
     }
 
-        /**
+    /**
     * @notice claim your payment
     * @param time provide the date where you want to receive your payment
     */
@@ -160,19 +156,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         if (senderBalance == 0){
             revert noDividendToClaim();
         }
-        /**
-        SenderBalance = 300 
-        totalSupply = 900
-        Dividend total supply= 200
-        If POINTS_MULTIPLIER = 100, then 
-        300 * 100 / 900 = 30000 / 900 = 33 (33.333333333)
-        dividend = 200 * 33 / 100 = 66
-        Other formule
-        dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
-        */
-        //uint256 partShare = (senderBalance * POINTS_MULTIPLIER) / TokenTotalSupply;
-        //uint256 dividendTotalSupply = segragatedDividend[time];
-        //uint256 dividend = (dividendTotalSupply * partShare) / POINTS_MULTIPLIER;
         
         uint256 senderDividend = _computeDividend(time, senderBalance, TokenTotalSupply);
         
@@ -253,8 +236,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
             }
         }
     }
-
-
     //snapshotBalanceOfBatch
 
     /**
@@ -279,7 +260,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         }
     }*/
 
-
     /**
     * @param time dividend time
     * @param tokenHolders addresses to compute dividend
@@ -295,8 +275,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
             }
         }
     }
-
-
 
     /**
     * @param time dividend time
@@ -321,6 +299,10 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         uint256 dividendTotalSupply = segragatedDividend[time];
         //uint256 dividend = (dividendTotalSupply * partShare) / POINTS_MULTIPLIER;
         
+        // 300 * 200 * 100000000 / 900 / 100000000 = 66
+        // 300 * 200 / 900 = 66
+        // 603 * 404 / 2115 = 115
+
         tokenHolderDividend = (senderBalance * dividendTotalSupply) / tokenTotalSupply;
     }
 
@@ -342,7 +324,6 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         }
     }
     
-
     /** 
     * @dev This surcharge is not necessary if you do not use the MetaTxModule
     */
