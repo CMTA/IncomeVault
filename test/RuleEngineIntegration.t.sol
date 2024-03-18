@@ -24,7 +24,7 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
     uint256 ADDRESS2_BALANCE_INIT = 32;
     uint256 ADDRESS3_BALANCE_INIT = 33;
 
-        uint256 tokenBalance = 5000;
+    uint256 tokenBalance = 5000;
     // Arrange
     function setUp() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);

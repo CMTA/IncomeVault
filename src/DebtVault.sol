@@ -34,7 +34,8 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
     constructor(
         address forwarderIrrevocable
     ) MetaTxModule(forwarderIrrevocable) {
-
+        // Disable the possibility to initialize the implementation
+        _disableInitializers();
     }
 
        /**
@@ -94,11 +95,57 @@ contract DebtVault is MetaTxModule, ReentrancyGuard, DebtVaultInvariantStorage, 
         __ValidationModule_init_unchained();
     }
 
+    function  _claimDividend(uint256 time){
+
+    }
+
     /**
     * @notice claim your payment
     * @param time provide the date where you want to receive your payment
     */
     function claimDividend(uint256 time) public nonReentrant() {
+        // Check if the claim is activated
+        if(!segragatedClaim[time]){
+             revert claimNotActivated();
+        }
+        address sender = _msgSender();
+        // At the beginning since no external call to do
+        if (claimedDividend[sender][time]){
+            revert dividendAlreadyClaimed();
+        }
+        // External call to the CMTAT to retrieve the total supply and the sender balance
+        (uint256 senderBalance, uint256 TokenTotalSupply) = CMTAT_TOKEN.snapshotInfo(time, sender);
+        if (senderBalance == 0){
+            revert noDividendToClaim();
+        }
+        /**
+        SenderBalance = 300 
+        totalSupply = 900
+        Dividend total supply= 200
+        If POINTS_MULTIPLIER = 100, then 
+        300 * 100 / 900 = 30000 / 900 = 33 (33.333333333)
+        dividend = 200 * 33 / 100 = 66
+        Other formule
+        dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
+        */
+        //uint256 partShare = (senderBalance * POINTS_MULTIPLIER) / TokenTotalSupply;
+        //uint256 dividendTotalSupply = segragatedDividend[time];
+        //uint256 dividend = (dividendTotalSupply * partShare) / POINTS_MULTIPLIER;
+        
+        uint256 senderDividend = _computeDividend(time, senderBalance, TokenTotalSupply);
+        
+        // Transfer restriction
+        if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
+            revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);
+        }
+        _transferDividend(time, sender, senderDividend);
+    }
+
+        /**
+    * @notice claim your payment
+    * @param time provide the date where you want to receive your payment
+    */
+    function claimDividendBatch(uint256 time) public nonReentrant() {
         // Check if the claim is activated
         if(!segragatedClaim[time]){
              revert claimNotActivated();
