@@ -5,13 +5,13 @@ import "forge-std/Test.sol";
 import "./HelperContract.sol";
 import "CMTAT/interfaces/engine/IRuleEngine.sol";
 import "CMTAT/interfaces/engine/IAuthorizationEngine.sol";
-import {DebtVault} from "../src/DebtVault.sol";
+import {IncomeVault} from "../src/IncomeVault.sol";
 //import {Upgrades,} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 /**
 * @title Test for DebtVault
 */
-contract debtVaultTest is Test, HelperContract {
+contract IncomeVaultTest is Test, HelperContract {
     uint256 resUint256;
     uint8 resUint8;
     bool resBool;
@@ -25,7 +25,7 @@ contract debtVaultTest is Test, HelperContract {
     // Arrange
     function setUp() public {
         // Deploy CMTAT
-                        CMTAT_CONTRACT = new CMTAT_STANDALONE(
+            CMTAT_CONTRACT = new CMTAT_STANDALONE(
             ZERO_ADDRESS,
             CMTAT_ADMIN,
             IAuthorizationEngine(address(0)),
@@ -56,16 +56,16 @@ contract debtVaultTest is Test, HelperContract {
         Options memory opts;
         opts.constructorData = abi.encode(ZERO_ADDRESS);
         address proxy = Upgrades.deployTransparentProxy(
-            "DebtVault.sol",
+            "IncomeVault.sol",
             DEFAULT_ADMIN_ADDRESS,
-            abi.encodeCall(DebtVault.initialize, ( DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(IncomeVault.initialize, ( DEFAULT_ADMIN_ADDRESS,
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
             IAuthorizationEngine(ZERO_ADDRESS))),
             opts
         );
-        debtVault = DebtVault(proxy);
+        debtVault = IncomeVault(proxy);
         // Deploy DebtVault
         /*debtVault = new DebtVault(
             ZERO_ADDRESS
@@ -84,26 +84,6 @@ contract debtVaultTest is Test, HelperContract {
         vm.prank(TOKEN_PAYMENT_ADMIN);
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, tokenBalance);
 
-    }
-
-    function testDepositRoleCanPerformDeposit() public {
-        uint256 time = 200;
-        // Allowance
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        tokenPayment.approve(address(debtVault), defaultDepositAmount);
-        // Act
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        //Event
-        vm.expectEmit(true, true, false, true);
-        emit newDeposit(
-            time,
-            DEFAULT_ADMIN_ADDRESS,
-            defaultDepositAmount
-        );
-        debtVault.deposit(time, defaultDepositAmount);
-        // Assert
-        resUint256 = debtVault.segragatedDividend(time);
-        assertEq(resUint256, defaultDepositAmount); 
     }
 
     function testHolderCanClaimWithZeroDeposit() public {
@@ -173,6 +153,48 @@ contract debtVaultTest is Test, HelperContract {
         // Check balance
         resUint256 = tokenPayment.balanceOf(ADDRESS1);
         assertEq(resUint256, defaultDepositAmount); 
+    }
+
+    function testHolderCanBatchClaimWithDepositAndOneHolder() public {
+        // Arrange
+        // First deposit
+        _performDeposit();
+
+        
+
+
+        // Second deposit
+        uint256 newTime = defaultSnapshotTime + 50;
+        uint256[] memory times = new uint256[](2);
+        times[0] = defaultSnapshotTime;
+        times[1] = newTime;
+        // Set the new approval
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        tokenPayment.approve(address(debtVault), defaultDepositAmount * 2);
+       
+        // Deposit
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.deposit(newTime, defaultDepositAmount);
+
+        // Timeout
+        uint256 timeout = newTime + 50;
+        vm.warp(timeout);
+        
+        // Open claim first deposit
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Open claim second deposit
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(newTime, true);
+        
+        // Claim deposit
+        vm.prank(ADDRESS1);
+        debtVault.claimDividendBatch(times);
+
+        // Check balance
+        resUint256 = tokenPayment.balanceOf(ADDRESS1);
+        assertEq(resUint256, defaultDepositAmount * 2); 
     }
 
     function testHolderCannotClaimIfPaused() public {
@@ -267,57 +289,5 @@ contract debtVaultTest is Test, HelperContract {
         resUint256 = tokenPayment.balanceOf(ADDRESS2);
         // Dividends are shared between the two token holders
         assertEq(resUint256, defaultDepositAmount / 2); 
-    }
-
-    function testAdminCanWithdrawAll() public {
-        // Arrange
-        // Deposit
-        uint256 snapshotTime1 = block.timestamp + 50;
-        uint256 snapshotTime2 = block.timestamp + 50;
-        uint256 depositAmount1 = 2000;
-        uint256 depositAmount2 = 3000;
-        uint256 ALLOWANCE_NEEDED = 2000 + 3000;
-        // Allowance
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        tokenPayment.approve(address(debtVault), ALLOWANCE_NEEDED);
-        // Deposit 1
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.deposit(snapshotTime1, depositAmount1);
-        // Deposit 2
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.deposit(snapshotTime2, depositAmount2);
-        
-        // Withdraw
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.withdrawAll(ALLOWANCE_NEEDED, ADDRESS2);
-
-        // Assert
-        assertEq(tokenPayment.balanceOf(ADDRESS2), ALLOWANCE_NEEDED);
-    }
-
-    function testAdminCanWithdrawSpecificTime() public {
-        // Arrange
-        // Deposit
-        uint256 snapshotTime1 = block.timestamp + 50;
-        uint256 snapshotTime2 = block.timestamp + 50;
-        uint256 depositAmount1 = 2000;
-        uint256 depositAmount2 = 3000;
-        uint256 ALLOWANCE_NEEDED = 2000 + 3000;
-        // Allowance
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        tokenPayment.approve(address(debtVault), ALLOWANCE_NEEDED);
-        // Deposit 1
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.deposit(snapshotTime1, depositAmount1);
-        // Deposit 2
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.deposit(snapshotTime2, depositAmount2);
-        
-        // Withdraw
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.withdraw(snapshotTime1, depositAmount1, ADDRESS2);
-
-        // Assert
-        assertEq(tokenPayment.balanceOf(ADDRESS2),depositAmount1);
     }
 }

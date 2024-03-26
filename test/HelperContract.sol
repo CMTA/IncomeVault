@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "CMTAT/CMTAT_STANDALONE.sol";
-import "../src/DebtVault.sol";
+import "../src/IncomeVault.sol";
 //import "../src/invariantStorage/DebtVaultInvariantStorage.sol";
 import "RuleEngine/RuleEngine.sol";
 import "RuleEngine/rules/validation/RuleWhitelist.sol";
@@ -13,7 +13,7 @@ import {Upgrades,  Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /**
 * @title Constants used by the tests
 */
-abstract contract HelperContract is DebtVaultInvariantStorage {
+abstract contract HelperContract is IncomeVaultInvariantStorage {
     // EOA to perform tests
     address constant ZERO_ADDRESS = address(0);
     address constant DEFAULT_ADMIN_ADDRESS = address(1);
@@ -49,7 +49,7 @@ abstract contract HelperContract is DebtVaultInvariantStorage {
 
     // Contracts
     CMTAT_STANDALONE tokenPayment;
-    DebtVault debtVault;
+    IncomeVault debtVault;
     // CMTAT value
     uint256 FLAG = 5;
     uint8 DECIMALS = 0;

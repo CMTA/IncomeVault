@@ -10,7 +10,7 @@
     "uml": "npx sol2uml class src",
     "uml:test": "npx sol2uml class test",
     "surya:report": "npx surya mdreport surya_report_debtVault.md src/DebtVault.sol",
-    "surya:graph": "npx surya graph  src/DebtVault.sol | dot -Tpng > surya_graph_DebtVault.png ",
+    "surya:graph": "npx surya graph  src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png && npx surya graph  src/public/IncomeVaultRestricted.sol | dot -Tpng > surya_graph_IncomeVaultRestricted.png && npx surya graph  src/public/IncomeVaultOpen.sol | dot -Tpng > surya_graph_IncomeVaultOpen.png ",
     "docgen": "npx hardhat docgen"
   },
   "devDependencies": {

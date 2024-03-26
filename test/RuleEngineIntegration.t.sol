@@ -70,16 +70,16 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
         Options memory opts;
         opts.constructorData = abi.encode(ZERO_ADDRESS);
         address proxy = Upgrades.deployTransparentProxy(
-            "DebtVault.sol",
+            "IncomeVault.sol",
             DEFAULT_ADMIN_ADDRESS,
-            abi.encodeCall(DebtVault.initialize, ( DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(IncomeVault.initialize, ( DEFAULT_ADMIN_ADDRESS,
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
             IAuthorizationEngine(ZERO_ADDRESS))),
             opts
         );
-        debtVault = DebtVault(proxy);
+        debtVault = IncomeVault(proxy);
 
         // We set the Rule Engine
         vm.prank(DEFAULT_ADMIN_ADDRESS);
