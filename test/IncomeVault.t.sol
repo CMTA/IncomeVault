@@ -160,9 +160,6 @@ contract IncomeVaultTest is Test, HelperContract {
         // First deposit
         _performDeposit();
 
-        
-
-
         // Second deposit
         uint256 newTime = defaultSnapshotTime + 50;
         uint256[] memory times = new uint256[](2);

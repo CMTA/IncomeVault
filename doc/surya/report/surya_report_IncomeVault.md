@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/DebtVault.sol | 929b5bd142558e73e27170b837e822bafe85a125 |
+| src/IncomeVault.sol | 3a400ede203c2bc4ce3dc8aa0436867f6e445b6a |
 
 
 ### Contracts Description Table
@@ -15,13 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtVault** | Implementation | MetaTxModuleStandalone, ReentrancyGuard, DebtVaultInvariantStorage, AuthorizationModuleStandalone |||
-| └ | <Constructor> | Public ❗️ | 🛑  | MetaTxModuleStandalone |
-| └ | claimDividend | Public ❗️ | 🛑  | nonReentrant |
-| └ | deposit | Public ❗️ | 🛑  | onlyRole |
-| └ | withdraw | Public ❗️ | 🛑  | onlyRole |
-| └ | withdrawAll | Public ❗️ | 🛑  | onlyRole |
-| └ | setStatusClaim | Public ❗️ | 🛑  | onlyRole |
+| **IncomeVault** | Implementation | Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, MetaTxModule |||
+| └ | <Constructor> | Public ❗️ | 🛑  | MetaTxModule |
+| └ | initialize | Public ❗️ | 🛑  | initializer |
+| └ | __IncomeVault_init | Internal 🔒 | 🛑  | onlyInitializing |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |

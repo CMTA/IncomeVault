@@ -53,6 +53,10 @@ Warning:
 
 ## Generate documentation
 
+### Coverage
+
+
+
 ### [docgen](https://github.com/OpenZeppelin/solidity-docgen)
 
 >Solidity-docgen is a program that extracts documentation for a Solidity project.
