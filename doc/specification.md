@@ -16,7 +16,7 @@
 
 Each deposit is segregated in its time value. A `time` is the dividends distribution date (Unix Timestamp) to the token holders. 
 
-![Debt-Segragated Deposit.drawio](../doc/schema/drawio/Debt-Segragated Deposit.drawio.png)
+![IncomeVault-Segragated Deposit.drawio](../doc/schema/drawio/IncomeVault-Segragated Deposit.drawio.png)
 
 ### ValidationModule
 
