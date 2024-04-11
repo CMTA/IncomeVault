@@ -57,12 +57,14 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         IAuthorizationEngine authorizationEngineIrrevocable
     ) internal onlyInitializing {
         if(admin == address(0)){
-            revert AdminWithAddressZeroNotAllowed();
+            revert IncomeVault_AdminWithAddressZeroNotAllowed();
         }
         if(address(ERC20TokenPayment_) == address(0)){     
-            revert TokenPaymentWithAddressZeroNotAllowed(); 
-        }  
-        __Validation_init_unchained(ruleEngine_);
+            revert IncomeVault_TokenPaymentWithAddressZeroNotAllowed(); 
+        } 
+        if(address(ERC20TokenPayment_) == address(0)){     
+            revert IncomeVault_CMTATWithAddressZeroNotAllowed(); 
+        }
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(INCOME_VAULT_OPERATOR_ROLE, admin);
         CMTAT_TOKEN = cmtat_token;
@@ -70,13 +72,10 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
 
         // Initialization
         __AccessControl_init_unchained();
-        __Pausable_init_unchained();
-        __Validation_init_unchained(ruleEngine_);
-        
         __AuthorizationModule_init_unchained(admin, authorizationEngineIrrevocable);
         // PauseModule_init_unchained is called before ValidationModule_init_unchained due to inheritance
-        __PauseModule_init_unchained();
-        __ValidationModule_init_unchained();
+        __Pausable_init_unchained();
+        __Validation_init_unchained(ruleEngine_);
     }
     
     /** 
@@ -109,5 +108,6 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
          return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 
+    // Use in case of inheritance
     uint256[50] private __gap;
 }

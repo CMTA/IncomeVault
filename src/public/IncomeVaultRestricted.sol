@@ -7,8 +7,8 @@ import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 import "../lib/IncomeVaultInternal.sol";
 
 /**
-* @title Debt Vault to distribute dividend
-*/// AuthorizationModuleStandalone
+* @title restricted functions
+*/
 abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal {
 
 
@@ -23,7 +23,7 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     function deposit(uint256 time, uint256 amount) public onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {
         address sender = _msgSender();
         if(amount == 0) {
-            revert noAmountSend();
+            revert IncomeVault_noAmountSend();
         }
         segragatedDividend[time] += amount;
         emit newDeposit(time, sender, amount);
@@ -38,10 +38,12 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
-        // TODO: check why it is necessary
-        ERC20TokenPayment.approve(address(this), amount);
+        bool result = ERC20TokenPayment.approve(address(this), amount);
+        if(!result){
+             revert IncomeVault_FailApproval();
+        }
         if(segragatedDividend[time] < amount) {
-            revert notEnoughAmount();
+            revert IncomeVault_notEnoughAmount();
         }
         segragatedDividend[time] -= amount;
         // Will revert in case of failure
@@ -54,8 +56,10 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
-        // TODO: check why it is necessary
-        ERC20TokenPayment.approve(address(this), amount);
+        bool result = ERC20TokenPayment.approve(address(this), amount);
+        if(!result){
+            revert IncomeVault_FailApproval();
+        }
         // Will revert in case of failure
         ERC20TokenPayment.safeTransferFrom(address(this), withdrawAddress, amount);
     }
@@ -68,7 +72,7 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     function distributeDividend(address[] calldata addresses, uint256 time) public onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {
         // Check if the claim is activated
         if(!segragatedClaim[time]){
-             revert claimNotActivated();
+             revert IncomeVault_claimNotActivated();
         }
         // Get info from the token
         (uint256[] memory tokenHolderBalance, uint256 totalSupply) = CMTAT_TOKEN.snapshotInfoBatch(time, addresses);
@@ -95,17 +99,5 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     function setStatusClaim(uint256 time, bool status) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
         segragatedClaim[time] = status;
     }
-
-    /*function setTokenPayment(IERC20 ERC20TokenPayment_) public onlyRole(DEBT_VAULT_OPERATOR_ROLE){
-        if(address(ERC20TokenPayment_) != address(0)){
-            ERC20TokenPayment = ERC20TokenPayment_;
-        }
-    }*/
-
-    /*function setTokenCMTAT(CMTAT_BASE cmtat_token) public onlyRole(DEBT_VAULT_OPERATOR_ROLE){
-        if(address(cmtat_token) != address(0) && address(CMTAT_TOKEN) == address(0)){
-            CMTAT_TOKEN = cmtat_token;
-        }
-    }*/
     uint256[50] private __gap;
 }

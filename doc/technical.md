@@ -35,12 +35,12 @@ Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#recei
 
 ### IncomeVault
 
-![surya_graph_IncomeVault](../doc/surya/graph/surya_graph_IncomeVault.png)
+![surya_graph_IncomeVault](../doc/surya/surya_graph/surya_graph_IncomeVault.sol.png)
 
 ### IncomeVaultOpen
 
-![surya_graph_IncomeVaultOpen](../doc/surya/graph/surya_graph_IncomeVaultOpen.png)
+![surya_graph_IncomeVaultOpen](../doc/surya/surya_graph/surya_graph_IncomeVaultOpen.sol.png)
 
 ### IncomeVaultRestricted
 
-![surya_graph_IncomeVaultRestricted](../doc/surya/graph/surya_graph_IncomeVaultRestricted.png)
+![surya_graph_IncomeVaultRestricted](../doc/surya/surya_graph/surya_graph_IncomeVaultRestricted.sol.png)

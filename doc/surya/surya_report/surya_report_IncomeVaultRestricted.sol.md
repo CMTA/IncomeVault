@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/IncomeVault.sol | 3a400ede203c2bc4ce3dc8aa0436867f6e445b6a |
+| ./public/IncomeVaultRestricted.sol | 045808f76caaa6faec4a42805df928607c6845bd |
 
 
 ### Contracts Description Table
@@ -15,13 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVault** | Implementation | Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, MetaTxModule |||
-| └ | <Constructor> | Public ❗️ | 🛑  | MetaTxModule |
-| └ | initialize | Public ❗️ | 🛑  | initializer |
-| └ | __IncomeVault_init | Internal 🔒 | 🛑  | onlyInitializing |
-| └ | _msgSender | Internal 🔒 |   | |
-| └ | _msgData | Internal 🔒 |   | |
-| └ | _contextSuffixLength | Internal 🔒 |   | |
+| **IncomeVaultRestricted** | Implementation | ValidationModule, IncomeVaultInternal |||
+| └ | deposit | Public ❗️ | 🛑  | onlyRole |
+| └ | withdraw | Public ❗️ | 🛑  | onlyRole |
+| └ | withdrawAll | Public ❗️ | 🛑  | onlyRole |
+| └ | distributeDividend | Public ❗️ | 🛑  | onlyRole |
+| └ | setStatusClaim | Public ❗️ | 🛑  | onlyRole |
 
 
 ### Legend
