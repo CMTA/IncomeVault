@@ -1,5 +1,9 @@
 # IncomeVault
 
+> This project is not audited !
+>
+> If you want to use this project, perform your own verification or send an email to [admin@cmta.ch](mailto:admin@cmta.ch).
+
 The `IncomeVault`is  a prototype to perform coupon-payment dividend with a CMTAT and the snapshotModule
 
 ## Introduction
