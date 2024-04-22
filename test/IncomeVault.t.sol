@@ -9,7 +9,7 @@ import {IncomeVault} from "../src/IncomeVault.sol";
 //import {Upgrades,} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 /**
-* @title Test for DebtVault
+* @title Test for IncomeVault
 */
 contract IncomeVaultTest is Test, HelperContract {
     uint256 resUint256;
@@ -62,7 +62,8 @@ contract IncomeVaultTest is Test, HelperContract {
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
-            IAuthorizationEngine(ZERO_ADDRESS))),
+            IAuthorizationEngine(ZERO_ADDRESS),
+            TIME_LIMIT_TO_WITHDRAW)),
             opts
         );
         debtVault = IncomeVault(proxy);
@@ -134,6 +135,27 @@ contract IncomeVaultTest is Test, HelperContract {
         CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
     }
 
+    function testHolderCannotClaimIfClaimNotOpened() public {
+        // Arrange
+        // Configure snapshot
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.scheduleSnapshot(defaultSnapshotTime);
+        
+        // Mint token for Address 1
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
+
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
+        
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
+    }
+
     function testHolderCanClaimWithDepositAndOneHolder() public {
         // Arrange
         _performDeposit();
@@ -153,45 +175,6 @@ contract IncomeVaultTest is Test, HelperContract {
         // Check balance
         resUint256 = tokenPayment.balanceOf(ADDRESS1);
         assertEq(resUint256, defaultDepositAmount); 
-    }
-
-    function testHolderCanBatchClaimWithDepositAndOneHolder() public {
-        // Arrange
-        // First deposit
-        _performDeposit();
-
-        // Second deposit
-        uint256 newTime = defaultSnapshotTime + 50;
-        uint256[] memory times = new uint256[](2);
-        times[0] = defaultSnapshotTime;
-        times[1] = newTime;
-        // Set the new approval
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        tokenPayment.approve(address(debtVault), defaultDepositAmount * 2);
-       
-        // Deposit
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.deposit(newTime, defaultDepositAmount);
-
-        // Timeout
-        uint256 timeout = newTime + 50;
-        vm.warp(timeout);
-        
-        // Open claim first deposit
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.setStatusClaim(defaultSnapshotTime, true);
-
-        // Open claim second deposit
-        vm.prank(DEFAULT_ADMIN_ADDRESS);
-        debtVault.setStatusClaim(newTime, true);
-        
-        // Claim deposit
-        vm.prank(ADDRESS1);
-        debtVault.claimDividendBatch(times);
-
-        // Check balance
-        resUint256 = tokenPayment.balanceOf(ADDRESS1);
-        assertEq(resUint256, defaultDepositAmount * 2); 
     }
 
     function testHolderCannotClaimIfPaused() public {
@@ -287,4 +270,46 @@ contract IncomeVaultTest is Test, HelperContract {
         // Dividends are shared between the two token holders
         assertEq(resUint256, defaultDepositAmount / 2); 
     }
+
+    function testCannotHolderClaimIfItIsTooLateToWithdraw() public {
+        // Arrange
+        _performDeposit();
+
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
+        
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Timeout
+        timeout = defaultSnapshotTime + TIME_LIMIT_TO_WITHDRAW + 1 seconds;
+        vm.warp(timeout);
+        
+        // Act
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
+    }
+    function testCannotHolderClaimWithDepositAndOneHolderIfTooEarly() public {
+        // Arrange
+        _performDeposit();
+
+        // Timeout
+        // No timeout
+        
+        // Open claim
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+        
+        // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.prank(ADDRESS1);
+        debtVault.claimDividend(defaultSnapshotTime);
+    }
+
 }

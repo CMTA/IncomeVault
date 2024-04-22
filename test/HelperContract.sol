@@ -46,6 +46,8 @@ abstract contract HelperContract is IncomeVaultInvariantStorage {
     // Forwarder
     string ERC2771ForwarderDomain = 'ERC2771ForwarderDomain';
 
+    uint256 TIME_LIMIT_TO_WITHDRAW = 365 days;
+
 
     // Contracts
     CMTAT_STANDALONE tokenPayment;

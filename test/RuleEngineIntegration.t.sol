@@ -76,7 +76,8 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
-            IAuthorizationEngine(ZERO_ADDRESS))),
+            IAuthorizationEngine(ZERO_ADDRESS),
+            TIME_LIMIT_TO_WITHDRAW)),
             opts
         );
         debtVault = IncomeVault(proxy);
@@ -125,6 +126,10 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
         // Contract pause
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         debtVault.pause();
+
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
         
         // Act
         // Claim deposit
@@ -149,6 +154,10 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
         // Contract pause
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         debtVault.pause();
+
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
         
         // Act
         // Claim deposit
@@ -173,6 +182,11 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
         // Contract pause
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         debtVault.pause();
+
+
+        // Timeout
+        uint256 timeout = defaultSnapshotTime + 50;
+        vm.warp(timeout);
         
         // Act
         // Claim deposit

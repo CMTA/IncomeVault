@@ -62,7 +62,8 @@ contract IncomeVaultRestrictedTest is Test, HelperContract {
             tokenPayment,
             ICMTATSnapshot(address(CMTAT_CONTRACT)),
             IRuleEngine(ZERO_ADDRESS),
-            IAuthorizationEngine(ZERO_ADDRESS))),
+            IAuthorizationEngine(ZERO_ADDRESS),
+            TIME_LIMIT_TO_WITHDRAW)),
             opts
         );
         debtVault = IncomeVault(proxy);
@@ -179,4 +180,6 @@ contract IncomeVaultRestrictedTest is Test, HelperContract {
         // Assert
         assertEq(tokenPayment.balanceOf(ADDRESS2),depositAmount1);
     }
+
+    
 }
