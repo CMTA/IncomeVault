@@ -181,5 +181,47 @@ contract IncomeVaultRestrictedTest is Test, HelperContract {
         assertEq(tokenPayment.balanceOf(ADDRESS2),depositAmount1);
     }
 
-    
+    /****** Attacker */
+    function testCannotAttackerSetStatusClaim() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE));  
+        vm.prank(ATTACKER);
+        debtVault.setStatusClaim(122, true);
+    }
+
+    function testCannotAttackerSetTimeLimitToWithdraw() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE));  
+        vm.prank(ATTACKER);
+        debtVault.setTimeLimitToWithdraw(122);
+    }
+
+    function testCannotAttackerDistributeDividend() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DISTRIBUTE_ROLE));  
+        vm.prank(ATTACKER);
+        address[] memory addresses = new address[](0);
+        debtVault.distributeDividend(addresses, 12);
+    }
+
+    function testCannotAttackerWithdrawAll() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE));  
+        vm.prank(ATTACKER);
+        debtVault.withdrawAll(12,ADDRESS2 );
+    }
+
+    function testCannotAttackerWithdraw() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE));  
+        vm.prank(ATTACKER);
+        debtVault.withdraw(12, 12, ADDRESS2 );
+    }
+
+    function testCannotAttackerPerformDeposit() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DEPOSIT_ROLE));  
+        vm.prank(ATTACKER);
+        debtVault.deposit(12, 12);
+    }
 }

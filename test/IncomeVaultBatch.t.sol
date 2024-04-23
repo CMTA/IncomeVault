@@ -99,7 +99,10 @@ contract IncomeVaultBatchTest is Test, HelperContract {
     function _performDeposit() internal {
         _performOnlyDeposit();
         // Configure snapshot
+        _mintCMTATTokens();
+    }
 
+    function _mintCMTATTokens() internal {
         vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT.scheduleSnapshot(defaultSnapshotTime);
         
@@ -145,6 +148,38 @@ contract IncomeVaultBatchTest is Test, HelperContract {
         // Check balance
         resUint256 = tokenPayment.balanceOf(ADDRESS1);
         assertEq(resUint256, defaultDepositAmount * 2); 
+    }
+
+    function testHolderCanBatchClaimWithZeroDepositAndOneHolder() public {
+        // Arrange
+        // Mint cmtat tokens without deposit
+        _mintCMTATTokens();
+
+        // Second deposit
+        uint256 newTime = defaultSnapshotTime + 50;
+        uint256[] memory times = new uint256[](2);
+        times[0] = defaultSnapshotTime;
+        times[1] = newTime;
+
+        // Timeout
+        uint256 timeout = newTime + 50;
+        vm.warp(timeout);
+        
+        // Open claim first deposit
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(defaultSnapshotTime, true);
+
+        // Open claim second deposit
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(newTime, true);
+        
+        // Claim deposit
+        vm.prank(ADDRESS1);
+        debtVault.claimDividendBatch(times);
+
+        // Check balance
+        resUint256 = tokenPayment.balanceOf(ADDRESS1);
+        assertEq(resUint256, 0); 
     }
     function testCannotHolderBatchClaimWithDepositAndOneHolderIfClaimNotOpen() public {
         // Arrange

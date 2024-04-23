@@ -52,10 +52,12 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
         if (senderBalance == 0){
             revert IncomeVault_TokenBalanceIsZero();
         }
+
         uint256 senderDividend = _computeDividend(time, senderBalance, TokenTotalSupply);
-        if (senderBalance == 0){
+        if (senderDividend == 0){
             revert IncomeVault_NoDividendToClaim();
         }
+
         // Transfer restriction
         if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
             revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);

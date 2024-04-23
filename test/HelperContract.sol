@@ -61,5 +61,9 @@ abstract contract HelperContract is IncomeVaultInvariantStorage {
     
     uint256 defaultSnapshotTime = block.timestamp + 50;
     uint256 defaultDepositAmount = 2000;
+
+
+    // Custom error openZeppelin
+    error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);
     constructor() {}
 }

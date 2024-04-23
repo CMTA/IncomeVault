@@ -87,7 +87,7 @@ contract IncomeVaultTest is Test, HelperContract {
 
     }
 
-    function testHolderCanClaimWithZeroDeposit() public {
+    function testCannotClaimWithZeroDeposit() public {
         // Arrange
         // Configure snapshot
         vm.prank(CMTAT_ADMIN);
@@ -106,6 +106,8 @@ contract IncomeVaultTest is Test, HelperContract {
         debtVault.setStatusClaim(defaultSnapshotTime, true);
         
         // Claim deposit
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_NoDividendToClaim.selector));
         vm.prank(ADDRESS1);
         debtVault.claimDividend(defaultSnapshotTime);
 
@@ -123,16 +125,19 @@ contract IncomeVaultTest is Test, HelperContract {
         debtVault.deposit(defaultSnapshotTime, defaultDepositAmount);
     }
 
-    function _performDeposit() internal {
-        _performOnlyDeposit();
-        // Configure snapshot
-
+    function _mintCMTATTokens() internal {
         vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT.scheduleSnapshot(defaultSnapshotTime);
         
         // Mint token for Address 1
         vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
+    }
+
+    function _performDeposit() internal {
+        _performOnlyDeposit();
+        // Configure snapshot
+        _mintCMTATTokens();
     }
 
     function testHolderCannotClaimIfClaimNotOpened() public {
