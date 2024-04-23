@@ -15,7 +15,7 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
     * @notice validate if a time is valid
      */
     function validateTime(uint256 time) public view{
-         if(!segragatedClaim[time]){
+         if(!segregatedClaim[time]){
              revert IncomeVault_ClaimNotActivated();
         }
         if(block.timestamp > timeLimitToWithdraw + time){

@@ -19,22 +19,6 @@ For the specific case where dividends are distributed in shares, meaning additio
 \- With the current architecture, depending on when you decide to mint the new tokens, you will increase the total supply used to compute the token holder shares. Therefore, you will reduce the dividends distributed to the token holders.
 \- In general, for yield tokens, the formula used can be different.
 
-## Claim restriction
-
-An holder can not claim its dividends if:
-
-a. The claim time is in the future (`IncomeVault_TooEarlyToWithdraw`)
-
-b. The claim time is too far in the past, specified by `timeLimitToWithdraw` (`IncomeVault_TooLateToWithdraw`)
-
-c. Claim is not enabled for this specific `time` (`IncomeVault_ClaimNotActivated`)
-
-d. Holder has already claim its dividends (`IncomeVault_DividendAlreadyClaimed`)
-
-e. There is no dividend to claim (`IncomeVault_NoDividendToClaim`)
-
-For the batch function, `claimDividendBatch`, `d` and `e` don't generate an error but instead, there is just no dividends distributed for this specific time.
-
 ## Compatibility
 
 - The dividends can be paid with ERC-20 tokens as described in the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) specification

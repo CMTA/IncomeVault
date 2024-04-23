@@ -103,7 +103,7 @@ contract IncomeVaultRestrictedTest is Test, HelperContract {
         );
         debtVault.deposit(time, defaultDepositAmount);
         // Assert
-        resUint256 = debtVault.segragatedDividend(time);
+        resUint256 = debtVault.segregatedDividend(time);
         assertEq(resUint256, defaultDepositAmount); 
     }
 
@@ -179,6 +179,37 @@ contract IncomeVaultRestrictedTest is Test, HelperContract {
 
         // Assert
         assertEq(tokenPayment.balanceOf(ADDRESS2),depositAmount1);
+    }
+
+    function testCanAdminSetStatusClaim() public {
+        uint256 time = 122;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(time, true);
+        resBool = debtVault.segregatedClaim(time);
+        assertEq(resBool, true);
+    }
+
+    function testCanAdminUnsetStatusClaim() public {
+        // Arrange
+        uint256 time = 122;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(time, true);
+        // Act
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setStatusClaim(time, false);
+        // Assert
+        resBool =  debtVault.segregatedClaim(time);
+        assertEq(resBool, false);
+    }
+
+    function testCanAdminSetTimeLimitToWithdraw() public {
+        // Act
+        uint256 time = 122;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        debtVault.setTimeLimitToWithdraw(time);
+        // Assert
+        resUint256 =  debtVault.timeLimitToWithdraw();
+        assertEq(resUint256,time);
     }
 
     /****** Attacker */
