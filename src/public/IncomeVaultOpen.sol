@@ -10,20 +10,35 @@ import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 * @title public function
 */
 abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModule , IncomeVaultInternal  {
-
+    enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
     /**
     * @notice validate if a time is valid
      */
     function validateTime(uint256 time) public view{
-         if(!segregatedClaim[time]){
-             revert IncomeVault_ClaimNotActivated();
+        TIME_ERROR_CODE code = validateTimeCode(time);
+         if(code == TIME_ERROR_CODE.OK){
+            return;
+        }else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
+            revert IncomeVault_ClaimNotActivated();
         }
-        if(block.timestamp > timeLimitToWithdraw + time){
+        else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
             revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        }
-        if(block.timestamp < time){
+        }else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
             revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
         }
+    }
+
+    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
+        if(!segregatedClaim[time]){
+            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
+        }
+        if(block.timestamp > timeLimitToWithdraw + time){
+            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
+        }
+        if(block.timestamp < time){
+            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
+        }
+        return TIME_ERROR_CODE.OK;
     }
 
     /**
