@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./public/IncomeVaultRestricted.sol | 045808f76caaa6faec4a42805df928607c6845bd |
+| ./public/IncomeVaultRestricted.sol | d5d6fe92e3da58e30c320c01b0529cf1ccea09ff |
 
 
 ### Contracts Description Table
@@ -16,11 +16,13 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **IncomeVaultRestricted** | Implementation | ValidationModule, IncomeVaultInternal |||
+| └ | __IncomeVaultRestricted_init_unchained | Internal 🔒 | 🛑  | onlyInitializing |
 | └ | deposit | Public ❗️ | 🛑  | onlyRole |
 | └ | withdraw | Public ❗️ | 🛑  | onlyRole |
 | └ | withdrawAll | Public ❗️ | 🛑  | onlyRole |
 | └ | distributeDividend | Public ❗️ | 🛑  | onlyRole |
 | └ | setStatusClaim | Public ❗️ | 🛑  | onlyRole |
+| └ | setTimeLimitToWithdraw | Public ❗️ | 🛑  | onlyRole |
 
 
 ### Legend

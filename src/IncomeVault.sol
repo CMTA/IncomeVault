@@ -35,14 +35,16 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         IERC20 ERC20TokenPayment_,
         ICMTATSnapshot cmtat_token,
         IRuleEngine ruleEngine_,
-        IAuthorizationEngine authorizationEngineIrrevocable
+        IAuthorizationEngine authorizationEngineIrrevocable,
+        uint256 timeLimitToWithdraw_
     ) public initializer {
         __IncomeVault_init(
          admin,
          ERC20TokenPayment_,
         cmtat_token,
         ruleEngine_,
-        authorizationEngineIrrevocable
+        authorizationEngineIrrevocable,
+        timeLimitToWithdraw_
         );
     }
 
@@ -54,7 +56,8 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         IERC20 ERC20TokenPayment_,
         ICMTATSnapshot cmtat_token,
         IRuleEngine ruleEngine_,
-        IAuthorizationEngine authorizationEngineIrrevocable
+        IAuthorizationEngine authorizationEngineIrrevocable,
+        uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {
         if(admin == address(0)){
             revert IncomeVault_AdminWithAddressZeroNotAllowed();
@@ -76,6 +79,8 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         // PauseModule_init_unchained is called before ValidationModule_init_unchained due to inheritance
         __Pausable_init_unchained();
         __Validation_init_unchained(ruleEngine_);
+
+        __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);
     }
     
     /** 

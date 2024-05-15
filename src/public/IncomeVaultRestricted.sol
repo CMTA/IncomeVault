@@ -4,17 +4,23 @@ pragma solidity ^0.8.20;
 
 import "OZ/token/ERC20/utils/SafeERC20.sol"; 
 import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
-import "../lib/IncomeVaultInternal.sol";
+import "../libraries/IncomeVaultInternal.sol";
 
 /**
 * @title restricted functions
 */
 abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal {
-
-
+    /**
+    * @dev calls the different initialize functions from the different modules
+    */
+    function __IncomeVaultRestricted_init_unchained(
+        uint256 timeLimitToWithdraw_
+    ) internal onlyInitializing {
+       timeLimitToWithdraw = timeLimitToWithdraw_;
+    }
     // Security
     using SafeERC20 for IERC20;
-    
+
     /**
     * @notice deposit an amount to pay the dividends.
     * @param time provide the date where you want to perform a deposit
@@ -23,9 +29,9 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     function deposit(uint256 time, uint256 amount) public onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {
         address sender = _msgSender();
         if(amount == 0) {
-            revert IncomeVault_noAmountSend();
+            revert IncomeVault_NoAmountSend();
         }
-        segragatedDividend[time] += amount;
+        segregatedDividend[time] += amount;
         emit newDeposit(time, sender, amount);
         // Will revert in case of failure
         ERC20TokenPayment.safeTransferFrom(sender, address(this), amount);
@@ -42,10 +48,10 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
         if(!result){
              revert IncomeVault_FailApproval();
         }
-        if(segragatedDividend[time] < amount) {
-            revert IncomeVault_notEnoughAmount();
+        if(segregatedDividend[time] < amount) {
+            revert IncomeVault_NotEnoughAmount();
         }
-        segragatedDividend[time] -= amount;
+        segregatedDividend[time] -= amount;
         // Will revert in case of failure
         ERC20TokenPayment.safeTransferFrom(address(this), withdrawAddress, amount);
     }
@@ -71,8 +77,8 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     */
     function distributeDividend(address[] calldata addresses, uint256 time) public onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {
         // Check if the claim is activated
-        if(!segragatedClaim[time]){
-             revert IncomeVault_claimNotActivated();
+        if(!segregatedClaim[time]){
+             revert IncomeVault_ClaimNotActivated();
         }
         // Get info from the token
         (uint256[] memory tokenHolderBalance, uint256 totalSupply) = CMTAT_TOKEN.snapshotInfoBatch(time, addresses);
@@ -97,7 +103,15 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     * 
     */
     function setStatusClaim(uint256 time, bool status) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
-        segragatedClaim[time] = status;
+        segregatedClaim[time] = status;
     }
+
+    /**
+    * @notice configure the time limit to withdraw
+    */
+    function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
+        timeLimitToWithdraw = timeLimitToWithdraw_;
+    }
+    
     uint256[50] private __gap;
 }

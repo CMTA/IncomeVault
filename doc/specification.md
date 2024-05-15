@@ -12,13 +12,26 @@
 
 ![IncomeVault-Global.drawio](../doc/schema/drawio/IncomeVault-Global.drawio.png)
 
+## Access control
+
+All restricted functions are defined in the file `IncomeVaultRestricted`.
+
+| Role                       | Function                                                     |
+| -------------------------- | ------------------------------------------------------------ |
+| DEFAULT_ADMIN_ROLE         | Manage all others roles<br /><br />This role has also all the others roles by default through the `ValidationModule` |
+| INCOME_VAULT_DEPOSIT_ROLE  | `deposit`                                                    |
+| INCOME_VAULT_WITHDRAW_ROLE | `withdraw`<br />`withdrawAll`                                |
+| INCOME_VAULT_OPERATOR_ROLE | `setStatusClaim`<br /> `setTimeLimitToWithdraw`              |
+
+
+
 ## Segregated Deposit
 
 Each deposit is segregated in its time value. A `time` is the dividends distribution date (Unix Timestamp) to the token holders. 
 
 ![IncomeVault-Segragated Deposit.drawio](../doc/schema/drawio/IncomeVault-Segragated Deposit.drawio.png)
 
-### ValidationModule
+## ValidationModule
 
 A claim is considered as a transfer from the contract to the sender (token holder).
 This transfer can be restricted with the ValidationModule
@@ -57,6 +70,22 @@ Therefore, a token holder has to know the different `time` when a deposit has be
  
 
 A function `claimDividend` in batch is also available to claim dividends for several different time.
+
+### Claim restriction
+
+An holder can not claim its dividends if:
+
+a. The claim time is in the future (`IncomeVault_TooEarlyToWithdraw`)
+
+b. The claim time is too far in the past, specified by `timeLimitToWithdraw` (`IncomeVault_TooLateToWithdraw`)
+
+c. Claim is not enabled for this specific `time` (`IncomeVault_ClaimNotActivated`)
+
+d. Holder has already claim its dividends (`IncomeVault_DividendAlreadyClaimed`)
+
+e. There is no dividend to claim (`IncomeVault_NoDividendToClaim`)
+
+For the batch function, `claimDividendBatch`, `d` and `e` don't generate an error but instead, there is just no dividends distributed for this specific time.
 
 ### Schema
 
