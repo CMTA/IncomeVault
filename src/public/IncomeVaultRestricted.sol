@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import "OZ/token/ERC20/utils/SafeERC20.sol"; 
 import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
-import "../lib/IncomeVaultInternal.sol";
+import "../libraries/IncomeVaultInternal.sol";
 
 /**
 * @title restricted functions

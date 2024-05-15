@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 
 import "lib/CMTAT/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
-import "../lib/IncomeVaultInternal.sol";
+import "../libraries/IncomeVaultInternal.sol";
 import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 /**
 * @title public function
