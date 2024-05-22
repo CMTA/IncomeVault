@@ -67,21 +67,6 @@ contract IncomeVaultBatchTest is Test, HelperContract {
             opts
         );
         debtVault = IncomeVault(proxy);
-        // Deploy DebtVault
-        /*debtVault = new DebtVault(
-            ZERO_ADDRESS
-        );*/
-        /*debtVault.initialize(
-            DEFAULT_ADMIN_ADDRESS,
-            tokenPayment,
-            ICMTATSnapshot(address(CMTAT_CONTRACT)),
-            IRuleEngine(ZERO_ADDRESS),
-            IAuthorizationEngine(ZERO_ADDRESS)
-        );*/
-        /**
-        vm.prank(CMTAT_ADMIN);
-        CMTAT_CONTRACT.mint(DEFAULT_ADMIN_ADDRESS, ADDRESS1_INITIAL_AMOUNT);
-        */
         vm.prank(TOKEN_PAYMENT_ADMIN);
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, tokenBalance);
 

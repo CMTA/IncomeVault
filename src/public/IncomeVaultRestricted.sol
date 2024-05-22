@@ -71,9 +71,10 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     }
 
     /**
-    * @notice deposit an amount to pay the dividends.
+    * @notice distribute the dividends
     * @param addresses compute and transfer dividend for these holders
     * @param time dividend time
+    * @dev The dividends are distributed only if they have not yet been claimed by the token holder
     */
     function distributeDividend(address[] calldata addresses, uint256 time) public onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {
         // Check if the claim is activated
@@ -86,9 +87,9 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
         uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
         // transfer the dividends for all token holders
         for(uint256 i = 0; i < addresses.length; ++i){
-             // Do nothing if the token holder has already claimed its dividends.
+             // The dividends are distributed only if they have not yet been claimed by the token holder
              if (!claimedDividend[addresses[i]][time]){
-                // Compute dividend
+                // transfer dividends
                 if(tokenHolderDividend[i] > 0){
                     _transferDividend(time, addresses[i], tokenHolderDividend[i]);
                 }

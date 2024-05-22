@@ -17,7 +17,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage  {
     mapping(uint256 => bool) public segregatedClaim;
     uint256 public timeLimitToWithdraw;
 
-    // Security
+    // Manage transfer failure
     using SafeERC20 for IERC20;
 
     /**
@@ -46,10 +46,11 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage  {
             revert IncomeVault_NoDividendToClaim();
         }
         /**
-        SenderBalance = 300 
-        totalSupply = 900
-        Dividend total supply= 200
-        dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
+        * Example
+        * SenderBalance = 300 
+        * totalSupply = 900
+        * Dividend total supply = 200
+        * dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
         */
         uint256 dividendTotalSupply = segregatedDividend[time];
 

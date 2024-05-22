@@ -92,7 +92,7 @@ See also the test framework's [official documentation](https://book.getfoundry.s
 
 #### Coverage
 
-> Unfortunately, tests are performed with a proxy deployment and the coverage command does not work currently in this configuration
+> Unfortunately, tests are performed with a proxy deployment and the coverage command does not work currently in this configuration.
 
 * Perform a code coverage
 

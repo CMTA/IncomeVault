@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./public/IncomeVaultRestricted.sol | d5d6fe92e3da58e30c320c01b0529cf1ccea09ff |
+| ./public/IncomeVaultRestricted.sol | 2cd9f60df6c3914215089a4a7522b2b8ce9973a6 |
 
 
 ### Contracts Description Table

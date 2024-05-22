@@ -11,8 +11,25 @@ import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 */
 abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModule , IncomeVaultInternal  {
     enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
+    
     /**
-    * @notice validate if a time is valid
+    * @notice validate if a time is valid, return 0 if valid
+    */
+    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
+        if(!segregatedClaim[time]){
+            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
+        }
+        if(block.timestamp > timeLimitToWithdraw + time){
+            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
+        }
+        if(block.timestamp < time){
+            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
+        }
+        return TIME_ERROR_CODE.OK;
+    }
+    
+    /**
+    * @notice validate if a time is valid, revert if invalid
      */
     function validateTime(uint256 time) public view{
         TIME_ERROR_CODE code = validateTimeCode(time);
@@ -28,21 +45,8 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
         }
     }
 
-    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
-        if(!segregatedClaim[time]){
-            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
-        }
-        if(block.timestamp > timeLimitToWithdraw + time){
-            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
-        }
-        if(block.timestamp < time){
-            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
-        }
-        return TIME_ERROR_CODE.OK;
-    }
-
     /**
-    * @notice validate if a time is valid, batch version
+    * @notice batch version of {validateTime}
     */
     function validateTimeBatch(uint256[] memory times) public view{
         for(uint256 i = 0; i < times.length; ++i){
@@ -81,7 +85,7 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
     }
 
     /**
-    * @notice claim your payment
+    * @notice batch version of {claimDividend}
     * @param times provide the dates where you want to receive your payment
     * @dev Don't check if the dividends have been already claimed before external call to CMTAT.
     */

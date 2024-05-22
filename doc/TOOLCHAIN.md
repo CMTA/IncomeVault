@@ -2,7 +2,15 @@
 
 [TOC]
 
+## Dependencies
 
+The toolchain includes the following components, where the versions
+are the latest ones that we tested: 
+
+- Solidity 0.8.22 (via solc-js)
+- OpenZeppelin Contracts  (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
+- CMTAT [v2.4.0](https://github.com/CMTA/CMTAT/releases/tag/v2.4.0)
+- RuleEngine [v2.0.0](https://github.com/CMTA/RuleEngine/releases/tag/v2.0.0)
 
 ## Node.JS  package
 
@@ -53,10 +61,6 @@ Warning:
 
 ## Generate documentation
 
-### Coverage
-
-
-
 ### [docgen](https://github.com/OpenZeppelin/solidity-docgen)
 
 >Solidity-docgen is a program that extracts documentation for a Solidity project.
@@ -78,21 +82,17 @@ npm run-script uml:test
 
 Or only specified contracts
 
-RuleEngine
-
 ```
-npx sol2uml class -i -c src/RuleEngine.sol
+npx sol2uml class -i -c src/IncomeVault.sol
 ```
 
-Whitelist
 
-```
-npx sol2uml class src/Whitelist.sol
-```
 
 The related component can be installed with `npm install` (see [package.json](./package.json)). 
 
 ### [Surya](https://github.com/ConsenSys/surya)
+
+Several bash scripts are available to generate the documentation in [./script ](./script ).
 
 #### Graph
 
@@ -104,16 +104,10 @@ npm run-script surya:graph
 
 OR
 
-- RuleWhitelist
-
 ```bash
- npx surya graph  src/RuleWhitelist.sol | dot -Tpng > surya_graph_Whitelist.png
+ npx surya graph  src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
 ```
-- RuleEngine
 
-```bash
-npx surya graph  src/RuleEngine.sol | dot -Tpng > surya_graph_RuleEngine.png
-```
 
 #### Report
 
