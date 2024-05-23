@@ -1,0 +1,27 @@
+{
+  "scripts": {
+    "lint:sol": "npx solium -d src",
+    "lint:sol:fix": "npx solium -d src --fix",
+    "lint:sol:test": "npx solium -d test",
+    "lint:sol:test:fix": "npx solium -d test --fix",
+    "lint:sol:script": "npx solium -d script",
+    "lint:sol:script:fix": "npx solium -d script --fix",
+    "lint:sol:prettier": "npx prettier --write 'src/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
+    "uml": "npx sol2uml class src",
+    "uml:test": "npx sol2uml class test",
+    "surya:report": "npx surya mdreport surya_report_IncomeVault.md src/IncomeVault.sol",
+    "surya:graph": "npx surya graph  src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png && npx surya graph  src/public/IncomeVaultRestricted.sol | dot -Tpng > surya_graph_IncomeVaultRestricted.png && npx surya graph  src/public/IncomeVaultOpen.sol | dot -Tpng > surya_graph_IncomeVaultOpen.png ",
+    "docgen": "npx hardhat docgen"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.0.1",
+    "ethlint": "^1.2.5",
+    "prettier-plugin-solidity": "^1.0.0-rc.1",
+    "sol2uml": "^2.2.6",
+    "solidity-docgen": "^0.6.0-beta.35",
+    "surya": "^0.4.6"
+  },
+  "dependencies": {
+    "@openzeppelin/upgrades-core": "^1.32.5"
+  }
+}
