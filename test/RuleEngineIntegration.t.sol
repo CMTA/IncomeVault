@@ -276,7 +276,7 @@ contract RuleEngineIntegration is RuleWhitelistInvariantStorage, Test, HelperCon
         assertEq(message1, TEXT_ADDRESS_TO_NOT_WHITELISTED);
     }
 
-    function testDetectAndMessageWithFromAndToNotWhitelisted() public {
+    function testDetectAndMessageWithFromAndToNotWhitelisted() public view {
         // Act
         uint8 res1 = debtVault.detectTransferRestriction(
             ADDRESS1,
