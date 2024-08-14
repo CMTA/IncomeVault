@@ -42,6 +42,8 @@ Here a summary of the main documentation
 | Toolchain               | [doc/TOOLCHAIN.md](./doc/TOOLCHAIN.md)                 |
 | Surya report            | [doc/surya](./doc/surya/)                              |
 
+See also [Taurus - Equity Tokenization: How to Pay Dividend On-Chain Using CMTAT](https://www.taurushq.com/blog/equity-tokenization-how-to-pay-dividend-on-chain-using-cmtat/)
+
 ## Foundry
 
 The project is developed with [Foundry](https://book.getfoundry.sh)
