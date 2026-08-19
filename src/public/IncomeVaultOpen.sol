@@ -12,7 +12,6 @@ import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 * @title Permissionless functions
 */
 abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal  {
-    enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
@@ -101,47 +100,5 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
         for(uint256 i = 0; i < times.length; ++i){
            _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
         }
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            INTERNAL/PRIVATE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-    /**
-    * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}
-    * @param code the code returned by {_timeCode}
-    */
-    function _revertOnInvalidTime(TIME_ERROR_CODE code) internal view virtual {
-        if(code == TIME_ERROR_CODE.OK){
-            return;
-        } else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
-            revert IncomeVault_ClaimNotActivated();
-        } else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
-            revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        } else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
-            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
-        }
-    }
-
-    /**
-    * @dev {validateTimeCode} with the caller supplying the storage pointer and the withdraw limit,
-    * so a batch can read the limit once instead of once per element.
-    * @param $ the ERC-7201 storage of the vault
-    * @param time the dividend time to check
-    * @param timeLimit the value of `timeLimitToWithdraw`
-    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
-    */
-    function _timeCode(IncomeVaultInternalStorage storage $, uint256 time, uint256 timeLimit)
-        internal view virtual returns(TIME_ERROR_CODE code)
-    {
-        if(!$._segregatedClaim[time]){
-            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
-        }
-        if(block.timestamp > timeLimit + time){
-            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
-        }
-        if(block.timestamp < time){
-            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
-        }
-        return TIME_ERROR_CODE.OK;
     }
 }

@@ -10,7 +10,7 @@
 
 **This is a code-quality review, not a security audit.** Nothing in this report is a vulnerability.
 No finding here lets an unauthorized party move value, bypass a restriction, or brick a contract.
-The two findings with real behavioural weight (H-1, H-2) both require a **privileged role** to reach,
+The findings with real behavioural weight (H-1, since fixed, and H-2) both require a **privileged role** to reach,
 so they are compliance and consistency defects rather than exploitable ones — but they are the two
 worth a maintainer decision, and they are described in full.
 
@@ -39,21 +39,20 @@ The contracts remain **unaudited**; this review does not change that.
 | G-2 | CHANGELOG release checklist points at two directories that do not exist | ✅ fixed | `CHANGELOG.md` |
 | G-3 | NatSpec block length | ⬜ measured, healthy, no action | — |
 | G-4 | One production comment referencing a `.md` file | ⬜ left as is, reasoning below | — |
-| H-1 | `distributeDividend` ignores the claim window, so it can pay on **live** balances | ⚠️ **decide** | — |
+| H-1 | `distributeDividend` ignored the claim window, so it could pay on **live** balances | ✅ fixed | `IncomeVaultRestricted.sol`, `IncomeVaultInternal.sol` |
 | H-2 | `distributeDividend` bypasses pause / freeze / RuleEngine | ⚠️ **decide** | — |
 | H-3 | The vault checks whether it has frozen *itself* | ⬜ keep, reasoning below | — |
 | H-4 | `withdrawAll` leaves the per-time accounting stale | ⬜ already documented | — |
 | I-1 | The vault requires 8 interface functions and calls 3 | ⚠️ **decide** | — |
 
-Counted from the rows above: **7 fixed**, **12 deliberately left as is**, **4 needing a decision**.
+Counted from the rows above: **8 fixed**, **12 deliberately left as is**, **3 needing a decision**.
 
 ## Outstanding
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
 | G-1 | Version string vs release heading | Semver call belongs to the maintainer; the CHANGELOG's own rule says this release is MAJOR |
-| H-1 | `distributeDividend` and the claim window | Changes behaviour of a privileged entrypoint; needs the issuer's intent |
-| H-2 | `distributeDividend` and the ValidationModule | Same; may be deliberate for a forced payout |
+| H-2 | `distributeDividend` and the ValidationModule | Changes behaviour of a privileged entrypoint; may be deliberate for a forced payout |
 | I-1 | Minimal snapshot interface | Requires declaring a new interface, and `ISnapshotState` is owned by another repository |
 | F-2 | ERC-165 for `IERC3643Version` | Cosmetic; no consumer known to filter on it |
 
@@ -261,39 +260,62 @@ the file. Removing it would delete the one thing that ties the constant to the r
 Both findings here concern `distributeDividend`, the issuer-driven push path. Both are reachable only
 with `INCOME_VAULT_DISTRIBUTE_ROLE` (or the owner, in the single-owner variant), so neither is
 exploitable by an outsider — but both make the push path behave differently from the pull path in ways
-that undercut the vault's stated purpose.
+that undercut the vault's stated purpose. **H-1 has since been fixed; H-2 remains open.**
 
-### H-1. `distributeDividend` ignores the claim window — ⚠️ decide
+### H-1. `distributeDividend` ignored the claim window — ✅ fixed
 
 `claimDividend` calls `validateTime(time)`, which rejects a claim that is too early or too late.
-`distributeDividend` checks **only** `segregatedClaim[time]`:
+`distributeDividend` checked **only** `segregatedClaim[time]`:
 
 ```solidity
-function distributeDividend(address[] calldata addresses, uint256 time) public virtual onlyDistributeManager {
-    IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-    if(!$._segregatedClaim[time]){ revert IncomeVault_ClaimNotActivated(); }
-    (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
+if(!$._segregatedClaim[time]){ revert IncomeVault_ClaimNotActivated(); }
+(uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
 ```
 
-**Why the missing "too early" check matters, verified against the upstream source.**
+**Why the missing "too early" check mattered, verified against the upstream source.**
 `SnapshotBase._snapshotBalanceOf` is:
 
 ```solidity
 return snapshotted ? value : ownerBalance;
 ```
 
-When no snapshot value exists at `time`, it falls back to the **live** balance. So calling
-`distributeDividend` before `time` — when the snapshot has not been recorded — computes every payout
-from current balances instead of the recorded ones, and marks `claimedDividend[holder][time] = true`,
-permanently consuming the holder's claim for that period at the wrong amount.
+When no snapshot value exists at `time` it falls back to the **live** balance. So a distribution before
+`time` computed every payout from current balances instead of the recorded ones, and set
+`claimedDividend[holder][time] = true`, permanently consuming the holder's claim for that period at the
+wrong amount.
 
-`testDistributeDividendIgnoresTheClaimWindow` pins this: at a timestamp before `time`, the holder's own
-`claimDividend` reverts `IncomeVault_TooEarlyToWithdraw` while the issuer's push for the same holder,
-the same period, succeeds and pays out.
+**Fix.** `distributeDividend` now applies the same three checks as the pull path:
 
-Verdict: **decide.** The fix is one line — call `validateTime(time)` instead of the bare
-`segregatedClaim` check — but it also imports the "too late" bound, which may not be wanted for a
-forced payout. The characterisation test is written so that fixing H-1 makes it fail loudly.
+```solidity
+// Same window as a holder-driven claim: the claims must be open, `time` must have passed so the
+// snapshot is recorded, and the withdraw limit must not have expired.
+_revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
+```
+
+> **⚠️ Correction to this report.** The original text said *"the fix is one line — call
+> `validateTime(time)` instead of the bare `segregatedClaim` check"*. **That was wrong.**
+> `validateTime` is declared in `IncomeVaultOpen`, which is a **sibling** of `IncomeVaultRestricted`
+> (both inherit `IncomeVaultValidationModule` and `IncomeVaultInternal`; neither inherits the other), so
+> `distributeDividend` cannot call it. The real fix moved the enum `TIME_ERROR_CODE` and the internal
+> helpers `_timeCode` / `_revertOnInvalidTime` down into the shared parent `IncomeVaultInternal`, where
+> both paths can reach them. The public surface of `IncomeVaultOpen` is unchanged — `validateTime`,
+> `validateTimeCode` and `validateTimeBatch` stay exactly where they were — and no logic was duplicated,
+> which inlining the three checks into `IncomeVaultRestricted` would have done.
+
+**Tests, written before the fix and confirmed to fail against the old code**
+(`next call did not revert as expected`, 3 failures):
+
+| Test | Asserts |
+| --- | --- |
+| `testCannotDistributeBeforeTheDividendTime` | reverts `TooEarlyToWithdraw`; nothing paid, claim still available |
+| `testCannotDistributeAfterTheWithdrawLimit` | reverts `TooLateToWithdraw` |
+| `testCannotDistributeWhenTheClaimIsNotActivated` | still reverts `ClaimNotActivated` |
+| `testDistributeInsideTheWindowStillWorks` | inside the window the payout is unchanged |
+| `testPushAndPullAgreeOnTheWindow` | push and pull reject with the **same** error at the same instant |
+
+The "too late" bound came along with the fix. That is coherent: after the withdraw limit the funds are
+meant to return to the issuer through `withdraw`, so a push at that point would contradict the limit.
+An issuer who wants to pay later extends `timeLimitToWithdraw` rather than bypassing it.
 
 ### H-2. `distributeDividend` bypasses the ValidationModule — ⚠️ decide
 

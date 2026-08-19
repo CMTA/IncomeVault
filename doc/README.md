@@ -242,8 +242,15 @@ In this situation, the token holder can not decide if he wants to receive his di
 Since the function is restricted by access control (`INCOME_VAULT_DISTRIBUTE_ROLE`), it is not possible to use Chainlink Automation to perform an automatic call and distribute the dividends.
 Moreover, the list of token holders has to be provided by the transaction’s sender.
 
-Note that `distributeDividend` does **not** go through the ValidationModule: it is an issuer-driven
-push, and the pause / freeze / RuleEngine restrictions only apply to the holder-driven claims.
+`distributeDividend` is subject to the **same claim window** as a holder-driven claim: the claims must
+be open for that `time`, `time` must have passed, and the withdraw limit must not have expired. Without
+the "too early" bound the distribution would read the *live* balances — `ISnapshotState` falls back to
+them when no snapshot has been recorded yet — and would consume each holder's claim for that period at
+the wrong amount.
+
+It does **not** go through the ValidationModule: the pause, freeze and RuleEngine restrictions apply to
+the holder-driven claims only. That asymmetry is deliberate for a forced payout, but it does mean an
+address the RuleEngine would refuse can still be paid by the issuer.
 
 ## Improvement
 

@@ -106,14 +106,16 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @notice distribute the dividends
     * @param addresses compute and transfer dividend for these holders
     * @param time dividend time
-    * @dev The dividends are distributed only if they have not yet been claimed by the token holder
+    * @dev The dividends are distributed only if they have not yet been claimed by the token holder.
+    * Subject to the same claim window as {IncomeVaultOpen-claimDividend}.
     */
     function distributeDividend(address[] calldata addresses, uint256 time) public virtual onlyDistributeManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        // Check if the claim is activated
-        if(!$._segregatedClaim[time]){
-             revert IncomeVault_ClaimNotActivated();
-        }
+        // Same window as a holder-driven claim: the claims must be open, `time` must have passed so the
+        // snapshot is recorded, and the withdraw limit must not have expired. Distributing before `time`
+        // would read the *live* balances, because {ISnapshotState} falls back to them when no snapshot
+        // exists yet, and would consume the holder's claim for that period at the wrong amount.
+        _revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
         // Get info from the snapshot source
         (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
         // Compute dividend for all token holders

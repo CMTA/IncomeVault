@@ -108,6 +108,13 @@ forge lint
 
 ### Fixed
 
+- `distributeDividend` now applies the same claim window as `claimDividend` (claims open, `time`
+  reached, withdraw limit not expired). It previously checked only `segregatedClaim[time]`, so a
+  distribution before `time` computed every payout from the **live** balances — `ISnapshotState` falls
+  back to them when no snapshot has been recorded — and marked the period claimed at the wrong amount.
+  Finding H-1 of `CLAUDE_ANALYSIS.md`.
+
+
 - `INCOME_VAULT_DISTRIBUTE_ROLE` was defined as `keccak256("INCOME_VAULT_DEPOSIT_ROLE")` and
   therefore shared the deposit role. It is now `keccak256("INCOME_VAULT_DISTRIBUTE_ROLE")`.
 - `initialize` checked the payment token against the zero address twice and never checked the

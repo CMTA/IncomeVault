@@ -95,8 +95,8 @@ test/
 ├── AccessControlHooks.t.sol               # Both variants: every hook accepts/rejects, role separation,
 │                                          #   Ownable2Step handover, ERC-165
 ├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
-├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings; H-1 is a
-│                                          #   characterisation test that MUST fail if H-1 is fixed
+├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings, incl. the
+│                                          #   push/pull claim-window parity (H-1)
 └── mocks/IncomeVaultOverrideMock.sol      # compile guard for the `virtual` convention
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
@@ -191,6 +191,10 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
   external call; keep `nonReentrant` on the claim entry points.
 - **Deposits vs. open claims:** do not deposit for a `time` whose claim status is
   already `true` — it dilutes holders who have not yet claimed.
+- **The claim window is shared.** `TIME_ERROR_CODE`, `_timeCode` and `_revertOnInvalidTime` live in
+  `IncomeVaultInternal` so both the pull path (`claimDividend`) and the push path
+  (`distributeDividend`) apply them. Any new payout path must call them too: without the "too early"
+  bound, `ISnapshotState` falls back to live balances and the payout is computed from the wrong figures.
 - **ERC-20 safety:** use `SafeERC20` (`safeTransfer` / `safeTransferFrom`) for the
   payment token.
 - **Style:** 4-space indent, NatSpec (`@notice` / `@param` / `@dev`) on public and

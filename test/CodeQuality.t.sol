@@ -107,26 +107,74 @@ contract CodeQualityTest is HelperContract {
         assertEq(uint256(incomeVault.validateTimeCode(defaultSnapshotTime)), 0);
     }
 
-    /* ============ H-1 — CHARACTERISATION, documents current behaviour ============ */
+    /* ============ H-1 — the push path applies the same claim window as the pull path ============ */
     /**
-    * @notice `distributeDividend` does not apply the claim window, so it can be called before
-    * `time`, when the snapshot has not been recorded and {ISnapshotState} falls back to the
-    * **live** balance. A holder-initiated `claimDividend` is refused at the same instant.
-    * @dev This test pins the behaviour reported as H-1. If H-1 is fixed it must be updated:
-    * the distribution should revert with IncomeVault_TooEarlyToWithdraw.
+    * @notice `distributeDividend` must refuse a distribution before `time`
+    * @dev
+    * Before `time` the snapshot has not been recorded, and {ISnapshotState} falls back to the **live**
+    * balance — so a distribution would pay from current balances and permanently consume the holder's
+    * claim for that period at the wrong amount. This is finding H-1.
     */
-    function testDistributeDividendIgnoresTheClaimWindow() public {
+    function testCannotDistributeBeforeTheDividendTime() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
 
-        // before `time`: the holder is refused
         assertLt(block.timestamp, defaultSnapshotTime);
-        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
-        vm.prank(ADDRESS1);
-        incomeVault.claimDividend(defaultSnapshotTime);
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
 
-        // ... yet the issuer can push the very same payout
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        // nothing was paid and the claim is still available to the holder
+        assertEq(tokenPayment.balanceOf(ADDRESS1), 0);
+        assertEq(incomeVault.claimedDividend(ADDRESS1, defaultSnapshotTime), false);
+    }
+
+    /**
+    * @notice `distributeDividend` must refuse a distribution after the withdraw limit
+    */
+    function testCannotDistributeAfterTheWithdrawLimit() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + TIME_LIMIT_TO_WITHDRAW + 1);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+    }
+
+    /**
+    * @notice The claim-not-activated case still reverts with its own error
+    */
+    function testCannotDistributeWhenTheClaimIsNotActivated() public {
+        _performDeposit();
+        vm.warp(defaultSnapshotTime + 50);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+    }
+
+    /**
+    * @notice Inside the window the distribution still works, on the recorded snapshot balances
+    */
+    function testDistributeInsideTheWindowStillWorks() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -134,5 +182,34 @@ contract CodeQualityTest is HelperContract {
 
         assertEq(tokenPayment.balanceOf(ADDRESS1), defaultDepositAmount);
         assertEq(incomeVault.claimedDividend(ADDRESS1, defaultSnapshotTime), true);
+    }
+
+    /**
+    * @notice The push path and the pull path now agree on when a payout is allowed
+    */
+    function testPushAndPullAgreeOnTheWindow() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+
+        // too early: both refuse, with the same error
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(defaultSnapshotTime);
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        // too late: both refuse, with the same error
+        vm.warp(defaultSnapshotTime + TIME_LIMIT_TO_WITHDRAW + 1);
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(defaultSnapshotTime);
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
 }
