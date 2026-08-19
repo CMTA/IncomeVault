@@ -7,10 +7,18 @@
 The toolchain includes the following components, where the versions
 are the latest ones that we tested: 
 
-- Solidity 0.8.22 (via solc-js)
-- OpenZeppelin Contracts  (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
-- CMTAT [v2.4.0](https://github.com/CMTA/CMTAT/releases/tag/v2.4.0)
-- RuleEngine [v2.0.0](https://github.com/CMTA/RuleEngine/releases/tag/v2.0.0)
+- Solidity 0.8.36, EVM target `prague`
+- OpenZeppelin Contracts (submodule) [v5.7.0](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.7.0)
+- OpenZeppelin Contracts Upgradeable (submodule) [v5.7.0](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.7.0)
+- OpenZeppelin Foundry Upgrades (submodule) [v0.4.2](https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades/releases/tag/v0.4.2)
+- CMTAT [v3.3.0-rc3](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc3)
+- RuleEngine [v3.0.0-rc5](https://github.com/CMTA/RuleEngine/releases/tag/v3.0.0-rc5)
+- SnapshotEngine [v0.5.0](https://github.com/CMTA/SnapshotEngine/releases/tag/v0.5.0)
+- forge-std [v1.16.1](https://github.com/foundry-rs/forge-std/releases/tag/v1.16.1)
+
+> CMTAT v3.3.0 and RuleEngine v3.0.0 are still release candidates. They are the versions the CMTA
+> ecosystem is aligned on: RuleEngine v3.0.0-rc5 pins CMTAT v3.3.0-rc3, and SnapshotEngine v0.5.0
+> pins CMTAT v3.3.0-rc1. Pin them to a stable release as soon as one is published.
 
 ## Node.JS  package
 
@@ -92,7 +100,7 @@ The related component can be installed with `npm install` (see [package.json](./
 
 ### [Surya](https://github.com/ConsenSys/surya)
 
-Several bash scripts are available to generate the documentation in [./script ](./script ).
+Several bash scripts are available to generate the documentation in [doc/script](./script).
 
 #### Graph
 

@@ -1,16 +1,26 @@
 // SPDX-License-Identifier: MPL-2.0
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-import "OZ/token/ERC20/utils/SafeERC20.sol"; 
-import "./IncomeVaultInvariantStorage.sol";
-import "CMTAT/interfaces/ICMTATSnapshot.sol";
+/* ==== OpenZeppelin === */
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+/* ==== Snapshot === */
+import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+/* ==== IncomeVault === */
+import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
+
 /**
 * @title Internal functions
+* @dev
+* The vault is token-agnostic: `snapshotEngine` is any contract implementing {ISnapshotState},
+* e.g. the CMTA `SnapshotEngine` bound to an ERC-20, or a token embedding the snapshot logic itself.
 */
-abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage  {
-    // CMTAT token
-    ICMTATSnapshot public CMTAT_TOKEN;
+abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
+    /* ============ State Variables ============ */
+    /// @notice Snapshot source used to read the token holder balances and the total supply
+    ISnapshotState public snapshotEngine;
+    /// @notice ERC-20 token used to pay the dividends
     IERC20 public ERC20TokenPayment;
     mapping(address => mapping (uint256 => bool)) public claimedDividend;
     mapping(uint256 => uint256) public segregatedDividend;
@@ -20,6 +30,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage  {
     // Manage transfer failure
     using SafeERC20 for IERC20;
 
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL/PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     /**
     * @param time dividend time
     * @param tokenHolders addresses to compute dividend
@@ -70,8 +83,21 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage  {
         // We don't revert if SenderBalance == 0 to record the claim
         if(tokenHolderDividend != 0){
             // Will revert in case of failure
-            // We should put that in a try catch for the batch version ???
             ERC20TokenPayment.safeTransfer(tokenHolder, tokenHolderDividend);
         }
     }
+
+    /**
+    * @dev set the snapshot source used to compute the dividends
+    * @param snapshotEngine_ any contract implementing {ISnapshotState}
+    */
+    function _setSnapshotEngine(ISnapshotState snapshotEngine_) internal virtual {
+        if(address(snapshotEngine_) == address(0)){
+            revert IncomeVault_SnapshotEngineWithAddressZeroNotAllowed();
+        }
+        snapshotEngine = snapshotEngine_;
+        emit SnapshotEngineSet(snapshotEngine_);
+    }
+
+    uint256[50] private __gap;
 }

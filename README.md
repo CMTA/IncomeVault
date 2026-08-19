@@ -4,7 +4,7 @@
 >
 > If you want to use this project, perform your own verification or send an email to [admin@cmta.ch](mailto:admin@cmta.ch).
 
-The `IncomeVault`is  a prototype to perform coupon-payment dividend with a CMTAT and the snapshotModule
+The `IncomeVault` is a prototype to perform coupon-payment dividend with a token supporting on-chain snapshots, typically a [CMTAT](https://github.com/CMTA/CMTAT) bound to a [SnapshotEngine](https://github.com/CMTA/SnapshotEngine).
 
 ## Introduction
 
@@ -22,7 +22,15 @@ For the specific case where dividends are distributed in shares, meaning additio
 ## Compatibility
 
 - The dividends can be paid with ERC-20 tokens as described in the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) specification
-- The shares used to compute the dividends part have to be a smart contract implementing the interface `ICMTATSnapshot` as described in the CMTAT. This interface is responsible to provide information on the  token holder's balance and the total supply for a specific time.
+- The shares used to compute the dividends part are read through the interface `ISnapshotState`, defined in the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine) repository. This interface is responsible to provide information on the token holder's balance and the total supply for a specific time.
+
+The vault is **not** tied to the CMTAT: any contract implementing `ISnapshotState` can be used as the snapshot source, for example
+
+- the external `SnapshotEngine` bound to a CMTAT or to any other ERC-20,
+- a token embedding the snapshot modules directly (`CMTATStandaloneInternalSnapshot`, `CMTATUpgradeableInternalSnapshot`),
+- any custom contract exposing `snapshotInfo` / `snapshotInfoBatch`.
+
+The address is provided at initialization through the parameter `snapshotEngine_` and is exposed by the public getter `snapshotEngine()`.
 
 ## Audits
 
@@ -51,7 +59,13 @@ The project is developed with [Foundry](https://book.getfoundry.sh)
 You must first initialize the submodules, with
 
 ```
-forge install
+git submodule update --init --recursive
+```
+
+The upgrade safety validation performed by the [OpenZeppelin Foundry Upgrades](https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades) plugin requires `@openzeppelin/upgrades-core`:
+
+```
+npm install
 ```
 
 See also the command's [documentation](https://book.getfoundry.sh/reference/forge/forge-install).
@@ -79,8 +93,13 @@ The official documentation is available in the Foundry [website](https://book.ge
 You can run the tests with
 
 ```
-forge test
+forge clean && forge build
+forge test --ffi
 ```
+
+> `--ffi` is required: the tests deploy the vault behind a transparent proxy with the OpenZeppelin
+> Foundry Upgrades plugin, whose validation runs `@openzeppelin/upgrades-core` and needs a **full**
+> (non incremental) build, hence the `forge clean` before `forge build`.
 
 To run a specific test, use
 

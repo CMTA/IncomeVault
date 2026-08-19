@@ -10,10 +10,14 @@
 ## What this project is
 
 `IncomeVault` is a CMTA prototype smart contract that distributes coupon/dividend
-payments to holders of a [CMTAT](https://github.com/CMTA/CMTAT) security token.
-Dividends are deposited in the vault in an **ERC-20 payment token** (e.g. USDC),
-segregated per distribution date (`time`), and claimed by holders pro-rata using
-the CMTAT **snapshot module** (`ICMTATSnapshot.snapshotInfo`).
+payments to the holders of a security token. Dividends are deposited in the vault in an
+**ERC-20 payment token** (e.g. USDC), segregated per distribution date (`time`), and claimed
+pro-rata using an on-chain snapshot read through the **`ISnapshotState`** interface
+([SnapshotEngine](https://github.com/CMTA/SnapshotEngine)).
+
+The vault is **token agnostic**: it never calls the token, only the snapshot source. Any contract
+implementing `ISnapshotState` works — the external `SnapshotEngine` bound to a CMTAT (or to any
+ERC-20), a token embedding the snapshot modules, or a custom implementation.
 
 > **The contracts are NOT audited.** Do not present them as production-ready.
 
@@ -22,103 +26,115 @@ the CMTAT **snapshot module** (`ICMTATSnapshot.snapshotInfo`).
 - **Segregated deposits by `time`** — `time` is a Unix timestamp identifying a
   distribution. State is keyed by it: `segregatedDividend[time]`,
   `segregatedClaim[time]`, `claimedDividend[holder][time]`.
-- **Claim flow** — admin registers a CMTAT snapshot at `time` → deposit role calls
+- **Claim flow** — the snapshot source schedules a snapshot at `time` → deposit role calls
   `deposit(time, amount)` → operator calls `setStatusClaim(time, true)` → holders
   call `claimDividend(time)` / `claimDividendBatch(times)`.
-- **Pro-rata formula** — `senderDividend = (senderCMTATBalance * segregatedDividend[time]) / tokenTotalSupply`,
+- **Snapshot source** — `snapshotEngine` (`ISnapshotState`), set at initialization, never zero.
+  Only `snapshotInfo` and the two `snapshotInfoBatch` overloads are used.
+- **Pro-rata formula** — `senderDividend = (senderBalance * segregatedDividend[time]) / tokenTotalSupply`,
   rounded down. Dust stays in the vault; the issuer withdraws it after `timeLimitToWithdraw`.
 - **Claim window** — `validateTime` / `validateTimeCode` reject a claim when the
   claim is not activated, `block.timestamp < time` (too early), or
   `block.timestamp > time + timeLimitToWithdraw` (too late).
-- **Access control** — OpenZeppelin `AccessControl` via CMTAT's `AuthorizationModule`.
-  Roles: `DEFAULT_ADMIN_ROLE`, `INCOME_VAULT_OPERATOR_ROLE`,
-  `INCOME_VAULT_DEPOSIT_ROLE`, `INCOME_VAULT_WITHDRAW_ROLE`,
-  `INCOME_VAULT_DISTRIBUTE_ROLE`.
-- **Transfer restriction** — a claim is treated as a transfer from the vault to the
-  holder and goes through CMTAT's `ValidationModule._operateOnTransfer` (pause,
-  freeze, RuleEngine rules such as whitelist/blacklist/sanction list).
+- **Access control** — OpenZeppelin `AccessControl` via CMTAT's `AccessControlModule`
+  (`DEFAULT_ADMIN_ROLE` implicitly holds every role). Vault roles:
+  `INCOME_VAULT_OPERATOR_ROLE`, `INCOME_VAULT_DEPOSIT_ROLE`, `INCOME_VAULT_WITHDRAW_ROLE`,
+  `INCOME_VAULT_DISTRIBUTE_ROLE`; plus `PAUSER_ROLE` and `ENFORCER_ROLE` from the CMTAT modules.
+- **Transfer restriction** — a claim is treated as a transfer from the vault to the holder and goes
+  through `IncomeVaultValidationModule`: pause, address freeze, and an optional `IRuleEngine`.
+  Rejected payouts revert with `IncomeVault_InvalidTransfer(from, to, value)`.
+- **RuleEngine is read-only here** — the vault uses `IRuleEngine.canTransfer` only. It is not a
+  bound token, so `transferred(...)` would revert, and a payout must not mutate stateful rules.
 - **Upgradeable** — deployed behind an OpenZeppelin **Transparent Proxy**;
   `initialize(...)` replaces the constructor, every contract reserves a
   `uint256[50] private __gap`.
-- **Gasless / meta-tx** — inherits CMTAT's `MetaTxModule` (ERC-2771). The
-  forwarder address is set in the constructor and is **immutable**. `_msgSender()`,
-  `_msgData()` and `_contextSuffixLength()` are overridden to resolve the
+- **Gasless / meta-tx** — inherits CMTAT's `ERC2771Module` (ERC-2771). The forwarder address is set
+  in the constructor and is **immutable**. `_msgSender()`, `_msgData()` and
+  `_contextSuffixLength()` are overridden to resolve the
   `ERC2771ContextUpgradeable` / `ContextUpgradeable` diamond.
-- **Reentrancy** — claims use `nonReentrant`; `_transferDividend` sets
-  `claimedDividend[holder][time] = true` *before* the ERC-20 transfer.
+- **Reentrancy** — claims use `nonReentrant` from `ReentrancyGuardTransient` (EIP-1153);
+  `_transferDividend` sets `claimedDividend[holder][time] = true` *before* the ERC-20 transfer.
 
 ## File tree
 
 ```
 src/
 ├── IncomeVault.sol                        # Entry point: constructor(forwarder), initialize(), _msgSender/_msgData overrides
+├── modules/
+│   └── IncomeVaultValidationModule.sol    # AccessControl + Pause + Enforcement + RuleEngine;
+│                                          #   canTransfer, setRuleEngine, detectTransferRestriction
 ├── public/
 │   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
 └── libraries/
-    ├── IncomeVaultInternal.sol            # Storage (CMTAT_TOKEN, ERC20TokenPayment, mappings) + _computeDividend(Batch), _transferDividend
+    ├── IncomeVaultInternal.sol            # Storage (snapshotEngine, ERC20TokenPayment, mappings) +
+    │                                      #   _computeDividend(Batch), _transferDividend, _setSnapshotEngine
     └── IncomeVaultInvariantStorage.sol    # Role constants, custom errors, events
 
 test/
-├── HelperContract.sol                     # Shared constants, test addresses, CMTAT/payment-token handles
-├── IncomeVault.t.sol                      # Single claim: deposit, claim, error cases
+├── HelperContract.sol                     # Constants + `_deployContracts()`: CMTAT, SnapshotEngine, payment token, proxy
+├── mocks/ERC20PaymentMock.sol             # Minimal ERC-20 used as payment token
+├── IncomeVault.t.sol                      # Single claim: deposit, claim, pause, freeze, error cases
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
-├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, setStatusClaim
-└── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelist
+├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
+└── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
 ```
 
-Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
-is why `--ffi` is required and why `forge coverage` does not work here.
+Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which requires `--ffi`,
+`@openzeppelin/upgrades-core` from npm, and a **full** build (`forge clean && forge build`).
 
 ## Other important files
 
 | Path | Purpose |
 | --- | --- |
-| `foundry.toml` | solc 0.8.22, optimizer 200 runs, EVM `london`, `build_info`, `storageLayout`, `fs_permissions` on `./out` (needed by OZ Upgrades) |
-| `remappings.txt` | `CMTAT/`, `RuleEngine/`, `OZ/`, `OZUpgradeable/`, `@openzeppelin/contracts-upgradeable/` |
+| `foundry.toml` | solc 0.8.36, optimizer 200 runs, EVM `prague`, `ffi`, `ast`, `build_info`, `storageLayout`, `fs_permissions` on `./out` (needed by OZ Upgrades) |
+| `remappings.txt` | `CMTAT/`, `RuleEngine/`, `SnapshotEngine/`, `OZ/`, `OZUpgradeable/`, `@openzeppelin/*`, `openzeppelin-foundry-upgrades/`, `forge-std/` |
 | `hardhat.config.js` | Only used for `solidity-docgen` (`npx hardhat docgen`), mirrors the Foundry solc settings |
-| `package.json` | npm scripts: lint (ethlint/prettier), `uml`, `surya:*`, `docgen` |
+| `package.json` | npm scripts: lint (ethlint/prettier), `uml`, `surya:*`, `docgen`; dependency `@openzeppelin/upgrades-core` |
 | `.soliumrc.json`, `.soliumignore` | Ethlint/Solium configuration |
-| `CHANGELOG.md` | changelog.md conventions; current release `1.0.0` |
-| `doc/specification.md` | Roles table, claim restrictions, formula, threat model & FAQ |
-| `doc/technical.md` | Upgradeability, pause, gasless (GSN/ERC-2771) design notes |
+| `CHANGELOG.md` | changelog.md conventions; current release `2.0.0` |
+| `doc/specification.md` | Snapshot source, roles table, claim restrictions, formula, threat model & FAQ |
+| `doc/technical.md` | Upgradeability, pause, token agnosticism, reentrancy, gasless (GSN/ERC-2771) |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
-| `doc/solidityAPI/index.md` | Generated Solidity API (docgen) |
-| `doc/surya/`, `doc/schema/` | Surya graphs/reports, UML and drawio diagrams |
-| `doc/audits/tools/slither-report.md` | Slither static-analysis report |
-| `.github/workflows/ci.yml` | CI: `forge install`, `forge build --sizes`, `forge test -vvv --ffi` |
+| `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration |
+| `doc/surya/`, `doc/schema/` | Surya graphs/reports, UML and drawio diagrams — stale, regenerate with `npm run surya:graph` / `npm run uml` |
+| `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
+| `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
 ## Dependencies (tested versions)
 
-- Solidity **0.8.22** (contracts declare `pragma ^0.8.20`)
-- CMTAT **v2.4.0** (submodule `lib/CMTAT`)
-- RuleEngine **v2.0.0** (submodule `lib/RuleEngine`)
-- openzeppelin-contracts **v5.0.0** (submodule `lib/openzeppelin-contracts`)
-- openzeppelin-contracts-upgradeable **v5.0.2** (submodule)
-- openzeppelin-foundry-upgrades **v0.1.0** (submodule)
-- forge-std (submodule `lib/forge-std`)
+- Solidity **0.8.36**, EVM target `prague` (contracts declare `pragma ^0.8.24`)
+- CMTAT **v3.3.0-rc3** (submodule `lib/CMTAT`)
+- RuleEngine **v3.0.0-rc5** (submodule `lib/RuleEngine`)
+- SnapshotEngine **v0.5.0** (submodule `lib/SnapshotEngine`)
+- openzeppelin-contracts **v5.7.0** (submodule)
+- openzeppelin-contracts-upgradeable **v5.7.0** (submodule)
+- openzeppelin-foundry-upgrades **v0.4.2** (submodule)
+- forge-std **v1.16.1** (submodule)
 
-Submodules are **not** updated automatically — pin them to a release tag, never to
-an intermediary commit.
+CMTAT v3.3.0 and RuleEngine v3.0.0 are release candidates — they are what the CMTA ecosystem is
+currently aligned on (RuleEngine v3.0.0-rc5 pins CMTAT v3.3.0-rc3). Submodules are **not** updated
+automatically — pin them to a release tag, never to an intermediary commit.
 
 ## Common commands
 
 ```bash
-forge install                              # initialize submodules (required first)
-forge build --contracts src/IncomeVault.sol
+git submodule update --init --recursive    # initialize submodules (required first)
+npm install                                # @openzeppelin/upgrades-core, needed by the Upgrades plugin
+
+forge clean && forge build                 # a FULL build is required by the upgrade safety validation
 forge build --sizes                        # as run in CI
 forge test --ffi                           # --ffi is mandatory (OZ Upgrades plugin)
-forge test --match-contract IncomeVaultTest --match-test testHolderCanClaimWithDepositAndOneHolder
+forge test --ffi --match-contract IncomeVaultTest --match-test testHolderCanClaimWithDepositAndOneHolder
 forge coverage --ffi                       # known not to work with the proxy deployment
 
-npm install
 npm run lint:sol                           # ethlint on src/
 npm run lint:sol:prettier                  # prettier-plugin-solidity
 npm run surya:graph && npm run surya:report
 npm run uml && npx hardhat docgen
 
-slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > slither-report.md
+slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngine|SnapshotEngine|forge-std" > slither-report.md
 ```
 
 ## Conventions & invariants
@@ -129,8 +145,6 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-st
   ones at the end and shrink the trailing `uint256[50] private __gap` accordingly.
   `IncomeVault` has an `/// @custom:oz-upgrades-unsafe-allow constructor` annotation
   — keep it and keep `_disableInitializers()` in the constructor.
-- **Initialization order matters:** `PauseModule` must be initialized before
-  `ValidationModule` (see `__IncomeVault_init`).
 - **Claim accounting:** always set `claimedDividend[holder][time]` before any
   external call; keep `nonReentrant` on the claim entry points.
 - **Deposits vs. open claims:** do not deposit for a `time` whose claim status is
@@ -138,20 +152,16 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-st
 - **ERC-20 safety:** use `SafeERC20` (`safeTransfer` / `safeTransferFrom`) for the
   payment token.
 - **Style:** 4-space indent, NatSpec (`@notice` / `@param` / `@dev`) on public and
-  internal functions, custom errors prefixed `IncomeVault_`, `SPDX-License-Identifier: MPL-2.0`
-  header on every Solidity file.
+  internal functions, custom errors prefixed `IncomeVault_`, named imports
+  (`import {X} from "..."`), `SPDX-License-Identifier: MPL-2.0` header on every Solidity file.
 - **Documentation:** the README and `doc/` must state that the contracts are not
   audited; keep that disclaimer intact.
 
 ## Known quirks (verify before "fixing")
 
-- `IncomeVaultInvariantStorage.sol` defines
-  `INCOME_VAULT_DISTRIBUTE_ROLE = keccak256("INCOME_VAULT_DEPOSIT_ROLE")` — the
-  distribute and deposit roles therefore share the same role hash.
-- `IncomeVault.__IncomeVault_init` checks `ERC20TokenPayment_ == address(0)` twice;
-  `cmtat_token` is never checked against the zero address despite the
-  `IncomeVault_CMTATWithAddressZeroNotAllowed()` error existing.
-- `withdraw` / `withdrawAll` call `approve(address(this), amount)` then
-  `safeTransferFrom(address(this), ...)` instead of a direct `safeTransfer`.
-- `package.json` scripts reference a `script/` directory that does not exist in
-  this repository (the Surya shell scripts live in `doc/script/`).
+- `distributeDividend` deliberately bypasses the ValidationModule (no pause / freeze / RuleEngine
+  check): it is an issuer-driven push, unlike the holder-driven claims.
+- The `newDeposit` event keeps its lowercase name for backward compatibility with the v1 ABI.
+- `IncomeVaultInvariantStorage` declares `event SnapshotEngineSet`, not `SnapshotEngine`, so the
+  name does not collide with the `SnapshotEngine` contract in tests and integrations.
+- `forge coverage` does not work here — the tests deploy through a proxy.

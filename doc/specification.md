@@ -4,11 +4,27 @@
 
 ## Introduction
 
- \0. On the CMTAT, the admin registers the dividend `time` to perform a snapshot and store  the holder’s balance at this specified time.
+ \0. On the snapshot source (e.g. a `SnapshotEngine` bound to a CMTAT), the admin registers the dividend `time` to perform a snapshot and store the holder’s balance at this specified time.
 
 1. An authorized address perform a deposit in the `IncomeVault` for a specific `time`
 2. An authorized address open the claim for this specific `time`
 3. Holder claims his dividends by calling the function `claimDividend`
+
+## Snapshot source
+
+The vault never talks to the token directly. It holds a single reference, `snapshotEngine`, typed
+with the interface `ISnapshotState` defined by the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine),
+and only uses three of its functions:
+
+| Function | Used by |
+| --- | --- |
+| `snapshotInfo(uint256 time, address tokenHolder)` | `claimDividend` |
+| `snapshotInfoBatch(uint256[] times, address[] addresses)` | `claimDividendBatch` |
+| `snapshotInfoBatch(uint256 time, address[] addresses)` | `distributeDividend` |
+
+Any contract implementing them can therefore be used: the external `SnapshotEngine`, a token
+embedding the snapshot modules, or a custom implementation. The address is set at initialization
+(parameter `snapshotEngine_`) and cannot be the zero address.
 
 ![IncomeVault-Global.drawio](../doc/schema/drawio/IncomeVault-Global.drawio.png)
 
@@ -16,12 +32,15 @@
 
 All restricted functions are defined in the file `IncomeVaultRestricted`.
 
-| Role                       | Function                                                     |
-| -------------------------- | ------------------------------------------------------------ |
-| DEFAULT_ADMIN_ROLE         | Manage all others roles<br /><br />This role has also all the others roles by default through the `ValidationModule` |
-| INCOME_VAULT_DEPOSIT_ROLE  | `deposit`                                                    |
-| INCOME_VAULT_WITHDRAW_ROLE | `withdraw`<br />`withdrawAll`                                |
-| INCOME_VAULT_OPERATOR_ROLE | `setStatusClaim`<br /> `setTimeLimitToWithdraw`              |
+| Role                         | Function                                                     |
+| ---------------------------- | ------------------------------------------------------------ |
+| DEFAULT_ADMIN_ROLE           | Manage all others roles<br />`setRuleEngine`<br />`deactivateContract`<br /><br />This role has also all the others roles by default through the CMTAT `AccessControlModule` |
+| INCOME_VAULT_DEPOSIT_ROLE    | `deposit`                                                    |
+| INCOME_VAULT_WITHDRAW_ROLE   | `withdraw`<br />`withdrawAll`                                |
+| INCOME_VAULT_OPERATOR_ROLE   | `setStatusClaim`<br /> `setTimeLimitToWithdraw`              |
+| INCOME_VAULT_DISTRIBUTE_ROLE | `distributeDividend`                                         |
+| PAUSER_ROLE                  | `pause`<br />`unpause`                                       |
+| ENFORCER_ROLE                | `setAddressFrozen`<br />`batchSetAddressFrozen`              |
 
 
 
@@ -34,17 +53,19 @@ Each deposit is segregated in its time value. A `time` is the dividends distribu
 ## ValidationModule
 
 A claim is considered as a transfer from the contract to the sender (token holder).
-This transfer can be restricted with the ValidationModule
+This transfer can be restricted with the `IncomeVaultValidationModule`, which composes three CMTAT
+modules and an optional RuleEngine:
 
-This module is imported from the CMTAT which allows to : 
+- `EnforcementModule` — freeze/unfreeze an address (`ENFORCER_ROLE`)
+- `PauseModule` — put the contract in the pause state (`PAUSER_ROLE`), or deactivate it
+- an optional `IRuleEngine` for additional rules
 
-- Freeze/unfreeze an address
-- Put the contract in the pause state
-- Call the ruleEngine for additional rules
+If any of them refuses the transfer, the function reverts with
+`IncomeVault_InvalidTransfer(from, to, value)`.
 
-If the ValidationModule refuses the transfer, the function is reverted.
-
-
+The public view `canTransfer(from, to, value)` returns the same answer without reverting, and
+`detectTransferRestriction` / `messageForTransferRestriction` forward the ERC-1404 introspection to
+the RuleEngine.
 
 ### RuleEngine 
 
@@ -54,6 +75,16 @@ As for the CMTAT, there is the possibility to configure a ruleEngine with rules 
 - Blacklist 
 - Sanctionlist 
 - ConditionalTransfer
+
+The vault is **not** a token bound to the RuleEngine. It only uses the *view* entry point
+`IRuleEngine.canTransfer(from, to, value)`:
+
+- `transferred(...)` is restricted to bound tokens by the RuleEngine and would revert here;
+- a dividend payout is a movement of the *payment* token, not of the security token, so it must not
+  update the stateful rules of the engine.
+
+The RuleEngine can be changed at any time with `setRuleEngine` (`DEFAULT_ADMIN_ROLE`), and set to
+the zero address to disable the rule checks.
 
 
 
@@ -128,13 +159,13 @@ Schema without the `ValidationModule` (see next paragraph)
 An authorized user can call the following functions to withdraw funds from the vault:
 
 ```
-1. withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(DEBT_VAULT_WITHDRAW_ROLE)
+1. withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE)
 ```
 
 and
 
 ```
-2. withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(DEBT_VAULT_WITHDRAW_ROLE)
+2. withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE)
 ```
 
 With the function 1, the funds are withdrawn only from the specific time.
@@ -151,8 +182,11 @@ In this situation, the token holder can not decide if he wants to receive his di
 
 
 
-Since the function is restricted by access control, it is not possible to use Chainlink Automation to perform an automatic call and distribute the dividends.
+Since the function is restricted by access control (`INCOME_VAULT_DISTRIBUTE_ROLE`), it is not possible to use Chainlink Automation to perform an automatic call and distribute the dividends.
 Moreover, the list of token holders has to be provided by the transaction’s sender.
+
+Note that `distributeDividend` does **not** go through the ValidationModule: it is an issuer-driven
+push, and the pause / freeze / RuleEngine restrictions only apply to the holder-driven claims.
 
 ## Improvement
 
@@ -162,6 +196,16 @@ Moreover, the list of token holders has to be provided by the transaction’s se
 ## Deployment
 
 The contract has to be deployed with a transparent proxy and the contract is compatible with the standard [ERC-2771](https://eips.ethereum.org/EIPS/eip-2771) for meta transactions.
+
+```
+initialize(
+    address admin,
+    IERC20 ERC20TokenPayment_,
+    ISnapshotState snapshotEngine_,
+    IRuleEngine ruleEngine_,
+    uint256 timeLimitToWithdraw_
+)
+```
 
  
 

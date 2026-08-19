@@ -11,18 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
-      - name: Run Forge install
-        run: forge install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # @openzeppelin/upgrades-core is required by the OpenZeppelin Foundry Upgrades plugin
+      - name: Install Node dependencies
+        run: npm install
 
       - name: Run Forge build
-        run: forge build --sizes
+        # a full (non incremental) build is required by the upgrade safety validation
+        run: forge clean && forge build --sizes
 
-      - name: Run Forge tests 
+      - name: Run Forge tests
         run: forge test -vvv --ffi

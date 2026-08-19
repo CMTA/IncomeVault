@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MPL-2.0
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-import "OZ/token/ERC20/utils/SafeERC20.sol"; 
-import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
-import "../libraries/IncomeVaultInternal.sol";
+/* ==== OpenZeppelin === */
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+/* ==== IncomeVault === */
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 
 /**
-* @title restricted functions
+* @title Restricted functions
 */
-abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal {
+abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVaultInternal {
+    // Security
+    using SafeERC20 for IERC20;
+
+    /* ============  Initializer Function ============ */
     /**
     * @dev calls the different initialize functions from the different modules
     */
@@ -18,9 +25,11 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     ) internal onlyInitializing {
        timeLimitToWithdraw = timeLimitToWithdraw_;
     }
-    // Security
-    using SafeERC20 for IERC20;
 
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC/EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /* ============ State restricted functions ============ */
     /**
     * @notice deposit an amount to pay the dividends.
     * @param time provide the date where you want to perform a deposit
@@ -44,16 +53,12 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
-        bool result = ERC20TokenPayment.approve(address(this), amount);
-        if(!result){
-             revert IncomeVault_FailApproval();
-        }
         if(segregatedDividend[time] < amount) {
             revert IncomeVault_NotEnoughAmount();
         }
         segregatedDividend[time] -= amount;
         // Will revert in case of failure
-        ERC20TokenPayment.safeTransferFrom(address(this), withdrawAddress, amount);
+        ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
 
     /**
@@ -62,12 +67,8 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
-        bool result = ERC20TokenPayment.approve(address(this), amount);
-        if(!result){
-            revert IncomeVault_FailApproval();
-        }
         // Will revert in case of failure
-        ERC20TokenPayment.safeTransferFrom(address(this), withdrawAddress, amount);
+        ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
 
     /**
@@ -81,8 +82,8 @@ abstract contract IncomeVaultRestricted is ValidationModule, IncomeVaultInternal
         if(!segregatedClaim[time]){
              revert IncomeVault_ClaimNotActivated();
         }
-        // Get info from the token
-        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = CMTAT_TOKEN.snapshotInfoBatch(time, addresses);
+        // Get info from the snapshot source
+        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = snapshotEngine.snapshotInfoBatch(time, addresses);
         // Compute dividend for all token holders
         uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
         // transfer the dividends for all token holders

@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: MPL-2.0
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
+/* ==== OpenZeppelin === */
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+/* ==== IncomeVault === */
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 
-import "lib/CMTAT/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
-import "../libraries/IncomeVaultInternal.sol";
-import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 /**
-* @title public function
+* @title Permissionless functions
 */
-abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModule , IncomeVaultInternal  {
+abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal  {
     enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
-    
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC/EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /* ============ View functions ============ */
     /**
     * @notice validate if a time is valid, return 0 if valid
     */
@@ -53,7 +59,8 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
            validateTime(times[i]);
         }
     }
-    
+
+    /* ============ State functions ============ */
     /**
     * @notice claim your payment
     * @param time provide the date where you want to receive your payment
@@ -66,8 +73,8 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
             revert IncomeVault_DividendAlreadyClaimed();
         }
 
-        // External call to the CMTAT to retrieve the total supply and the sender balance
-        (uint256 senderBalance, uint256 TokenTotalSupply) = CMTAT_TOKEN.snapshotInfo(time, sender);
+        // External call to the snapshot source to retrieve the total supply and the sender balance
+        (uint256 senderBalance, uint256 TokenTotalSupply) = snapshotEngine.snapshotInfo(time, sender);
         if (senderBalance == 0){
             revert IncomeVault_TokenBalanceIsZero();
         }
@@ -78,16 +85,14 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
         }
 
         // Transfer restriction
-        if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
-            revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);
-        }
+        _validateTransfer(address(this), sender, senderDividend);
         _transferDividend(time, sender, senderDividend);
     }
 
     /**
     * @notice batch version of {claimDividend}
     * @param times provide the dates where you want to receive your payment
-    * @dev Don't check if the dividends have been already claimed before external call to CMTAT.
+    * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
     */
     function claimDividendBatch(uint256[] memory times) public nonReentrant() {
         // Check if the claim is activated for each times
@@ -95,16 +100,13 @@ abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModu
         address sender = _msgSender();
         address[] memory senders = new address[](1);
         senders[0] = sender;
-        // External call to the CMTAT to retrieve the total supply and the sender balance
-        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = CMTAT_TOKEN.snapshotInfoBatch(times, senders);
+        // External call to the snapshot source to retrieve the total supply and the sender balance
+        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = snapshotEngine.snapshotInfoBatch(times, senders);
         for(uint256 i = 0; i < times.length; ++i){
             if (!claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0 )){
                 uint256 senderDividend = _computeDividend(times[i], senderBalances[i][0], TokenTotalSupplys[i]);
                 // Transfer restriction
-                // External Call
-                if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
-                    revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);
-                }
+                _validateTransfer(address(this), sender, senderDividend);
                 // internal call performing an ERC-20 external call
                 _transferDividend(times[i], sender, senderDividend);
             }

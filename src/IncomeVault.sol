@@ -1,16 +1,29 @@
 // SPDX-License-Identifier: MPL-2.0
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-
-import "CMTAT/modules/wrapper/extensions/MetaTxModule.sol";
-import "./public/IncomeVaultRestricted.sol";
-import "./public/IncomeVaultOpen.sol";
+/* ==== OpenZeppelin === */
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+/* ==== CMTAT === */
+import {ERC2771Module} from "CMTAT/modules/wrapper/options/ERC2771Module.sol";
+import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
+/* ==== Snapshot === */
+import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+/* ==== IncomeVault === */
+import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
+import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
 
 /**
 * @title Income Vault to distribute dividends
+* @dev
+* The vault is not bound to a specific token implementation: the holder balances and the total
+* supply are read through the {ISnapshotState} interface, which is implemented by the CMTA
+* `SnapshotEngine` as well as by any token embedding an equivalent snapshot module.
 */
-contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, MetaTxModule{
+contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
     
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
@@ -18,7 +31,7 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         address forwarderIrrevocable
-    ) MetaTxModule(forwarderIrrevocable) {
+    ) ERC2771Module(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
         _disableInitializers();
     }
@@ -28,23 +41,24 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     * initialize the proxy contract
     * The calls to this function will revert if the contract was deployed without a proxy
     * @param admin Address of the contract (Access Control)
-    * @param ERC20TokenPayment_ ERC20 token to perform the payment 
+    * @param ERC20TokenPayment_ ERC20 token used to perform the payment
+    * @param snapshotEngine_ contract implementing {ISnapshotState}, source of the holder balances
+    * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
+    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function initialize(
         address admin,
         IERC20 ERC20TokenPayment_,
-        ICMTATSnapshot cmtat_token,
+        ISnapshotState snapshotEngine_,
         IRuleEngine ruleEngine_,
-        IAuthorizationEngine authorizationEngineIrrevocable,
         uint256 timeLimitToWithdraw_
     ) public initializer {
         __IncomeVault_init(
-         admin,
-         ERC20TokenPayment_,
-        cmtat_token,
-        ruleEngine_,
-        authorizationEngineIrrevocable,
-        timeLimitToWithdraw_
+            admin,
+            ERC20TokenPayment_,
+            snapshotEngine_,
+            ruleEngine_,
+            timeLimitToWithdraw_
         );
     }
 
@@ -52,11 +66,10 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     * @dev calls the different initialize functions from the different modules
     */
     function __IncomeVault_init(
-         address admin,
+        address admin,
         IERC20 ERC20TokenPayment_,
-        ICMTATSnapshot cmtat_token,
+        ISnapshotState snapshotEngine_,
         IRuleEngine ruleEngine_,
-        IAuthorizationEngine authorizationEngineIrrevocable,
         uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {
         if(admin == address(0)){
@@ -64,27 +77,20 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         }
         if(address(ERC20TokenPayment_) == address(0)){     
             revert IncomeVault_TokenPaymentWithAddressZeroNotAllowed(); 
-        } 
-        if(address(ERC20TokenPayment_) == address(0)){     
-            revert IncomeVault_CMTATWithAddressZeroNotAllowed(); 
         }
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(INCOME_VAULT_OPERATOR_ROLE, admin);
-        CMTAT_TOKEN = cmtat_token;
         ERC20TokenPayment = ERC20TokenPayment_;
+        _setSnapshotEngine(snapshotEngine_);
 
         // Initialization
         __AccessControl_init_unchained();
-        __AuthorizationModule_init_unchained(admin, authorizationEngineIrrevocable);
-        // PauseModule_init_unchained is called before ValidationModule_init_unchained due to inheritance
+        __AccessControlModule_init_unchained(admin);
         __Pausable_init_unchained();
-        __Validation_init_unchained(ruleEngine_);
-
+        __IncomeVaultValidation_init_unchained(ruleEngine_);
         __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);
     }
     
     /** 
-    * @dev This surcharge is not necessary if you do not use the MetaTxModule
+    * @dev This surcharge is not necessary if you do not use the ERC2771Module
     */
     function _msgSender()
         internal
@@ -96,7 +102,7 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     }
 
     /** 
-    * @dev This surcharge is not necessary if you do not use the MetaTxModule
+    * @dev This surcharge is not necessary if you do not use the ERC2771Module
     */
     function _msgData()
         internal
