@@ -73,6 +73,11 @@ forge lint
 
 ### Added
 
+- `VersionModule`, exposing the release version through `IERC3643Version.version()`, as the CMTAT,
+  RuleEngine and SnapshotEngine do. `VERSION` currently reads **1.1.0**; note this conflicts with the
+  MAJOR rule stated above, which this release triggers (incompatible proxy storage change, changed
+  `initialize` signature, reworked internal architecture). Align `VERSION` with the release heading
+  before tagging.
 - `IncomeVaultOwnable2Step`, a second deployment contract using a single ERC-173 owner
   (`Ownable2StepUpgradeable`) instead of roles. The variant is chosen at deployment and cannot be
   swapped afterwards. It **cannot express separated duties** — the owner both funds and drains the

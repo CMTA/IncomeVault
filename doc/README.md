@@ -170,7 +170,9 @@ For the batch function, `claimDividendBatch`, `d` and `e` don't generate an erro
 
 This schema describes the different smart contracts called when a token holder claims his dividends.
 
-![IncomeVault-RuleEngine.drawio](../doc/schema/drawio/IncomeVault-RuleEngine.drawio.png)
+![Contracts called on a claim](./schema/plantuml/incomevault-ruleengine.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-ruleengine.puml](./schema/plantuml/incomevault-ruleengine.puml)._
 
 #### Formula
 
@@ -300,6 +302,18 @@ In this case, the whole transaction is reverted, and the smart contract still co
 #### Upgradeable
 
 The `IncomeVault` is upgradeable and can be deployed with a Transparent Proxy.
+
+#### Version
+
+Every deployment exposes its release version through the ERC-3643 `version()` view, the same way the
+CMTAT, the RuleEngine and the SnapshotEngine do:
+
+```solidity
+IERC3643Version(address(vault)).version()   // "1.1.0"
+```
+
+The value is the compile-time constant `VERSION` in `src/modules/VersionModule.sol`. Bump it together
+with the `CHANGELOG.md` heading of the release — the changelog checklist lists it as the first task.
 
 #### Storage (ERC-7201)
 

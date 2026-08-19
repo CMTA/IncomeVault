@@ -73,8 +73,9 @@ src/
 ├── IncomeVault.sol                        # Deployment: AccessControlModule; 8 hooks -> onlyRole(...)
 ├── IncomeVaultOwnable2Step.sol            # Deployment: Ownable2StepUpgradeable; 8 hooks -> onlyOwner
 ├── modules/
-│   └── IncomeVaultValidationModule.sol    # AccessControl + Pause + Enforcement + RuleEngine;
-│                                          #   canTransfer, setRuleEngine, detectTransferRestriction
+│   ├── IncomeVaultValidationModule.sol    # Pause + Enforcement + RuleEngine; canTransfer,
+│   │                                      #   setRuleEngine, detectTransferRestriction. Hooks abstract.
+│   └── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
 ├── public/
 │   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
@@ -93,6 +94,7 @@ test/
 ├── IncomeVaultStorage.t.sol               # ERC-7201: slot derivation, field offsets, getters
 ├── AccessControlHooks.t.sol               # Both variants: every hook accepts/rejects, role separation,
 │                                          #   Ownable2Step handover, ERC-165
+├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
 └── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
@@ -115,7 +117,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
 | `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration, refresh with `npx hardhat docgen` |
 | `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram, PlantUML sources and the remaining drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
-| `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
+| `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png` — the four diagrams embedded in `doc/README.md`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
@@ -156,8 +158,12 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
 
 ## Conventions & invariants
 
-- **Versioning:** `CHANGELOG.md` follows [changelog.md](https://changelog.md/);
-  add an entry for any user-visible contract change.
+- **Versioning:** `CHANGELOG.md` follows [changelog.md](https://changelog.md/) and states the project's
+  own semver rule at the top — an **incompatible proxy storage change, a changed external API, or a
+  reworked internal architecture is a MAJOR bump**. Add an entry for any user-visible contract change.
+  A release bumps two things that must agree: the `CHANGELOG.md` heading and the `VERSION` constant in
+  `src/modules/VersionModule.sol`. Add every new deployable contract to `test/VersionModule.t.sol`,
+  which is exhaustive by design.
 - **Upgrade safety:** the state lives in the ERC-7201 struct `IncomeVaultInternalStorage`
   (namespace `IncomeVault.storage.IncomeVaultInternal`). Append new fields to the **end** of that
   struct; never reorder or remove existing ones. Do **not** reintroduce `uint256[50] private __gap`

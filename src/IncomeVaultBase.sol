@@ -15,6 +15,7 @@ import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
+import {VersionModule} from "./modules/VersionModule.sol";
 
 /**
 * @title Income Vault to distribute dividends — logic shared by every deployment variant
@@ -27,7 +28,7 @@ import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
 * eight `_authorize*` hooks are left abstract and answered by the deployment contract, so the same
 * logic can ship role-based ({IncomeVault}) or single-owner ({IncomeVaultOwnable2Step}).
 */
-abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
+abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, VersionModule, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
