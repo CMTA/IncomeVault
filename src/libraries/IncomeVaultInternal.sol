@@ -58,6 +58,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         // How many dividend times currently have their claims open. Appended after the fields above:
         // ERC-7201 struct members are append-only, never reordered.
         uint256 _openClaimCount;
+        // Total already paid out for a dividend time. `_segregatedDividend` is deliberately NOT
+        // reduced on a payout — it is the pro-rata denominator and must stay fixed for the period —
+        // so this is what makes "how much of that deposit is still here" answerable.
+        mapping(uint256 time => uint256 paid) _paidDividend;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -114,6 +118,34 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     }
 
     /**
+    * @notice Total already paid out for a dividend time
+    * @param time the dividend time
+    * @return The amount of payment token already transferred to holders for `time`
+    */
+    function paidDividend(uint256 time) public view virtual returns (uint256) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return $._paidDividend[time];
+    }
+
+    /**
+    * @notice What is still held for a dividend time — the deposit minus what has been paid out
+    * @dev
+    * This is the amount an issuer can sweep with {IncomeVaultRestricted-withdraw}, and it is the bound
+    * that function enforces. `segregatedDividend` alone is **not** that amount: it is the pro-rata
+    * denominator and stays fixed at the deposit even after holders are paid.
+    *
+    * After the claim window closes it is exactly the rounding dust plus anything unclaimed. Before it
+    * closes it still includes what the remaining holders are entitled to, so sweeping early takes
+    * money they can no longer be paid — see the note on {IncomeVaultRestricted-withdraw}.
+    * @param time the dividend time
+    * @return The amount of payment token still attributable to `time`
+    */
+    function unclaimedDividend(uint256 time) public view virtual returns (uint256) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return $._segregatedDividend[time] - $._paidDividend[time];
+    }
+
+    /**
     * @notice How many dividend times currently have their claims open
     * @dev Maintained exactly by {_setStatusClaim}, the only writer of the claim status. Used by
     * {IncomeVaultRestricted-setSnapshotEngine}, which refuses to change the snapshot source while any
@@ -152,6 +184,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         // transfer
         // We don't revert if SenderBalance == 0 to record the claim
         if(tokenHolderDividend != 0){
+            $._paidDividend[time] += tokenHolderDividend;
             // Will revert in case of failure
             $._ERC20TokenPayment.safeTransfer(tokenHolder, tokenHolderDividend);
         }

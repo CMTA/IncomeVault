@@ -73,6 +73,11 @@ forge lint
 
 ### Added
 
+- `paidDividend(time)` and `unclaimedDividend(time)`, reporting how much a dividend time has paid out
+  and how much it still holds. The residue an issuer sweeps is now readable on-chain instead of being
+  reconstructed from `DividendClaimed` events. Costs **+22,274 gas on the first claim of each period**
+  (66,687 -> 88,961, a cold `SSTORE` for the new per-time counter); later claims for the same period pay
+  the warm price. Finding E-3.
 - `depositBatch(times[], amounts[])`, crediting several dividend times in one transaction and pulling
   the payment token once for the total. Measured for three periods: **136,546 gas in-call against
   116,812 for three separate `deposit` calls** — the batch is the more expensive of the two per call,
@@ -155,6 +160,11 @@ forge lint
 
 ### Fixed
 
+- `withdraw` is now bounded by what a dividend time **still holds** (`unclaimedDividend`) rather than by
+  what was deposited into it. `segregatedDividend` is the pro-rata denominator and is never reduced by a
+  payout, so the old bound let a fully-claimed period be swept again — draining the funds deposited for
+  a *different* period and leaving its holders unpayable, with no error raised. Finding E-3 of
+  `CLAUDE_IMPROVEMENT.md`.
 - `timeLimitToWithdraw` can no longer be set to zero, at initialization or through
   `setTimeLimitToWithdraw`. Zero collapsed the claim window `[time, time + limit]` to the single instant
   `block.timestamp == time` — one second later every claim already reverted `TooLateToWithdraw` — so a

@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: MPL-2.0
+pragma solidity ^0.8.24;
+
+import "./HelperContract.sol";
+
+/**
+* @title Per-period residue accounting — finding E-3
+*/
+contract UnclaimedDividendTest is HelperContract {
+    uint256 t1;
+    uint256 t2;
+
+    function setUp() public {
+        _deployContracts();
+        t1 = block.timestamp + 100;
+        t2 = block.timestamp + 200;
+
+        vm.prank(CMTAT_ADMIN); snapshotEngine.scheduleSnapshot(t1);
+        vm.prank(CMTAT_ADMIN); snapshotEngine.scheduleSnapshot(t2);
+
+        tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, 10_000);
+    }
+
+    function _deposit(uint256 time, uint256 amount) internal {
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        tokenPayment.approve(address(incomeVault), amount);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.deposit(time, amount);
+    }
+
+    /* ============ the view ============ */
+    function testUnclaimedStartsAtTheDeposit() public {
+        _deposit(t1, 1_000);
+        assertEq(incomeVault.unclaimedDividend(t1), 1_000);
+        assertEq(incomeVault.paidDividend(t1), 0);
+    }
+
+    function testUnclaimedFallsAsHoldersArePaid() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        _deposit(t1, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(t1);
+
+        assertEq(incomeVault.paidDividend(t1), 500);
+        assertEq(incomeVault.unclaimedDividend(t1), 500);
+        // the denominator is deliberately untouched
+        assertEq(incomeVault.segregatedDividend(t1), 1_000);
+    }
+
+    /**
+    * @notice The residue an issuer sweeps is exactly the rounding dust
+    * @dev Three holders sharing 1_000 each receive floor(1_000/3) = 333, leaving 1 behind.
+    */
+    function testUnclaimedIsTheRoundingDustOnceEveryoneClaimed() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
+        _deposit(t1, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        vm.prank(ADDRESS1); incomeVault.claimDividend(t1);
+        vm.prank(ADDRESS2); incomeVault.claimDividend(t1);
+        vm.prank(ADDRESS3); incomeVault.claimDividend(t1);
+
+        assertEq(incomeVault.paidDividend(t1), 999);
+        assertEq(incomeVault.unclaimedDividend(t1), 1, "the dust is one wei of the payment token");
+
+        // and the issuer can sweep exactly that, in one step
+        // (read first: a call inside the argument list would consume the prank)
+        uint256 dust = incomeVault.unclaimedDividend(t1);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, dust, ADDRESS3);
+        assertEq(incomeVault.unclaimedDividend(t1), 0);
+    }
+
+    /* ============ the bug this closes ============ */
+    /**
+    * @notice A fully-claimed period cannot be swept again into another period's funds
+    * @dev
+    * Before this change `segregatedDividend[t1]` still read 1_000 after the sole holder had taken all
+    * 1_000, so `withdraw(t1, 1_000)` succeeded and drained the money deposited for `t2`.
+    */
+    function testCannotSweepAFullyClaimedPeriodIntoAnotherPeriod() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        _deposit(t1, 1_000);
+        _deposit(t2, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(t1);           // takes all of t1
+
+        assertEq(incomeVault.segregatedDividend(t1), 1_000, "denominator unchanged, as designed");
+        assertEq(incomeVault.unclaimedDividend(t1), 0, "but nothing is left for t1");
+
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NotEnoughAmount.selector));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, 1_000, ADDRESS3);
+
+        // t2's money is intact and still claimable
+        assertEq(tokenPayment.balanceOf(address(incomeVault)), 1_000);
+        assertEq(incomeVault.unclaimedDividend(t2), 1_000);
+    }
+
+    function testCanStillWithdrawWhatThePeriodActuallyHolds() public {
+        _deposit(t1, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, 400, ADDRESS3);
+
+        assertEq(tokenPayment.balanceOf(ADDRESS3), 400);
+        assertEq(incomeVault.unclaimedDividend(t1), 600);
+        assertEq(incomeVault.segregatedDividend(t1), 600);
+    }
+
+    function testCannotWithdrawMoreThanThePeriodHolds() public {
+        _deposit(t1, 1_000);
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NotEnoughAmount.selector));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, 1_001, ADDRESS3);
+    }
+
+    /**
+    * @notice Distribution counts towards the paid total too, not just holder-initiated claims
+    */
+    function testDistributionCountsTowardsPaid() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        _deposit(t1, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        address[] memory list = new address[](1);
+        list[0] = ADDRESS1;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(list, t1);
+
+        assertEq(incomeVault.paidDividend(t1), 1_000);
+        assertEq(incomeVault.unclaimedDividend(t1), 0);
+    }
+}

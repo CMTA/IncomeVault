@@ -49,6 +49,11 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `msg.sender == address(this)` (raw `msg.sender`, never `_msgSender()`, so a forwarder cannot
   impersonate the vault). It exists because `try`/`catch` needs an external call. Never relax that
   guard, and never add another public entry point to `_transferDividend`.
+- **`segregatedDividend` is the pro-rata denominator, not a balance.** It is fixed at the deposit for
+  the whole period and never reduced by a payout. What a period still holds is
+  `unclaimedDividend(time) = segregatedDividend - paidDividend`, and that is what bounds `withdraw`.
+  Never bound a sweep by `segregatedDividend` alone — that let a fully-claimed period drain another
+  period's funds.
 - **`_setStatusClaim` is idempotent and owns `_openClaimCount`.** It is the only writer of the claim
   status; a repeated write returns early so the counter stays exact. `setSnapshotEngine` depends on
   that counter reaching zero, so any new path that changes a claim status must go through it.

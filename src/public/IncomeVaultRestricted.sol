@@ -119,13 +119,26 @@ abstract contract IncomeVaultRestricted is ReentrancyGuardTransient, IncomeVault
 
     /**
     * @notice withdraw a certain amount at a specified time.
+    * @dev
+    * Bounded by {unclaimedDividend}, so a sweep can never reach funds deposited for another dividend
+    * time. Intended for after the claim window closes, when what remains is rounding dust and
+    * unclaimed shares.
+    *
+    * @custom:security Withdrawing **before** the window closes is still destructive to this period:
+    * the amount taken is money the remaining holders are entitled to, and it also lowers
+    * `segregatedDividend`, which re-prices every claim that has not happened yet. The bound stops the
+    * damage spreading to other periods; it does not make an early sweep safe.
+    *
     * @param time provide the date where you want to perform a deposit
     * @param amount the amount to withdraw
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdraw(uint256 time, uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        if($._segregatedDividend[time] < amount) {
+        // Bound by what this period STILL holds, not by what was deposited into it. `_segregatedDividend`
+        // is the pro-rata denominator and is never reduced by a payout, so checking against it alone
+        // would let a fully-claimed period be swept again — taking another period's money.
+        if($._segregatedDividend[time] - $._paidDividend[time] < amount) {
             revert IncomeVault_NotEnoughAmount();
         }
         $._segregatedDividend[time] -= amount;

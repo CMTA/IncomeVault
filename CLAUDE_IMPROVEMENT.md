@@ -332,12 +332,34 @@ A follow-up worth noting: neither `deposit` nor `depositBatch` refuses a deposit
 claims are already open, although `doc/README.md` warns that doing so dilutes holders who have not
 claimed yet. Enforcing it would be a behaviour change to both, so it is left as a separate decision.
 
-### E-3. Dust is only recoverable by an untimed sweep — **suggestion**
+### E-3. Dust is only recoverable by an untimed sweep — ✅ **implemented, and it uncovered a bug**
 
 Rounding down leaves a residue per period, recovered with `withdraw(time, …)` after
 `timeLimitToWithdraw`. Nothing computes what the residue *is*, so an issuer sweeping has to reconstruct
 it off-chain from the deposit minus the sum of `DividendClaimed` events. A view returning the
 unclaimed remainder for a `time` would make the sweep a one-step operation.
+
+**Implemented — and building it exposed a real accounting bug.** Writing the view required tracking how
+much each period had paid out, which is precisely the number `withdraw` was missing. Demonstrated
+before the fix: with 1,000 deposited for `t1` and 1,000 for `t2`, the sole holder of `t1` claims all
+1,000; `segregatedDividend[t1]` still reads 1,000 because the denominator is never reduced; and
+`withdraw(t1, 1000)` **succeeds, draining `t2`'s money**. `t2` then reports 1,000 owed against a vault
+balance of 0.
+
+So E-3 delivered three things rather than one:
+
+1. `paidDividend(time)` and `unclaimedDividend(time)` — the requested views.
+2. `withdraw` bounded by `unclaimedDividend` instead of `segregatedDividend`, closing the cross-period
+   drain. Reverting the bound makes the new invariant fail.
+3. `invariant_everyPeriodResidueIsBacked` — sum of residues must never exceed the vault's balance. The
+   original invariant suite compared against total *deposits* and was blind to this; the new one fails
+   with an arithmetic underflow against the old code, which is itself proof the old bound could drive
+   `segregated < paid`.
+
+**Cost, measured:** +22,274 gas on the first claim of each period (66,687 -> 88,961), a cold `SSTORE`
+for the new counter; warm afterwards. The alternative — document the hazard and leave `withdraw`
+unbounded — was rejected because the failure is silent: no revert, no event, and the loss only surfaces
+when a later period's holder tries to claim.
 
 ## F. Release readiness
 

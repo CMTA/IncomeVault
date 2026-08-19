@@ -289,6 +289,29 @@ _Diagram source: [doc/schema/plantuml/incomevault-claimdividend.puml](./schema/p
 
 
 
+## Per-period residue
+
+Dividends round down, so a period keeps a residue: the rounding dust plus whatever was never claimed.
+Two views report it without any off-chain reconstruction:
+
+| View | Meaning |
+| --- | --- |
+| `paidDividend(time)` | how much has actually been paid out for `time` |
+| `unclaimedDividend(time)` | `segregatedDividend(time) - paidDividend(time)` — what is still held for `time` |
+
+**`segregatedDividend` is not that number.** It is the pro-rata denominator and stays fixed at the
+deposit for the whole period, otherwise each claim would shrink the share of the next claimant. Only
+`unclaimedDividend` tells you what remains.
+
+`withdraw` is bounded by `unclaimedDividend`, so a sweep can never reach another period's funds. Before
+this bound existed, a period whose holders had all claimed still reported its full deposit in
+`segregatedDividend`, and sweeping it drained the money deposited for a different period — leaving that
+period's holders unpayable with no error raised.
+
+> The bound stops the damage spreading between periods. It does **not** make an early sweep safe:
+> withdrawing before the claim window closes takes money the remaining holders of *that* period are
+> entitled to, and lowers `segregatedDividend`, re-pricing every claim that has not happened yet.
+
 ## Withdraw funds
 
 An authorized user can call the following functions to withdraw funds from the vault:

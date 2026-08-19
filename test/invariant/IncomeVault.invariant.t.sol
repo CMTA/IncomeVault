@@ -114,6 +114,21 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
+    * @notice Every period's residue is actually backed by tokens the vault holds
+    * @dev
+    * The solvency property the earlier invariants missed. `sum(unclaimedDividend)` is what the vault
+    * still owes across periods; it must never exceed the balance, or one period's accounting is
+    * promising another period's money. Withdrawing from a fully-claimed period used to break exactly
+    * this.
+    */
+    function invariant_everyPeriodResidueIsBacked() public view {
+        uint256 owed;
+        for (uint256 t = 0; t < 3; ++t) owed += incomeVault.unclaimedDividend(handler.times(t));
+        assertLe(owed, tokenPayment.balanceOf(address(incomeVault)),
+            "the sum of per-period residues exceeds the tokens actually held");
+    }
+
+    /**
     * @notice The per-time accounting never exceeds what is still held
     * @dev `segregatedDividend` is the pro-rata denominator and is deliberately *not* decremented on
     * a payout, so it is a record of what was deposited for a period, reduced only by `withdraw`.
