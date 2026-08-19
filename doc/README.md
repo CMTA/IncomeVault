@@ -100,7 +100,7 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 | --- | --- | --- | --- | --- |
 | Fund the vault | `deposit` | `_authorizeDeposit` | `INCOME_VAULT_DEPOSIT_ROLE` | owner |
 | Remove funds | `withdraw`, `withdrawAll` | `_authorizeWithdraw` | `INCOME_VAULT_WITHDRAW_ROLE` | owner |
-| Push payouts | `distributeDividend` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
+| Push payouts | `distributeDividend`, `distributeDividendBestEffort` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
 | Claim window | `setStatusClaim`, `setTimeLimitToWithdraw` | `_authorizeOperator` | `INCOME_VAULT_OPERATOR_ROLE` | owner |
 | Compliance engine | `setRuleEngine` | `_authorizeRuleEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
 | Snapshot source | `setSnapshotEngine` | `_authorizeSnapshotEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
@@ -314,6 +314,42 @@ One blocked holder **reverts the whole distribution** rather than being skipped,
 failure can never be silently dropped from a payout the operator believes succeeded. The revert carries
 `IncomeVault_InvalidTransfer(from, to, value)`, which names the offending address: remove it from the
 list and retry.
+
+### Best-effort distribution
+
+`distributeDividendBestEffort` is the alternative for a large payout run that one non-compliant
+address must not block. It computes the same amounts and applies the same claim window and transfer
+restrictions, but a holder whose payout is refused is **skipped** instead of reverting the call:
+
+```solidity
+(uint256 paidCount, address[] memory skipped) =
+    vault.distributeDividendBestEffort(addresses, time);
+```
+
+Each skip emits `DividendDistributionSkipped(time, tokenHolder, reason)` carrying the **raw revert
+data**, so the cause — a freeze, a RuleEngine refusal, a payment-token failure — can be decoded
+off-chain.
+
+Choose between the two by what a partial payout means for you:
+
+| | `distributeDividend` | `distributeDividendBestEffort` |
+| --- | --- | --- |
+| One holder refused | the whole call reverts | that holder is skipped, the rest are paid |
+| Use when | the distribution must be all-or-nothing | one bad address must not block the run |
+| Reporting | the revert names the first offender | every skip is evented and returned |
+
+**A skipped holder is left completely untouched.** The payout is attempted through an external
+self-call wrapped in `try`/`catch`, which gives per-holder atomicity: either the holder is marked
+claimed *and* paid, or neither. A holder who was skipped is not marked as claimed and can still claim
+themselves, or be included in a later distribution.
+
+> The helper that call targets, `transferDividendSelf`, carries no access control of its own — it
+> reverts `IncomeVault_OnlySelfCall` for every caller other than the vault. That check is what stands
+> between it and an unauthorized payout, and it deliberately reads `msg.sender` rather than
+> `_msgSender()` so an ERC-2771 forwarder can never present itself as the vault.
+>
+> `catch` also cannot distinguish a refused payout from an out-of-gas failure. The only contracts that
+> can consume gas there — the payment token and the RuleEngine — are admin-set and already trusted.
 
 ## Comparison with ERC-4626 / ERC-7540 vaults
 

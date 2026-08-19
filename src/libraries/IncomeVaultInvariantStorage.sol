@@ -49,6 +49,17 @@ abstract contract IncomeVaultInvariantStorage {
     */
     event Withdraw(uint256 indexed time, address indexed withdrawAddress, uint256 amount);
     /**
+    * @notice Emitted when a best-effort distribution skips a token holder
+    * @dev Reported by {IncomeVaultRestricted-distributeDividendBestEffort}. The holder is left
+    * completely untouched — not marked as claimed — and can still claim later, or be included in a
+    * subsequent distribution.
+    * @param time the dividend time
+    * @param tokenHolder the holder who was not paid
+    * @param reason the raw revert data of the failed payout, so the cause can be decoded off-chain
+    */
+    event DividendDistributionSkipped(uint256 indexed time, address indexed tokenHolder, bytes reason);
+
+    /**
     * @notice Emitted when an authorized address withdraws funds without a dividend time
     * @dev the per-time accounting in `segregatedDividend` is left untouched, see {withdrawAll}
     * @param withdrawAddress the address receiving the funds
@@ -79,6 +90,12 @@ abstract contract IncomeVaultInvariantStorage {
     * @param openClaimCount how many dividend times currently have their claims open
     */
     error IncomeVault_ClaimPeriodOpen(uint256 openClaimCount);
+    /**
+    * @notice Thrown when {IncomeVaultRestricted-transferDividendSelf} is called by anyone but the vault.
+    * @dev That function exists only so the best-effort distribution can wrap a payout in try/catch,
+    * which requires an external call. It must never be reachable from outside.
+    */
+    error IncomeVault_OnlySelfCall();
     error IncomeVault_NoAmountSend();
     error IncomeVault_NotEnoughAmount();
     error IncomeVault_TokenBalanceIsZero();

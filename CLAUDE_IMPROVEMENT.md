@@ -17,7 +17,7 @@ levels of trust.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
 3. **B1, B2** — close the test gaps that cover irreversible actions.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
-5. ~~**A-3**~~ ✅ done (option b). **A-4, E-1** — genuine design decisions; discuss before building.
+5. ~~**A-3**~~ ✅ done (option b). ~~**A-4**~~ ✅ done. **E-1** — genuine design decision; discuss before building.
 6. Everything else as capacity allows.
 
 ---
@@ -80,15 +80,23 @@ open period, but entitlements are still resolved against whichever source is con
 happens, so re-opening a past `time` after a swap resolves it against the new source. Pinning the
 source per `time` at deposit is the only way to close that, and it is a materially larger change.
 
-### A-4. No way to pre-check a distribution — **suggestion**
+### A-4. No way to pre-check a distribution — ✅ **implemented (best-effort variant)**
 
 Since the H-2 fix, one blocked holder reverts the whole `distributeDividend` call. That is the right
 semantics, but an operator distributing to a large list can only discover a bad address by spending a
 transaction and reading the revert.
 
-**Suggested fix:** a view — `canDistribute(address[] calldata addresses, uint256 time)` returning the
-first offending address, or a bitmap — so the list can be cleaned off-chain first. Read-only, no
-change to the payout path.
+**Implemented differently, and better.** Rather than a pre-check view that could go stale between the
+query and the transaction, `distributeDividendBestEffort` skips the refused holders in the same call:
+it returns `(paidCount, skipped[])` and emits `DividendDistributionSkipped` with the raw revert data
+per skip. The operator gets the answer *and* the payout in one transaction instead of two.
+
+Each payout is attempted through an external self-call wrapped in `try`/`catch` — the only way to catch
+a revert from the RuleEngine view or from `safeTransfer` — which also gives per-holder atomicity: a
+skipped holder is not marked as claimed and can still claim later.
+
+The self-call helper `transferDividendSelf` is guarded by `msg.sender == address(this)`; removing that
+guard was confirmed to fail `testNobodyCanCallTheSelfHelperDirectly`.
 
 ## B. Tests
 

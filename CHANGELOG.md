@@ -73,6 +73,12 @@ forge lint
 
 ### Added
 
+- `distributeDividendBestEffort`, a variant of `distributeDividend` that **skips** a holder whose payout
+  is refused instead of reverting the whole run, returning `(paidCount, skipped[])` and emitting
+  `DividendDistributionSkipped(time, holder, reason)` with the raw revert data. Each payout goes through
+  an external self-call wrapped in `try`/`catch`, so a skipped holder is left completely untouched — not
+  marked as claimed — and can still claim later. `distributeDividend` keeps its all-or-nothing
+  semantics. Finding A-4 of `CLAUDE_IMPROVEMENT.md`.
 - `setSnapshotEngine`, allowing the snapshot source to be migrated without a proxy upgrade — but only
   while **no claim period is open**, since amounts are computed from the source at claim time rather
   than fixed at deposit. Gated by a new `_authorizeSnapshotEngineManagement` hook (`DEFAULT_ADMIN_ROLE`

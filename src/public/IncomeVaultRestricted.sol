@@ -5,6 +5,7 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 /* ==== IncomeVault === */
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
@@ -13,7 +14,7 @@ import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 /**
 * @title Restricted functions
 */
-abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVaultInternal {
+abstract contract IncomeVaultRestricted is ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal {
     // Security
     using SafeERC20 for IERC20;
 
@@ -144,6 +145,88 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
                 }
             }
         }
+    }
+
+    /**
+    * @notice Distribute the dividends, skipping any holder whose payout is refused
+    * @dev
+    * Same computation as {distributeDividend}, but a holder the ValidationModule or the payment token
+    * refuses is **skipped** instead of reverting the whole call. Use it when one non-compliant address
+    * must not block a large payout run; use {distributeDividend} when the distribution should be
+    * all-or-nothing.
+    *
+    * Each payout is attempted through an external self-call so it can be wrapped in `try`/`catch`,
+    * which gives **per-holder atomicity**: a holder is either fully paid — marked claimed *and*
+    * transferred — or left completely untouched and still able to claim later. A partial state where
+    * a holder is marked as claimed without receiving the tokens is not reachable.
+    *
+    * Every skip emits {DividendDistributionSkipped} carrying the raw revert data, so the cause can be
+    * decoded off-chain, and the skipped holders are returned for the caller to act on directly.
+    *
+    * @custom:security `catch` cannot distinguish a refused payout from an out-of-gas failure. The two
+    * contracts that can consume gas here — the payment token and the RuleEngine — are both set by the
+    * admin and trusted; a malicious RuleEngine could nonetheless make holders appear skipped. That is
+    * within the existing trust assumption for the RuleEngine, not a new one.
+    *
+    * @param addresses compute and transfer dividend for these holders
+    * @param time dividend time
+    * @return paidCount how many holders were paid
+    * @return skipped the holders that were not paid, trimmed to `paidCount` subtracted from the input
+    */
+    function distributeDividendBestEffort(address[] calldata addresses, uint256 time)
+        public virtual nonReentrant onlyDistributeManager
+        returns (uint256 paidCount, address[] memory skipped)
+    {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        _revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
+
+        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
+        uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
+
+        address[] memory skippedBuffer = new address[](addresses.length);
+        uint256 skippedCount;
+
+        for(uint256 i = 0; i < addresses.length; ++i){
+            if($._claimedDividend[addresses[i]][time] || tokenHolderDividend[i] == 0){
+                continue;
+            }
+            // External self-call: `try` needs one, and it is what bounds the revert to this holder.
+            try this.transferDividendSelf(time, addresses[i], tokenHolderDividend[i]) {
+                ++paidCount;
+            } catch (bytes memory reason) {
+                skippedBuffer[skippedCount] = addresses[i];
+                ++skippedCount;
+                emit DividendDistributionSkipped(time, addresses[i], reason);
+            }
+        }
+
+        skipped = new address[](skippedCount);
+        for(uint256 i = 0; i < skippedCount; ++i){
+            skipped[i] = skippedBuffer[i];
+        }
+    }
+
+    /**
+    * @notice Validate and pay one dividend — callable **only by the vault itself**
+    * @dev
+    * This exists solely so {distributeDividendBestEffort} can wrap a payout in `try`/`catch`, which
+    * requires an external call. It carries no access control of its own beyond the self-call check,
+    * so that check is what stands between it and an unauthorized payout: reverts
+    * {IncomeVault_OnlySelfCall} for every caller other than `address(this)`.
+    *
+    * `msg.sender` is used deliberately rather than `_msgSender()`. The check must identify the real
+    * caller; an ERC-2771 forwarder must never be able to present itself as the vault.
+    *
+    * @param time dividend time
+    * @param tokenHolder the holder to pay
+    * @param tokenHolderDividend the amount to pay
+    */
+    function transferDividendSelf(uint256 time, address tokenHolder, uint256 tokenHolderDividend) public virtual {
+        if(msg.sender != address(this)){
+            revert IncomeVault_OnlySelfCall();
+        }
+        _validateTransfer(address(this), tokenHolder, tokenHolderDividend);
+        _transferDividend(time, tokenHolder, tokenHolderDividend);
     }
 
     /**

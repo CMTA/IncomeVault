@@ -45,6 +45,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `ISnapshotState` implementation satisfies it. **Do not add an ERC-165 guard on it**: the canonical
   `SnapshotEngine` advertises no id for it and the guard would reject it. If the vault ever needs a
   fourth function, add it here — not by widening back to `ISnapshotState`.
+- **`transferDividendSelf` is a self-call helper with no role check.** Its only protection is
+  `msg.sender == address(this)` (raw `msg.sender`, never `_msgSender()`, so a forwarder cannot
+  impersonate the vault). It exists because `try`/`catch` needs an external call. Never relax that
+  guard, and never add another public entry point to `_transferDividend`.
 - **`_setStatusClaim` is idempotent and owns `_openClaimCount`.** It is the only writer of the claim
   status; a repeated write returns early so the counter stays exact. `setSnapshotEngine` depends on
   that counter reaching zero, so any new path that changes a claim status must go through it.
