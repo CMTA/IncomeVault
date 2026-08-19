@@ -15,7 +15,7 @@ levels of trust.
 
 1. ~~**A-1**~~ ✅ done. **A-2** — cheap correctness fix, no design debate.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
-3. **B1, B2** — close the test gaps that cover irreversible actions.
+3. ~~**B-1, B-2**~~ ✅ done. **B-3, B-5** — fuzz/invariants and the untested gasless path.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
 5. ~~**A-3**~~ ✅ done (option b). ~~**A-4**~~ ✅ done. **E-1** — genuine design decision; discuss before building.
 6. Everything else as capacity allows.
@@ -100,17 +100,20 @@ guard was confirmed to fail `testNobodyCanCallTheSelfHelperDirectly`.
 
 ## B. Tests
 
-### B-1. `deactivateContract()` is never exercised — **verified**
+### B-1. `deactivateContract()` is never exercised — ✅ **implemented**
 
 `grep -rn 'deactivateContract' test/` returns nothing, and the coverage report confirms
 `_authorizeDeactivate` is never entered in either variant. This is the one **irreversible** action in
 the system: it permanently disables the contract, and with a proxy the only way back is a new
 implementation.
 
-**Suggested fix:** for each variant, test that the correct role can deactivate from the paused state,
-that the wrong role cannot, that it requires the pause, and that a deactivated vault refuses payouts.
+**Implemented.** `test/Deactivate.t.sol`, nine tests across both variants: the pause precondition
+(`ExpectedPause`), the irreversibility (`CMTAT_PauseModule_ContractIsDeactivated` on any later
+`unpause`), `AlreadyDeactivated` on a second call, that both `claimDividend` and `distributeDividend`
+are refused afterwards, that an attacker cannot deactivate, and that **`PAUSER_ROLE` alone is not
+enough** — deactivation needs the admin even though pausing does not.
 
-### B-2. Branch coverage is 68.75% — **verified**
+### B-2. Branch coverage is 68.75% — ✅ **implemented (now 97.56%)**
 
 Filtered to `src/` (`--exclude-tests --no-match-coverage '(test|mocks?|script)/'`):
 
@@ -133,7 +136,43 @@ Note the ten "never entered" functions are **not** all gaps: most are the abstra
 declarations, which have no body and can never be entered — the overrides are covered. `_msgData` is
 genuinely unexercised, and `_authorizeDeactivate` is B-1.
 
-The `solidity-coverage` skill automates this run and its 100% analysis.
+**Implemented.** `test/EdgeCases.t.sol` covers the reachable gaps — the three initializer guards
+(zero admin, zero owner, zero payment token), a holder with no tokens at the snapshot
+(`IncomeVault_TokenBalanceIsZero`, distinct from `NoDividendToClaim`), the ERC-1404 views with no
+RuleEngine configured, and every `TIME_ERROR_CODE` arm through both `validateTimeCode` and
+`validateTime`.
+
+`_revertOnInvalidTime` was also restructured to end in an unconditional `else`, which removed three
+dead branches on an exhaustive enum **and** closed a fail-open path (see the changelog).
+
+| Metric | before | after |
+| --- | --- | --- |
+| Lines | 92.09% | **95.65%** |
+| Statements | 94.54% | **97.54%** |
+| Branches | 68.75% | **97.56%** |
+| Functions | 87.01% | **89.41%** |
+
+**What is deliberately left uncovered**, so nobody chases it:
+
+- `_computeDividend`'s `senderBalance == 0` guard — the one remaining branch. Both callers pre-check
+  (`claimDividend` rejects a zero balance first, `claimDividendBatch` only calls it when the balance is
+  positive), so it is unreachable defensive code. It must stay: reaching it would require widening
+  visibility, which trades safety for a metric.
+- The six abstract `_authorize*` declarations — they have no body and cannot be "entered"; the
+  overrides in both deployment contracts are fully covered.
+- `_msgData` in the three deployment contracts — an override required to resolve the ERC-2771/Context
+  diamond, never called because nothing in the vault reads calldata. See B-5.
+
+### B-5. The ERC-2771 gasless path has no end-to-end test — **suggestion**
+
+`_msgSender()` is exercised on every claim, but only in the non-relayed case: no test ever routes a
+call through a trusted forwarder, so the *unwrapping* behaviour the gasless support depends on is
+unverified. This is also why `_msgData` shows as never entered.
+
+The vault is deployed in every test with `forwarderIrrevocable = address(0)`. A test deploying an
+`ERC2771Forwarder`, signing a request and checking that `claimDividend` credits the **signer** rather
+than the relayer would cover the documented gasless feature. Worth more than the coverage percentage it
+would move.
 
 ### B-3. No fuzz or invariant tests — **suggestion**
 

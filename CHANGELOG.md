@@ -104,6 +104,9 @@ forge lint
 
 ### Changed
 
+- `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
+  is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
+  the enum without a matching arm fell through and silently allowed the claim. It now reverts.
 - The snapshot source is now typed `ISnapshotSource` (new, `src/interfaces/ISnapshotSource.sol`) rather
   than `ISnapshotState`: the three functions the vault calls instead of the eight `ISnapshotState`
   declares. Signatures are copied verbatim, so every `ISnapshotState` implementation still satisfies it;
@@ -124,6 +127,17 @@ forge lint
 - The four `INCOME_VAULT_*_ROLE` constants moved from `IncomeVaultInvariantStorage` to the new
   `IncomeVaultRolesStorage`, inherited only by `IncomeVault`, so the single-owner variant does not
   publish roles it never checks.
+
+### Testing
+
+- `deactivateContract` is now covered in both deployment variants: the pause precondition, the
+  irreversibility (a deactivated vault can never be unpaused), double-deactivation, that every payout
+  path is refused afterwards, and that `PAUSER_ROLE` alone is not sufficient. It was previously
+  untested despite being the only irreversible action in the system. Finding B-1 of
+  `CLAUDE_IMPROVEMENT.md`.
+- Branch coverage of `src/` raised from **68.75% to 97.56%** (lines 92.09% → 95.65%, statements
+  94.54% → 97.54%): the initializer guards, a holder with no tokens at the snapshot, the ERC-1404
+  views with no RuleEngine configured, and every `TIME_ERROR_CODE` arm. Finding B-2.
 
 ### Fixed
 

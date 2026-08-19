@@ -267,7 +267,8 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     }
 
     /**
-    * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}
+    * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}. Exhaustive over the enum, and
+    * fails closed on an unhandled value — see the comment on the final branch.
     * @param code the code returned by {_timeCode}
     */
     function _revertOnInvalidTime(TIME_ERROR_CODE code) internal view virtual {
@@ -277,7 +278,11 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
             revert IncomeVault_ClaimNotActivated();
         } else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
             revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        } else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
+        } else {
+            // TOO_EARLY_TO_WITHDRAW — the only remaining value of an exhaustive enum, so an
+            // unconditional `else` rather than a fourth comparison. This also fails **closed**: a
+            // value added to TIME_ERROR_CODE without a matching arm reverts here instead of falling
+            // through and silently allowing the claim, which is what a trailing `else if` would do.
             revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
         }
     }
