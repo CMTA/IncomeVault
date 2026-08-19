@@ -74,6 +74,11 @@ abstract contract IncomeVaultInvariantStorage {
     * `block.timestamp == time`, making the period effectively unclaimable.
     */
     error IncomeVault_TimeLimitToWithdrawZeroNotAllowed();
+    /**
+    * @notice Thrown when the snapshot source is changed while at least one claim period is open.
+    * @param openClaimCount how many dividend times currently have their claims open
+    */
+    error IncomeVault_ClaimPeriodOpen(uint256 openClaimCount);
     error IncomeVault_NoAmountSend();
     error IncomeVault_NotEnoughAmount();
     error IncomeVault_TokenBalanceIsZero();

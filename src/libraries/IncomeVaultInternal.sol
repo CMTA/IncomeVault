@@ -55,6 +55,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         mapping(uint256 time => bool status) _segregatedClaim;
         // Delay, after the dividend time, during which a claim is still accepted
         uint256 _timeLimitToWithdraw;
+        // How many dividend times currently have their claims open. Appended after the fields above:
+        // ERC-7201 struct members are append-only, never reordered.
+        uint256 _openClaimCount;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -108,6 +111,18 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     function segregatedClaim(uint256 time) public view virtual returns (bool) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._segregatedClaim[time];
+    }
+
+    /**
+    * @notice How many dividend times currently have their claims open
+    * @dev Maintained exactly by {_setStatusClaim}, the only writer of the claim status. Used by
+    * {IncomeVaultRestricted-setSnapshotEngine}, which refuses to change the snapshot source while any
+    * period is open.
+    * @return The number of open claim periods
+    */
+    function openClaimCount() public view virtual returns (uint256) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return $._openClaimCount;
     }
 
     /**
@@ -194,7 +209,18 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     */
     function _setStatusClaim(uint256 time, bool status) internal virtual {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        // Idempotent: a call that does not change the status writes nothing, emits nothing and — the
+        // reason this branch exists — leaves `_openClaimCount` exact. Without it, opening an already
+        // open period would double-count and the counter could never return to zero.
+        if($._segregatedClaim[time] == status){
+            return;
+        }
         $._segregatedClaim[time] = status;
+        if(status){
+            ++$._openClaimCount;
+        } else {
+            --$._openClaimCount;
+        }
         emit ClaimStatusSet(time, status);
     }
 

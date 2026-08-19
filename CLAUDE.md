@@ -45,6 +45,9 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `ISnapshotState` implementation satisfies it. **Do not add an ERC-165 guard on it**: the canonical
   `SnapshotEngine` advertises no id for it and the guard would reject it. If the vault ever needs a
   fourth function, add it here — not by widening back to `ISnapshotState`.
+- **`_setStatusClaim` is idempotent and owns `_openClaimCount`.** It is the only writer of the claim
+  status; a repeated write returns early so the counter stays exact. `setSnapshotEngine` depends on
+  that counter reaching zero, so any new path that changes a claim status must go through it.
 - **Pro-rata formula** — `senderDividend = (senderBalance * segregatedDividend[time]) / tokenTotalSupply`,
   rounded down. Dust stays in the vault; the issuer withdraws it after `timeLimitToWithdraw`.
 - **Claim window** — `validateTime` / `validateTimeCode` reject a claim when the

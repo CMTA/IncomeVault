@@ -17,7 +17,7 @@ levels of trust.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
 3. **B1, B2** — close the test gaps that cover irreversible actions.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
-5. **A3, A4, E1** — genuine design decisions; discuss before building.
+5. ~~**A-3**~~ ✅ done (option b). **A-4, E-1** — genuine design decisions; discuss before building.
 6. Everything else as capacity allows.
 
 ---
@@ -57,7 +57,7 @@ does not use.
 **Suggested fix:** add `IncomeVault_OwnerWithAddressZeroNotAllowed()`, or rename the existing error to
 something policy-neutral. Errors are part of the ABI, so bundle this with the next breaking release.
 
-### A-3. The snapshot source cannot be replaced after initialization — **suggestion, needs a decision**
+### A-3. The snapshot source cannot be replaced after initialization — ✅ **implemented (option b)**
 
 `_setSnapshotEngine` is internal and only reached from `initialize`. If the snapshot provider has to be
 migrated — a redeployed `SnapshotEngine`, a token moving to embedded snapshots — the vault is stuck and
@@ -67,10 +67,18 @@ This is a genuine tension rather than an oversight: **changing the source retroa
 historical entitlement**, because past `time` values would resolve against a different contract. A
 setter is not obviously safe.
 
-**Options:** (a) leave it, and document that migration means an upgrade; (b) add a
-`DEFAULT_ADMIN_ROLE` setter that only accepts a change while no claim period is open; (c) pin the
-source per `time` at deposit, so historical periods keep resolving against the contract they were
-created with. (c) is the most correct and the most work.
+**Implemented as option (b).** `setSnapshotEngine` accepts a change only while `openClaimCount() == 0`,
+reverting `IncomeVault_ClaimPeriodOpen(count)` otherwise. The counter is maintained in
+`_setStatusClaim`, the single writer of the claim status, and that function became idempotent so a
+repeated write cannot drift it.
+
+Gated by a new `_authorizeSnapshotEngineManagement` hook, overridden in **both** deployment variants
+per the project's access-control convention.
+
+**Option (c) remains the fully correct answer and is not implemented.** The gate stops a swap under an
+open period, but entitlements are still resolved against whichever source is configured when the claim
+happens, so re-opening a past `time` after a swap resolves it against the new source. Pinning the
+source per `time` at deposit is the only way to close that, and it is a materially larger change.
 
 ### A-4. No way to pre-check a distribution — **suggestion**
 

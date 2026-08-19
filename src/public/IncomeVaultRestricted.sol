@@ -6,6 +6,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /* ==== IncomeVault === */
+import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 
@@ -38,6 +39,12 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     /// @dev Restricts the configuration of the claim window
     modifier onlyVaultOperator() {
         _authorizeOperator();
+        _;
+    }
+
+    /// @dev Restricts the replacement of the snapshot source
+    modifier onlySnapshotEngineManager() {
+        _authorizeSnapshotEngineManagement();
         _;
     }
 
@@ -150,6 +157,34 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     }
 
     /**
+    * @notice Replace the contract the vault reads the holder balances from
+    * @dev
+    * Only accepted while **no claim period is open** — `openClaimCount()` must be zero. Changing the
+    * source under an open period would silently re-price every unclaimed dividend of that period,
+    * because the amounts are computed from the source at claim time, not fixed at deposit.
+    *
+    * @custom:security This restriction narrows the hazard, it does not remove it. Entitlements are
+    * still resolved against whichever source is configured *when the claim happens*, so re-opening a
+    * past `time` after a swap would resolve it against the new source. Holders who already claimed are
+    * protected — `claimedDividend` persists across the change — but holders who had not are not.
+    * Treat a swap as a migration requiring every period to be settled and closed, not as a routine
+    * configuration change.
+    *
+    * @param snapshotEngine_ the new snapshot source, must implement {ISnapshotSource} and be non-zero
+    */
+    function setSnapshotEngine(ISnapshotSource snapshotEngine_) public virtual onlySnapshotEngineManager {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        uint256 open = $._openClaimCount;
+        if(open != 0){
+            revert IncomeVault_ClaimPeriodOpen(open);
+        }
+        if(address(snapshotEngine_) == address($._snapshotEngine)){
+            revert IncomeVault_SameValue();
+        }
+        _setSnapshotEngine(snapshotEngine_);
+    }
+
+    /**
     * @notice configure the time limit to withdraw
     * @dev reverts if `timeLimitToWithdraw_` is zero: that would leave a one-second claim window
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted,
@@ -184,4 +219,10 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * Implemented by the deployment contract with the desired access-control policy.
     */
     function _authorizeOperator() internal view virtual;
+
+    /**
+    * @dev Authorization hook invoked before {setSnapshotEngine}.
+    * Implemented by the deployment contract with the desired access-control policy.
+    */
+    function _authorizeSnapshotEngineManagement() internal view virtual;
 }

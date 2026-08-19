@@ -130,6 +130,9 @@ contract IncomeVaultOwnable2Step is IncomeVaultBase, Ownable2StepUpgradeable, Ow
     /// @inheritdoc IncomeVaultRestricted
     function _authorizeOperator() internal view virtual override onlyOwner {}
 
+    /// @inheritdoc IncomeVaultRestricted
+    function _authorizeSnapshotEngineManagement() internal view virtual override onlyOwner {}
+
     /// @inheritdoc IncomeVaultValidationModule
     function _authorizeRuleEngineManagement() internal view virtual override onlyOwner {}
 

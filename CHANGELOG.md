@@ -73,6 +73,13 @@ forge lint
 
 ### Added
 
+- `setSnapshotEngine`, allowing the snapshot source to be migrated without a proxy upgrade — but only
+  while **no claim period is open**, since amounts are computed from the source at claim time rather
+  than fixed at deposit. Gated by a new `_authorizeSnapshotEngineManagement` hook (`DEFAULT_ADMIN_ROLE`
+  / owner) and by the new `openClaimCount()` view; reverts `IncomeVault_ClaimPeriodOpen`. Note the gate
+  narrows the hazard rather than removing it — see the security note in `doc/README.md`.
+  Finding A-3 (option b) of `CLAUDE_IMPROVEMENT.md`.
+- `openClaimCount()`, the number of dividend times whose claims are currently open.
 - Events for every state write that had none: `ClaimStatusSet`, `ERC20TokenPaymentSet`,
   `TimeLimitToWithdrawSet`, `Withdraw` and `WithdrawAll`. Each is emitted from the internal `_setX`
   helper that performs the write, so they also fire during `initialize` — a vault configured once at

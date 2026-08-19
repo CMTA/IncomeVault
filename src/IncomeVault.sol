@@ -117,6 +117,9 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
     /// @inheritdoc IncomeVaultRestricted
     function _authorizeOperator() internal view virtual override onlyRole(INCOME_VAULT_OPERATOR_ROLE) {}
 
+    /// @inheritdoc IncomeVaultRestricted
+    function _authorizeSnapshotEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
     /// @inheritdoc IncomeVaultValidationModule
     function _authorizeRuleEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 

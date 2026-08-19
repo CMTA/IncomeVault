@@ -37,6 +37,26 @@ Solidity has no implicit conversion between unrelated interfaces, so pass one wi
 
 The address is set at initialization (parameter `snapshotEngine_`) and cannot be the zero address.
 
+### Replacing the snapshot source
+
+`setSnapshotEngine` allows a migration — a redeployed `SnapshotEngine`, or a token moving to embedded
+snapshot modules — but **only while no claim period is open**. The vault tracks how many dividend times
+currently have their claims open in `openClaimCount()`, and the setter reverts with
+`IncomeVault_ClaimPeriodOpen(openClaimCount)` while that is non-zero.
+
+The reason for the gate: dividend amounts are computed from the snapshot source **at claim time**, not
+fixed at deposit. Swapping the source under an open period would silently re-price every unclaimed
+dividend of that period.
+
+> **The gate narrows the hazard, it does not remove it.** Entitlements are always resolved against
+> whichever source is configured *when the claim happens*. Re-opening a past `time` after a swap
+> resolves that period against the **new** source. Holders who already claimed are protected —
+> `claimedDividend` persists across the change — but holders who had not are not.
+>
+> Treat a swap as a migration that requires every period to be settled and closed, not as a routine
+> configuration change. If historical periods must keep resolving against the source they were created
+> with, that needs per-`time` pinning at deposit, which this prototype does not implement.
+
 > The vault does **not** verify the interface through ERC-165. The canonical `SnapshotEngine`
 > advertises no id for it, so a guard would reject the implementation the vault is built for. And
 > ERC-165 expresses shape, never semantics: a source returning attacker-chosen balances satisfies this
@@ -83,6 +103,7 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 | Push payouts | `distributeDividend` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
 | Claim window | `setStatusClaim`, `setTimeLimitToWithdraw` | `_authorizeOperator` | `INCOME_VAULT_OPERATOR_ROLE` | owner |
 | Compliance engine | `setRuleEngine` | `_authorizeRuleEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
+| Snapshot source | `setSnapshotEngine` | `_authorizeSnapshotEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
 | Emergency stop | `pause`, `unpause` | `_authorizePause` | `PAUSER_ROLE` | owner |
 | Permanent kill | `deactivateContract` | `_authorizeDeactivate` | `DEFAULT_ADMIN_ROLE` | owner |
 | Address freeze | `setAddressFrozen`, `batchSetAddressFrozen` | `_authorizeFreeze` | `ENFORCER_ROLE` | owner |
