@@ -216,6 +216,20 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     }
 
     /**
+    * @notice Grants or revokes an operator for a holder
+    * @dev The single writer of the operator mapping, shared by {IncomeVaultOpen-setOperator} (the
+    * holder transacts) and {ERC7741Module-authorizeOperator} (the holder signs).
+    * @param controller the holder granting or revoking
+    * @param operator the account being granted or revoked
+    * @param approved true to grant, false to revoke
+    */
+    function _setOperator(address controller, address operator, bool approved) internal virtual {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        $._isOperator[controller][operator] = approved;
+        emit OperatorSet(controller, operator, approved);
+    }
+
+    /**
     * @notice Sets the snapshot source used to compute the dividends
     * @dev reverts if `snapshotEngine_` is the zero address
     * @param snapshotEngine_ any contract implementing {ISnapshotSource}

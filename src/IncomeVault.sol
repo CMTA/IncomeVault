@@ -5,6 +5,8 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {IERC7741} from "./interfaces/IERC7741.sol";
 /* ==== CMTAT === */
 import {AccessControlModule} from "CMTAT/modules/wrapper/security/AccessControlModule.sol";
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
@@ -76,6 +78,22 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
     /*//////////////////////////////////////////////////////////////
                             INTERNAL/PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    /* ============ ERC-165 ============ */
+    /**
+    * @notice ERC-165 interface detection
+    * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
+    * for `0xa9e50872`. The ERC-7540 operator id is deliberately **not** advertised — this is not an
+    * asynchronous vault; see {IERC7540Operator}.
+    * @param interfaceId The interface identifier to check
+    * @return True if the interface is supported, false otherwise
+    */
+    function supportsInterface(bytes4 interfaceId)
+        public view virtual override(AccessControlUpgradeable) returns (bool)
+    {
+        return interfaceId == type(IERC7741).interfaceId
+            || AccessControlUpgradeable.supportsInterface(interfaceId);
+    }
+
     /* ============ ERC-2771 / Context disambiguation ============ */
     /**
     * @inheritdoc IncomeVaultBase

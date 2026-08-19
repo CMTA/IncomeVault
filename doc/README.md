@@ -333,9 +333,42 @@ either signature breaks the build rather than silently breaking a custodian's in
 > `testDoesNotClaimToBeAnErc7540Vault` pins the under-claim so it stays a decision rather than
 > becoming an oversight.
 
-> Not implemented: [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) signed authorisation, which
-> would let a holder grant an operator without sending a transaction at all. `setOperator` requires
-> the holder to transact once.
+### Authorising by signature (ERC-7741)
+
+`setOperator` needs the holder to send a transaction. [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741)
+removes that: the holder **signs** an EIP-712 message and anyone — a custodian, a relayer — submits it
+and pays the gas.
+
+```solidity
+vault.authorizeOperator(controller, operator, approved, nonce, deadline, signature);
+vault.invalidateNonce(nonce);                    // burn a nonce you no longer want honoured
+vault.authorizations(controller, nonce);         // has this nonce been spent?
+vault.DOMAIN_SEPARATOR();                        // EIP-712 domain
+```
+
+The signed message is exactly the standard's:
+
+```
+AuthorizeOperator(address controller,address operator,bool approved,bytes32 nonce,uint256 deadline)
+```
+
+Four details worth knowing:
+
+- **Smart-contract wallets work.** Signatures go through OpenZeppelin's `SignatureChecker`, so an
+  [ERC-1271](https://eips.ethereum.org/EIPS/eip-1271) wallet authorises exactly as an EOA does — which
+  matters, because institutional holders of a security token are usually contracts.
+- **Nonces are `bytes32` and unordered**, as the standard specifies, so a holder can prepare several
+  independent authorisations without imposing an order on them.
+- **The nonce is spent before the signature is checked**, so no path can replay it.
+- **The EIP-712 domain version stays `"1"` across releases.** Bumping it would silently invalidate
+  every signature already issued.
+
+Unlike the ERC-7540 operator id, the vault **does** advertise `0xa9e50872` through `supportsInterface`
+in both variants: ERC-7741 requires it, and unlike ERC-7540 this interface is implemented in full.
+
+> ERC-7741 warns that "operators have significant control over users and the signed message can lead
+> to undesired outcomes". Keep `deadline` short: a signature that leaks later remains usable until it
+> expires or its nonce is burned with `invalidateNonce`.
 
 ## Per-period residue
 

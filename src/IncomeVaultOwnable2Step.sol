@@ -18,6 +18,7 @@ import {IncomeVaultBase} from "./IncomeVaultBase.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
+import {IERC7741} from "./interfaces/IERC7741.sol";
 
 /**
 * @title Income Vault to distribute dividends — single-owner deployment
@@ -79,11 +80,14 @@ contract IncomeVaultOwnable2Step is IncomeVaultBase, Ownable2StepUpgradeable, Ow
     /* ============ ERC-165 ============ */
     /**
     * @inheritdoc Ownable2StepERC165Module
+    * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
+    * for `0xa9e50872`.
     */
     function supportsInterface(bytes4 interfaceId)
         public view virtual override(Ownable2StepERC165Module) returns (bool)
     {
-        return Ownable2StepERC165Module.supportsInterface(interfaceId);
+        return interfaceId == type(IERC7741).interfaceId
+            || Ownable2StepERC165Module.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -8,11 +8,12 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
+import {ERC7741Module} from "../modules/ERC7741Module.sol";
 
 /**
 * @title Permissionless functions
 */
-abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal  {
+abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValidationModule, ERC7741Module  {
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
@@ -67,10 +68,7 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @inheritdoc IERC7540Operator
     */
     function setOperator(address operator, bool approved) public virtual override(IERC7540Operator) returns (bool) {
-        address controller = _msgSender();
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        $._isOperator[controller][operator] = approved;
-        emit OperatorSet(controller, operator, approved);
+        _setOperator(_msgSender(), operator, approved);
         return true;
     }
 

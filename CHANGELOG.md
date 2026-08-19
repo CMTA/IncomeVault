@@ -73,6 +73,14 @@ forge lint
 
 ### Added
 
+- [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) signed operator authorisation:
+  `authorizeOperator`, `invalidateNonce`, `authorizations` and `DOMAIN_SEPARATOR`, in the new
+  `ERC7741Module` with its own ERC-7201 namespace and the interface declared in
+  `src/interfaces/IERC7741.sol`. A holder signs an EIP-712 message and anyone can submit it, so a
+  custodian can be appointed without the holder ever transacting. Signatures are checked with
+  `SignatureChecker`, so ERC-1271 contract wallets work. `type(IERC7741).interfaceId` equals the
+  standard's `0xa9e50872` (asserted), and both deployment variants advertise it through
+  `supportsInterface` as the standard requires.
 - Deployment scripts: `script/DeployIncomeVault.s.sol` and
   `script/DeployIncomeVaultOwnable2Step.s.sol`, using the same `Upgrades` plugin as the tests so the
   deployment path is the tested one. Configuration comes from the environment, and `deploy(config)` is

@@ -335,8 +335,9 @@ pays the gas and picks the moment. 13 tests, including that a revoked operator, 
 operator authorised by a *different* holder are all refused, and that every other rule (window,
 already-claimed, freeze) still applies. Removing the authorisation check fails three of them.
 
-ERC-7741 signed authorisation is **not** implemented: the holder must transact once to grant. That
-remains a follow-up.
+ERC-7741 signed authorisation is **also implemented** (`ERC7741Module`), so the holder can appoint a
+custodian by signature alone, without ever transacting. 14 further tests, including replay, expiry,
+forgery, field tampering, per-holder nonce invalidation and unordered nonces.
 
 **Implementing this surfaced a pre-existing accounting defect**, via the invariant suite added in B-3
 rather than via E-1 itself — see the note under E-3.

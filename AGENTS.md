@@ -39,6 +39,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **Claim flow** — the snapshot source schedules a snapshot at `time` → deposit role calls
   `deposit(time, amount)` → operator calls `setStatusClaim(time, true)` → holders
   call `claimDividend(time)` / `claimDividendBatch(times)`.
+- **The EIP-712 domain version is `"1"` and must stay `"1"`.** It is set in
+  `__IncomeVaultBase_init_unchained`; bumping it with a release would invalidate every ERC-7741
+  signature already issued. ERC-7741's id `0xa9e50872` **is** advertised through `supportsInterface`
+  (the standard requires it) — unlike ERC-7540's operator id, which is not.
 - **Claim delegation reuses ERC-7540's operator signatures exactly.** `IERC7540Operator` must keep
   `type(...).interfaceId == 0xe3bc4e65`; a test asserts it. Do **not** add that id to
   `supportsInterface` — the vault is not an asynchronous vault and must not advertise as one.
@@ -103,14 +107,16 @@ src/
 ├── modules/
 │   ├── IncomeVaultValidationModule.sol    # Pause + Enforcement + RuleEngine; canTransfer,
 │   │                                      #   setRuleEngine, detectTransferRestriction. Hooks abstract.
-│   └── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
+│   ├── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
+│   └── ERC7741Module.sol                  # EIP-712 signed operator authorisation, own ERC-7201 namespace
 ├── public/
 │   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
 ├── interfaces/
 │   ├── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
-│   └── IERC7540Operator.sol               # The ERC-7540 operator subset, verbatim; id MUST stay 0xe3bc4e65
+│   ├── IERC7540Operator.sol               # The ERC-7540 operator subset, verbatim; id MUST stay 0xe3bc4e65
+│   └── IERC7741.sol                       # Signed operator authorisation; id MUST stay 0xa9e50872
 └── libraries/
     ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
     │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}

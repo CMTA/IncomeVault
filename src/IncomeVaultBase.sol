@@ -56,6 +56,9 @@ abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, VersionM
         _setSnapshotEngine(snapshotEngine_);
 
         __Pausable_init_unchained();
+        // EIP-712 domain for the ERC-7741 signed operator authorisations. The version stays "1"
+        // across releases on purpose: bumping it would invalidate every signature already issued.
+        __EIP712_init_unchained("IncomeVault", "1");
         __IncomeVaultValidation_init_unchained(ruleEngine_);
         __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);
     }
