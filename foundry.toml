@@ -13,3 +13,10 @@ ffi = true
 ast = true
 fs_permissions = [{ access = "read", path = "./out"}]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+[invariant]
+runs = 48
+depth = 64
+# The handler swallows the reverts that are legitimate (claiming outside the window, while paused or
+# while frozen), so a revert reaching the runner is a real problem and should fail the run.
+fail_on_revert = true

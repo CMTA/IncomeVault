@@ -15,7 +15,7 @@ levels of trust.
 
 1. ~~**A-1**~~ ✅ done. **A-2** — cheap correctness fix, no design debate.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
-3. ~~**B-1, B-2**~~ ✅ done. **B-3, B-5** — fuzz/invariants and the untested gasless path.
+3. ~~**B-1, B-2, B-3, B-4**~~ ✅ done. **B-5** — the untested gasless path.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
 5. ~~**A-3**~~ ✅ done (option b). ~~**A-4**~~ ✅ done. **E-1** — genuine design decision; discuss before building.
 6. Everything else as capacity allows.
@@ -174,7 +174,7 @@ The vault is deployed in every test with `forwarderIrrevocable = address(0)`. A 
 than the relayer would cover the documented gasless feature. Worth more than the coverage percentage it
 would move.
 
-### B-3. No fuzz or invariant tests — **suggestion**
+### B-3. No fuzz or invariant tests — ✅ **implemented**
 
 The suite is entirely example-based. The accounting has properties worth stating as invariants:
 
@@ -185,15 +185,39 @@ The suite is entirely example-based. The accounting has properties worth stating
 - `withdraw` can never reduce `segregatedDividend[time]` below zero (currently guarded by a check that
   a fuzz run would confirm).
 
-The third is the one worth writing first: it crosses all three payout paths and is exactly the kind of
-thing example tests miss.
+**Implemented.** `test/invariant/` — a bounded handler (three dividend times, three holders) driving
+deposits, claims, batch claims, both distribution variants, withdrawals, freezes, pauses and time
+warps, plus six invariants. 48 runs x 64 depth = **3,072 calls, 0 reverts** per invariant, pinned in
+`foundry.toml` so CI runs the same budget.
 
-### B-4. The Ownable2Step deployment is duplicated across three test files — **verified**
+| Invariant | Property |
+| --- | --- |
+| `neverPaysMoreThanWasDeposited` | total paid out never exceeds total deposited |
+| `noHolderIsPaidTwiceForOneTime` | a holder is paid at most once per period, **across all three payout paths** |
+| `claimedFlagIsMonotonic` | a paid holder is always marked claimed |
+| `noUnexplainedPayment` | every batch payout is explained by a period becoming claimed |
+| `balanceAccountsForEveryDeposit` | `balance == deposited - paid - withdrawn`; value cannot leak to a non-holder |
+| `segregatedNeverExceedsDeposits` | the per-time accounting never exceeds what was deposited |
 
-`AccessControlHooks.t.sol`, `VersionModule.t.sol` and `SnapshotSource.t.sol` each contain their own
-`Upgrades.deployTransparentProxy("IncomeVaultOwnable2Step.sol", …)` block with the same arguments.
-`HelperContract` already owns `_deployContracts()`; a `_deployOwnableVault()` beside it would remove
-three copies and one future inconsistency.
+**The suite was validated by sabotage, and the first attempt failed that validation.** Removing the
+double-claim guard from `claimDividend` initially left every invariant green: the ghost counted
+payments by `claimedDividend` flag *transitions*, and a second payment for an already-claimed period
+leaves the flag untouched. Counting actual balance increases instead makes the same sabotage fail with
+`a holder was paid twice for the same dividend time: 2 > 1`. An invariant that cannot fail is worth
+nothing, and this one could not until it was fixed.
+
+### B-4. The Ownable2Step deployment is duplicated across three test files — ✅ **implemented**
+
+By the time this was implemented the copy had spread to **five** files — `AccessControlHooks`,
+`VersionModule`, `SnapshotSource`, `SetSnapshotEngine` and `Deactivate` — which is the argument for
+hoisting it.
+
+**Implemented.** `HelperContract` now owns `_deployOwnableVault()` (and an overload taking a
+RuleEngine) beside `_deployContracts()`, along with the shared `ownableVault` and `OWNER` declarations.
+Four call sites collapsed to one line each.
+
+`EdgeCases.t.sol` deliberately keeps its own construction: it builds an implementation directly to test
+the zero-owner initializer guard, and never wants a working proxy.
 
 ## C. Tooling and CI
 

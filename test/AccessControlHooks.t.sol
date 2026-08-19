@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
-import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 /**
@@ -13,9 +12,7 @@ import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol"
 * role-based variant really separates duties while the single-owner variant really does not.
 */
 contract AccessControlHooksTest is HelperContract {
-    IncomeVaultOwnable2Step ownableVault;
 
-    address constant OWNER = address(11);
     address constant NEW_OWNER = address(12);
     address constant DEPOSITOR = address(13);
     address constant WITHDRAWER = address(14);
@@ -23,24 +20,7 @@ contract AccessControlHooksTest is HelperContract {
     function setUp() public {
         _deployContracts();
 
-        Options memory opts;
-        opts.constructorData = abi.encode(ZERO_ADDRESS);
-        address proxy = Upgrades.deployTransparentProxy(
-            "IncomeVaultOwnable2Step.sol",
-            DEFAULT_ADMIN_ADDRESS,
-            abi.encodeCall(
-                IncomeVaultOwnable2Step.initialize,
-                (
-                    OWNER,
-                    IERC20(address(tokenPayment)),
-                    ISnapshotSource(address(snapshotEngine)),
-                    IRuleEngine(ZERO_ADDRESS),
-                    TIME_LIMIT_TO_WITHDRAW
-                )
-            ),
-            opts
-        );
-        ownableVault = IncomeVaultOwnable2Step(proxy);
+        _deployOwnableVault();
         tokenPayment.mint(OWNER, tokenBalance);
     }
 

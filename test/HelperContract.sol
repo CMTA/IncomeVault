@@ -18,6 +18,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /* ==== IncomeVault === */
 import {IncomeVault} from "../src/IncomeVault.sol";
+import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
 import {IncomeVaultInvariantStorage} from "../src/libraries/IncomeVaultInvariantStorage.sol";
 import {IncomeVaultRolesStorage} from "../src/libraries/IncomeVaultRolesStorage.sol";
 import {ERC20PaymentMock} from "./mocks/ERC20PaymentMock.sol";
@@ -40,6 +41,8 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
     address constant ADDRESS3 = address(7);
     address constant TOKEN_PAYMENT_ADMIN = address(8);
     address constant CMTAT_ADMIN = address(9);
+    /// @dev owner of the {IncomeVaultOwnable2Step} deployment
+    address constant OWNER = address(11);
 
     string constant DEFAULT_ADMIN_ROLE_HASH =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -59,6 +62,8 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
     /// @dev ERC-20 used to pay the dividends
     ERC20PaymentMock tokenPayment;
     IncomeVault incomeVault;
+    /// @dev the single-owner deployment variant, only built by {_deployOwnableVault}
+    IncomeVaultOwnable2Step ownableVault;
 
     // CMTAT value
     uint8 constant DECIMALS = 0;
@@ -127,6 +132,37 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
 
     function _deployContracts() internal {
         _deployContracts(IRuleEngine(ZERO_ADDRESS));
+    }
+
+    /**
+    * @dev Deploys the single-owner variant behind its own proxy, against the payment token and
+    * snapshot engine already built by {_deployContracts}. Call it after `_deployContracts()`.
+    * Kept here rather than repeated per suite — five test files used to carry a copy.
+    */
+    function _deployOwnableVault() internal {
+        _deployOwnableVault(IRuleEngine(ZERO_ADDRESS));
+    }
+
+    /// @dev {_deployOwnableVault} with an explicit RuleEngine
+    function _deployOwnableVault(IRuleEngine ruleEngine_) internal {
+        Options memory opts;
+        opts.constructorData = abi.encode(ZERO_ADDRESS);
+        address proxy = Upgrades.deployTransparentProxy(
+            "IncomeVaultOwnable2Step.sol",
+            DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(
+                IncomeVaultOwnable2Step.initialize,
+                (
+                    OWNER,
+                    IERC20(address(tokenPayment)),
+                    ISnapshotSource(address(snapshotEngine)),
+                    ruleEngine_,
+                    TIME_LIMIT_TO_WITHDRAW
+                )
+            ),
+            opts
+        );
+        ownableVault = IncomeVaultOwnable2Step(proxy);
     }
 
     /* ============ Shared arrange helpers ============ */

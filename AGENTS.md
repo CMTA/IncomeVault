@@ -116,6 +116,8 @@ test/
 ├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings, incl. the
 │                                          #   push/pull claim-window parity (H-1) and restrictions (H-2)
 ├── SnapshotSource.t.sol                   # I-1: a 3-function source is enough; the real engine still fits
+├── invariant/                             # handler + 6 invariants; validate any change by sabotaging
+│                                          #   the contract and checking an invariant actually fails
 └── mocks/IncomeVaultOverrideMock.sol      # compile guard for the `virtual` convention
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
@@ -160,6 +162,10 @@ currently aligned on (RuleEngine v3.0.0-rc5 pins CMTAT v3.3.0-rc3). Submodules a
 automatically — pin them to a release tag, never to an intermediary commit.
 
 ## Common commands
+
+> Test helpers live in `HelperContract`: `_deployContracts()` builds the CMTAT, snapshot engine,
+> payment token and role-based vault; `_deployOwnableVault()` adds the single-owner variant. Do not
+> re-inline either — five suites used to carry a copy.
 
 ```bash
 git submodule update --init --recursive    # initialize submodules (required first)

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
-import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
 
 /**
 * @title `deactivateContract` — finding B-1
@@ -11,25 +10,11 @@ import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
 * with a proxy the sole way back is a new implementation. It was previously untested in both variants.
 */
 contract DeactivateTest is HelperContract {
-    IncomeVaultOwnable2Step ownableVault;
-    address constant OWNER = address(11);
 
     function setUp() public {
         _deployContracts();
 
-        Options memory opts;
-        opts.constructorData = abi.encode(ZERO_ADDRESS);
-        address proxy = Upgrades.deployTransparentProxy(
-            "IncomeVaultOwnable2Step.sol",
-            DEFAULT_ADMIN_ADDRESS,
-            abi.encodeCall(
-                IncomeVaultOwnable2Step.initialize,
-                (OWNER, IERC20(address(tokenPayment)),
-                 ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
-            ),
-            opts
-        );
-        ownableVault = IncomeVaultOwnable2Step(proxy);
+        _deployOwnableVault();
     }
 
     /* ============ role-based variant ============ */

@@ -130,6 +130,14 @@ forge lint
 
 ### Testing
 
+- Invariant suite (`test/invariant/`): a bounded handler drives deposits, claims, batch claims, both
+  distribution variants, withdrawals, freezes, pauses and time warps against six invariants — no
+  over-payment, no holder paid twice for one period across **any** combination of the three payout
+  paths, monotonic claim flags, no unexplained batch payout, no value leaking to a non-holder, and
+  per-time accounting bounded by deposits. 3,072 calls per invariant, budget pinned in `foundry.toml`.
+  Finding B-3 of `CLAUDE_IMPROVEMENT.md`.
+- The single-owner deployment used in five test files moved into `HelperContract._deployOwnableVault()`.
+  Finding B-4.
 - `deactivateContract` is now covered in both deployment variants: the pause precondition, the
   irreversibility (a deactivated vault can never be unpaused), double-deactivation, that every payout
   path is refused afterwards, and that `PAUSER_ROLE` alone is not sufficient. It was previously
