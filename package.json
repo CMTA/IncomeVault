@@ -16,7 +16,7 @@
     "@nomicfoundation/hardhat-foundry": "^1.0.1",
     "ethlint": "^1.2.5",
     "prettier-plugin-solidity": "^1.0.0-rc.1",
-    "sol2uml": "^2.2.6",
+    "sol2uml": "^2.5.26",
     "solidity-docgen": "^0.6.0-beta.35",
     "surya": "^0.4.6"
   },

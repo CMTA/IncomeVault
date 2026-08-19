@@ -5,206 +5,206 @@
  -->
 <!-- Title: UmlClassDiagram Pages: 1 -->
 <svg width="1751pt" height="1140pt"
- viewBox="0.00 0.00 1751.23 1140.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ viewBox="0.00 0.00 1750.53 1140.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 1136)">
 <title>UmlClassDiagram</title>
-<polygon fill="white" stroke="transparent" points="-4,4 -4,-1136 1747.23,-1136 1747.23,4 -4,4"/>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-1136 1746.53,-1136 1746.53,4 -4,4"/>
 <!-- 0 -->
 <g id="node1" class="node">
 <title>0</title>
-<polygon fill="#f2f2f2" stroke="black" points="421.19,-0.5 421.19,-226.1 1511.6,-226.1 1511.6,-0.5 421.19,-0.5"/>
-<text text-anchor="middle" x="966.4" y="-209.5" font-family="Times,serif" font-size="14.00">IncomeVault</text>
-<text text-anchor="middle" x="966.4" y="-192.7" font-family="Times,serif" font-size="14.00">src/IncomeVault.sol</text>
-<polyline fill="none" stroke="black" points="421.19,-184.5 1511.6,-184.5 "/>
-<text text-anchor="start" x="429.19" y="-167.9" font-family="Times,serif" font-size="14.00">Private:</text>
-<text text-anchor="start" x="429.19" y="-151.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
-<polyline fill="none" stroke="black" points="421.19,-142.9 1511.6,-142.9 "/>
-<text text-anchor="start" x="429.19" y="-126.3" font-family="Times,serif" font-size="14.00">Internal:</text>
-<text text-anchor="start" x="429.19" y="-109.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVault_init(admin: address, ERC20TokenPayment_: IERC20, snapshotEngine_: ISnapshotState, ruleEngine_: IRuleEngine, timeLimitToWithdraw_: uint256) &lt;&lt;onlyInitializing&gt;&gt;</text>
-<text text-anchor="start" x="429.19" y="-92.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_msgSender(): (sender: address)</text>
-<text text-anchor="start" x="429.19" y="-75.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_msgData(): bytes</text>
-<text text-anchor="start" x="429.19" y="-59.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_contextSuffixLength(): uint256</text>
-<text text-anchor="start" x="429.19" y="-42.3" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="429.19" y="-25.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;constructor(forwarderIrrevocable: address)</text>
-<text text-anchor="start" x="429.19" y="-8.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;initialize(admin: address, ERC20TokenPayment_: IERC20, snapshotEngine_: ISnapshotState, ruleEngine_: IRuleEngine, timeLimitToWithdraw_: uint256) &lt;&lt;initializer&gt;&gt;</text>
+<polygon fill="#f2f2f2" stroke="black" points="428.92,-0.5 428.92,-226.1 1519.33,-226.1 1519.33,-0.5 428.92,-0.5"/>
+<text text-anchor="middle" x="974.13" y="-209.5" font-family="Times,serif" font-size="14.00">IncomeVault</text>
+<text text-anchor="middle" x="974.13" y="-192.7" font-family="Times,serif" font-size="14.00">src/IncomeVault.sol</text>
+<polyline fill="none" stroke="black" points="428.92,-184.5 1519.33,-184.5 "/>
+<text text-anchor="start" x="436.92" y="-167.9" font-family="Times,serif" font-size="14.00">Private:</text>
+<text text-anchor="start" x="436.92" y="-151.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
+<polyline fill="none" stroke="black" points="428.92,-142.9 1519.33,-142.9 "/>
+<text text-anchor="start" x="436.92" y="-126.3" font-family="Times,serif" font-size="14.00">Internal:</text>
+<text text-anchor="start" x="436.92" y="-109.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVault_init(admin: address, ERC20TokenPayment_: IERC20, snapshotEngine_: ISnapshotState, ruleEngine_: IRuleEngine, timeLimitToWithdraw_: uint256) &lt;&lt;onlyInitializing&gt;&gt;</text>
+<text text-anchor="start" x="436.92" y="-92.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_msgSender(): (sender: address)</text>
+<text text-anchor="start" x="436.92" y="-75.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_msgData(): bytes</text>
+<text text-anchor="start" x="436.92" y="-59.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_contextSuffixLength(): uint256</text>
+<text text-anchor="start" x="436.92" y="-42.3" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="436.92" y="-25.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;constructor(forwarderIrrevocable: address)</text>
+<text text-anchor="start" x="436.92" y="-8.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;initialize(admin: address, ERC20TokenPayment_: IERC20, snapshotEngine_: ISnapshotState, ruleEngine_: IRuleEngine, timeLimitToWithdraw_: uint256) &lt;&lt;initializer&gt;&gt;</text>
 </g>
 <!-- 4 -->
-<g id="node6" class="node">
+<g id="node5" class="node">
 <title>4</title>
-<polygon fill="#f2f2f2" stroke="black" points="511.74,-288.3 511.74,-497.1 913.06,-497.1 913.06,-288.3 511.74,-288.3"/>
-<text text-anchor="middle" x="712.4" y="-480.5" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="712.4" y="-463.7" font-family="Times,serif" font-size="14.00">IncomeVaultOpen</text>
-<text text-anchor="middle" x="712.4" y="-446.9" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultOpen.sol</text>
-<polyline fill="none" stroke="black" points="511.74,-438.7 913.06,-438.7 "/>
-<text text-anchor="start" x="519.74" y="-422.1" font-family="Times,serif" font-size="14.00">Private:</text>
-<text text-anchor="start" x="519.74" y="-405.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
-<polyline fill="none" stroke="black" points="511.74,-397.1 913.06,-397.1 "/>
-<text text-anchor="start" x="519.74" y="-380.5" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="519.74" y="-363.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;claimDividend(time: uint256) &lt;&lt;nonReentrant&gt;&gt;</text>
-<text text-anchor="start" x="519.74" y="-346.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;claimDividendBatch(times: uint256[]) &lt;&lt;nonReentrant&gt;&gt;</text>
-<text text-anchor="start" x="519.74" y="-330.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTimeCode(time: uint256): (code: TIME_ERROR_CODE)</text>
-<text text-anchor="start" x="519.74" y="-313.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTime(time: uint256)</text>
-<text text-anchor="start" x="519.74" y="-296.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTimeBatch(times: uint256[])</text>
+<polygon fill="#f2f2f2" stroke="black" points="1027.47,-288.3 1027.47,-497.1 1428.79,-497.1 1428.79,-288.3 1027.47,-288.3"/>
+<text text-anchor="middle" x="1228.13" y="-480.5" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
+<text text-anchor="middle" x="1228.13" y="-463.7" font-family="Times,serif" font-size="14.00">IncomeVaultOpen</text>
+<text text-anchor="middle" x="1228.13" y="-446.9" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultOpen.sol</text>
+<polyline fill="none" stroke="black" points="1027.47,-438.7 1428.79,-438.7 "/>
+<text text-anchor="start" x="1035.47" y="-422.1" font-family="Times,serif" font-size="14.00">Private:</text>
+<text text-anchor="start" x="1035.47" y="-405.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
+<polyline fill="none" stroke="black" points="1027.47,-397.1 1428.79,-397.1 "/>
+<text text-anchor="start" x="1035.47" y="-380.5" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="1035.47" y="-363.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;claimDividend(time: uint256) &lt;&lt;nonReentrant&gt;&gt;</text>
+<text text-anchor="start" x="1035.47" y="-346.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;claimDividendBatch(times: uint256[]) &lt;&lt;nonReentrant&gt;&gt;</text>
+<text text-anchor="start" x="1035.47" y="-330.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTimeCode(time: uint256): (code: TIME_ERROR_CODE)</text>
+<text text-anchor="start" x="1035.47" y="-313.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTime(time: uint256)</text>
+<text text-anchor="start" x="1035.47" y="-296.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;validateTimeBatch(times: uint256[])</text>
 </g>
 <!-- 0&#45;&gt;4 -->
 <g id="edge2" class="edge">
 <title>0&#45;&gt;4</title>
-<path fill="none" stroke="black" d="M863.82,-226.33C851.97,-239.27 839.83,-252.53 827.82,-265.64"/>
-<polygon fill="none" stroke="black" points="819.66,-259 807.15,-288.22 835.15,-273.19 819.66,-259"/>
+<path fill="none" stroke="black" d="M1076.71,-226.33C1088.56,-239.27 1100.7,-252.53 1112.71,-265.64"/>
+<polygon fill="none" stroke="black" points="1105.38,-273.19 1133.38,-288.22 1120.86,-259 1105.38,-273.19"/>
 </g>
 <!-- 6 -->
 <g id="node7" class="node">
 <title>6</title>
-<polygon fill="#f2f2f2" stroke="black" points="930.67,-263.1 930.67,-522.3 1510.13,-522.3 1510.13,-263.1 930.67,-263.1"/>
-<text text-anchor="middle" x="1220.4" y="-505.7" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="1220.4" y="-488.9" font-family="Times,serif" font-size="14.00">IncomeVaultRestricted</text>
-<text text-anchor="middle" x="1220.4" y="-472.1" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultRestricted.sol</text>
-<polyline fill="none" stroke="black" points="930.67,-463.9 1510.13,-463.9 "/>
-<text text-anchor="start" x="938.67" y="-447.3" font-family="Times,serif" font-size="14.00">Private:</text>
-<text text-anchor="start" x="938.67" y="-430.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
-<polyline fill="none" stroke="black" points="930.67,-422.3 1510.13,-422.3 "/>
-<text text-anchor="start" x="938.67" y="-405.7" font-family="Times,serif" font-size="14.00">Internal:</text>
-<text text-anchor="start" x="938.67" y="-388.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_: uint256) &lt;&lt;onlyInitializing&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-372.1" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="938.67" y="-355.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;deposit(time: uint256, amount: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-338.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;withdraw(time: uint256, amount: uint256, withdrawAddress: address) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-321.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;withdrawAll(amount: uint256, withdrawAddress: address) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-304.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;distributeDividend(addresses: address[], time: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-288.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setStatusClaim(time: uint256, status: bool) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="938.67" y="-271.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setTimeLimitToWithdraw(timeLimitToWithdraw_: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
+<polygon fill="#f2f2f2" stroke="black" points="430.4,-263.1 430.4,-522.3 1009.86,-522.3 1009.86,-263.1 430.4,-263.1"/>
+<text text-anchor="middle" x="720.13" y="-505.7" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
+<text text-anchor="middle" x="720.13" y="-488.9" font-family="Times,serif" font-size="14.00">IncomeVaultRestricted</text>
+<text text-anchor="middle" x="720.13" y="-472.1" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultRestricted.sol</text>
+<polyline fill="none" stroke="black" points="430.4,-463.9 1009.86,-463.9 "/>
+<text text-anchor="start" x="438.4" y="-447.3" font-family="Times,serif" font-size="14.00">Private:</text>
+<text text-anchor="start" x="438.4" y="-430.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
+<polyline fill="none" stroke="black" points="430.4,-422.3 1009.86,-422.3 "/>
+<text text-anchor="start" x="438.4" y="-405.7" font-family="Times,serif" font-size="14.00">Internal:</text>
+<text text-anchor="start" x="438.4" y="-388.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_: uint256) &lt;&lt;onlyInitializing&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-372.1" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="438.4" y="-355.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;deposit(time: uint256, amount: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-338.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;withdraw(time: uint256, amount: uint256, withdrawAddress: address) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-321.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;withdrawAll(amount: uint256, withdrawAddress: address) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-304.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;distributeDividend(addresses: address[], time: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-288.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setStatusClaim(time: uint256, status: bool) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="438.4" y="-271.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setTimeLimitToWithdraw(timeLimitToWithdraw_: uint256) &lt;&lt;onlyRole&gt;&gt;</text>
 </g>
 <!-- 0&#45;&gt;6 -->
 <g id="edge1" class="edge">
 <title>0&#45;&gt;6</title>
-<path fill="none" stroke="black" d="M1068.98,-226.33C1073.28,-231.03 1077.62,-235.77 1081.98,-240.53"/>
-<polygon fill="none" stroke="black" points="1074.43,-247.84 1102.44,-262.87 1089.92,-233.66 1074.43,-247.84"/>
+<path fill="none" stroke="black" d="M871.55,-226.33C867.25,-231.03 862.9,-235.77 858.55,-240.53"/>
+<polygon fill="none" stroke="black" points="850.6,-233.66 838.09,-262.87 866.09,-247.84 850.6,-233.66"/>
 </g>
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<polygon fill="#f2f2f2" stroke="black" points="243.27,-559.3 243.27,-868.9 1181.53,-868.9 1181.53,-559.3 243.27,-559.3"/>
-<text text-anchor="middle" x="712.4" y="-852.3" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="712.4" y="-835.5" font-family="Times,serif" font-size="14.00">IncomeVaultInternal</text>
-<text text-anchor="middle" x="712.4" y="-818.7" font-family="Times,serif" font-size="14.00">src/libraries/IncomeVaultInternal.sol</text>
-<polyline fill="none" stroke="black" points="243.27,-810.5 1181.53,-810.5 "/>
-<text text-anchor="start" x="251.27" y="-793.9" font-family="Times,serif" font-size="14.00">Private:</text>
-<text text-anchor="start" x="251.27" y="-777.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
-<text text-anchor="start" x="251.27" y="-760.3" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="251.27" y="-743.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;snapshotEngine: ISnapshotState</text>
-<text text-anchor="start" x="251.27" y="-726.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;ERC20TokenPayment: IERC20</text>
-<text text-anchor="start" x="251.27" y="-709.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;claimedDividend: mapping(address=&gt;mapping(uint256=&gt;bool))</text>
-<text text-anchor="start" x="251.27" y="-693.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;segregatedDividend: mapping(uint256=&gt;uint256)</text>
-<text text-anchor="start" x="251.27" y="-676.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;segregatedClaim: mapping(uint256=&gt;bool)</text>
-<text text-anchor="start" x="251.27" y="-659.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;timeLimitToWithdraw: uint256</text>
-<polyline fill="none" stroke="black" points="243.27,-651.3 1181.53,-651.3 "/>
-<text text-anchor="start" x="251.27" y="-634.7" font-family="Times,serif" font-size="14.00">Internal:</text>
-<text text-anchor="start" x="251.27" y="-617.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_transferDividend(time: uint256, tokenHolder: address, tokenHolderDividend: uint256)</text>
-<text text-anchor="start" x="251.27" y="-601.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_setSnapshotEngine(snapshotEngine_: ISnapshotState)</text>
-<text text-anchor="start" x="251.27" y="-584.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_computeDividendBatch(time: uint256, tokenHolders: address[], tokenHoldersBalance: uint256[], tokenTotalSupply: uint256): (tokenHolderDividend: uint256[])</text>
-<text text-anchor="start" x="251.27" y="-567.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_computeDividend(time: uint256, senderBalance: uint256, tokenTotalSupply: uint256): (tokenHolderDividend: uint256)</text>
+<polygon fill="#f2f2f2" stroke="black" points="0,-559.3 0,-868.9 938.26,-868.9 938.26,-559.3 0,-559.3"/>
+<text text-anchor="middle" x="469.13" y="-852.3" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
+<text text-anchor="middle" x="469.13" y="-835.5" font-family="Times,serif" font-size="14.00">IncomeVaultInternal</text>
+<text text-anchor="middle" x="469.13" y="-818.7" font-family="Times,serif" font-size="14.00">src/libraries/IncomeVaultInternal.sol</text>
+<polyline fill="none" stroke="black" points="0,-810.5 938.26,-810.5 "/>
+<text text-anchor="start" x="8" y="-793.9" font-family="Times,serif" font-size="14.00">Private:</text>
+<text text-anchor="start" x="8" y="-777.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
+<text text-anchor="start" x="8" y="-760.3" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="8" y="-743.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;snapshotEngine: ISnapshotState</text>
+<text text-anchor="start" x="8" y="-726.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;ERC20TokenPayment: IERC20</text>
+<text text-anchor="start" x="8" y="-709.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;claimedDividend: mapping(address=&gt;mapping(uint256=&gt;bool))</text>
+<text text-anchor="start" x="8" y="-693.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;segregatedDividend: mapping(uint256=&gt;uint256)</text>
+<text text-anchor="start" x="8" y="-676.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;segregatedClaim: mapping(uint256=&gt;bool)</text>
+<text text-anchor="start" x="8" y="-659.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;timeLimitToWithdraw: uint256</text>
+<polyline fill="none" stroke="black" points="0,-651.3 938.26,-651.3 "/>
+<text text-anchor="start" x="8" y="-634.7" font-family="Times,serif" font-size="14.00">Internal:</text>
+<text text-anchor="start" x="8" y="-617.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_transferDividend(time: uint256, tokenHolder: address, tokenHolderDividend: uint256)</text>
+<text text-anchor="start" x="8" y="-601.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_setSnapshotEngine(snapshotEngine_: ISnapshotState)</text>
+<text text-anchor="start" x="8" y="-584.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_computeDividendBatch(time: uint256, tokenHolders: address[], tokenHoldersBalance: uint256[], tokenTotalSupply: uint256): (tokenHolderDividend: uint256[])</text>
+<text text-anchor="start" x="8" y="-567.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_computeDividend(time: uint256, senderBalance: uint256, tokenTotalSupply: uint256): (tokenHolderDividend: uint256)</text>
 </g>
 <!-- 2 -->
 <g id="node3" class="node">
 <title>2</title>
-<polygon fill="#f2f2f2" stroke="black" points="852.2,-905.9 852.2,-1131.5 1330.59,-1131.5 1330.59,-905.9 852.2,-905.9"/>
-<text text-anchor="middle" x="1091.4" y="-1114.9" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="1091.4" y="-1098.1" font-family="Times,serif" font-size="14.00">IncomeVaultInvariantStorage</text>
-<text text-anchor="middle" x="1091.4" y="-1081.3" font-family="Times,serif" font-size="14.00">src/libraries/IncomeVaultInvariantStorage.sol</text>
-<polyline fill="none" stroke="black" points="852.2,-1073.1 1330.59,-1073.1 "/>
-<text text-anchor="start" x="860.2" y="-1056.5" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="860.2" y="-1039.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_OPERATOR_ROLE: bytes32</text>
-<text text-anchor="start" x="860.2" y="-1022.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_DEPOSIT_ROLE: bytes32</text>
-<text text-anchor="start" x="860.2" y="-1006.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_DISTRIBUTE_ROLE: bytes32</text>
-<text text-anchor="start" x="860.2" y="-989.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_WITHDRAW_ROLE: bytes32</text>
-<polyline fill="none" stroke="black" points="852.2,-981.1 1330.59,-981.1 "/>
-<text text-anchor="start" x="860.2" y="-964.5" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="860.2" y="-947.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; newDeposit(time: uint256, sender: address, dividend: uint256)</text>
-<text text-anchor="start" x="860.2" y="-930.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; DividendClaimed(time: uint256, sender: address, dividend: uint256)</text>
-<text text-anchor="start" x="860.2" y="-914.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; SnapshotEngineSet(newSnapshotEngine: ISnapshotState)</text>
+<polygon fill="#f2f2f2" stroke="black" points="608.93,-905.9 608.93,-1131.5 1087.32,-1131.5 1087.32,-905.9 608.93,-905.9"/>
+<text text-anchor="middle" x="848.13" y="-1114.9" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
+<text text-anchor="middle" x="848.13" y="-1098.1" font-family="Times,serif" font-size="14.00">IncomeVaultInvariantStorage</text>
+<text text-anchor="middle" x="848.13" y="-1081.3" font-family="Times,serif" font-size="14.00">src/libraries/IncomeVaultInvariantStorage.sol</text>
+<polyline fill="none" stroke="black" points="608.93,-1073.1 1087.32,-1073.1 "/>
+<text text-anchor="start" x="616.93" y="-1056.5" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="616.93" y="-1039.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_OPERATOR_ROLE: bytes32</text>
+<text text-anchor="start" x="616.93" y="-1022.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_DEPOSIT_ROLE: bytes32</text>
+<text text-anchor="start" x="616.93" y="-1006.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_DISTRIBUTE_ROLE: bytes32</text>
+<text text-anchor="start" x="616.93" y="-989.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;INCOME_VAULT_WITHDRAW_ROLE: bytes32</text>
+<polyline fill="none" stroke="black" points="608.93,-981.1 1087.32,-981.1 "/>
+<text text-anchor="start" x="616.93" y="-964.5" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="616.93" y="-947.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; newDeposit(time: uint256, sender: address, dividend: uint256)</text>
+<text text-anchor="start" x="616.93" y="-930.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; DividendClaimed(time: uint256, sender: address, dividend: uint256)</text>
+<text text-anchor="start" x="616.93" y="-914.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; SnapshotEngineSet(newSnapshotEngine: ISnapshotState)</text>
 </g>
 <!-- 1&#45;&gt;2 -->
 <g id="edge3" class="edge">
 <title>1&#45;&gt;2</title>
-<path fill="none" stroke="black" d="M905.23,-869.06C912.76,-875.07 920.28,-881.08 927.75,-887.04"/>
-<polygon fill="none" stroke="black" points="921.36,-895.37 951.35,-905.88 934.46,-878.96 921.36,-895.37"/>
+<path fill="none" stroke="black" d="M661.96,-869.06C669.49,-875.07 677.01,-881.08 684.48,-887.04"/>
+<polygon fill="none" stroke="black" points="678.09,-895.37 708.08,-905.88 691.19,-878.96 678.09,-895.37"/>
 </g>
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<polygon fill="#f2f2f2" stroke="black" points="1199.56,-567.7 1199.56,-860.5 1743.23,-860.5 1743.23,-567.7 1199.56,-567.7"/>
-<text text-anchor="middle" x="1471.4" y="-843.9" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="1471.4" y="-827.1" font-family="Times,serif" font-size="14.00">IncomeVaultValidationModule</text>
-<text text-anchor="middle" x="1471.4" y="-810.3" font-family="Times,serif" font-size="14.00">src/modules/IncomeVaultValidationModule.sol</text>
-<polyline fill="none" stroke="black" points="1199.56,-802.1 1743.23,-802.1 "/>
-<text text-anchor="start" x="1207.56" y="-785.5" font-family="Times,serif" font-size="14.00">Private:</text>
-<text text-anchor="start" x="1207.56" y="-768.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
-<polyline fill="none" stroke="black" points="1199.56,-760.5 1743.23,-760.5 "/>
-<text text-anchor="start" x="1207.56" y="-743.9" font-family="Times,serif" font-size="14.00">Internal:</text>
-<text text-anchor="start" x="1207.56" y="-727.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVaultValidation_init_unchained(ruleEngine_: IRuleEngine) &lt;&lt;onlyInitializing&gt;&gt;</text>
-<text text-anchor="start" x="1207.56" y="-710.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizePause() &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="1207.56" y="-693.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizeDeactivate() &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="1207.56" y="-676.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizeFreeze() &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="1207.56" y="-659.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_validateTransfer(from: address, to: address, value: uint256)</text>
-<text text-anchor="start" x="1207.56" y="-643.1" font-family="Times,serif" font-size="14.00">Public:</text>
-<text text-anchor="start" x="1207.56" y="-626.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setRuleEngine(ruleEngine_: IRuleEngine) &lt;&lt;onlyRole&gt;&gt;</text>
-<text text-anchor="start" x="1207.56" y="-609.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;canTransfer(from: address, to: address, value: uint256): bool</text>
-<text text-anchor="start" x="1207.56" y="-592.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;detectTransferRestriction(from: address, to: address, value: uint256): uint8</text>
-<text text-anchor="start" x="1207.56" y="-575.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;messageForTransferRestriction(restrictionCode: uint8): string</text>
+<polygon fill="#f2f2f2" stroke="black" points="956.29,-567.7 956.29,-860.5 1499.96,-860.5 1499.96,-567.7 956.29,-567.7"/>
+<text text-anchor="middle" x="1228.13" y="-843.9" font-family="Times,serif" font-size="14.00">&lt;&lt;Abstract&gt;&gt;</text>
+<text text-anchor="middle" x="1228.13" y="-827.1" font-family="Times,serif" font-size="14.00">IncomeVaultValidationModule</text>
+<text text-anchor="middle" x="1228.13" y="-810.3" font-family="Times,serif" font-size="14.00">src/modules/IncomeVaultValidationModule.sol</text>
+<polyline fill="none" stroke="black" points="956.29,-802.1 1499.96,-802.1 "/>
+<text text-anchor="start" x="964.29" y="-785.5" font-family="Times,serif" font-size="14.00">Private:</text>
+<text text-anchor="start" x="964.29" y="-768.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;__gap: uint256[50]</text>
+<polyline fill="none" stroke="black" points="956.29,-760.5 1499.96,-760.5 "/>
+<text text-anchor="start" x="964.29" y="-743.9" font-family="Times,serif" font-size="14.00">Internal:</text>
+<text text-anchor="start" x="964.29" y="-727.1" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;__IncomeVaultValidation_init_unchained(ruleEngine_: IRuleEngine) &lt;&lt;onlyInitializing&gt;&gt;</text>
+<text text-anchor="start" x="964.29" y="-710.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizePause() &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="964.29" y="-693.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizeDeactivate() &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="964.29" y="-676.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_authorizeFreeze() &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="964.29" y="-659.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;_validateTransfer(from: address, to: address, value: uint256)</text>
+<text text-anchor="start" x="964.29" y="-643.1" font-family="Times,serif" font-size="14.00">Public:</text>
+<text text-anchor="start" x="964.29" y="-626.3" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;setRuleEngine(ruleEngine_: IRuleEngine) &lt;&lt;onlyRole&gt;&gt;</text>
+<text text-anchor="start" x="964.29" y="-609.5" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;canTransfer(from: address, to: address, value: uint256): bool</text>
+<text text-anchor="start" x="964.29" y="-592.7" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;detectTransferRestriction(from: address, to: address, value: uint256): uint8</text>
+<text text-anchor="start" x="964.29" y="-575.9" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;messageForTransferRestriction(restrictionCode: uint8): string</text>
 </g>
 <!-- 3&#45;&gt;2 -->
 <g id="edge4" class="edge">
 <title>3&#45;&gt;2</title>
-<path fill="none" stroke="black" d="M1288.63,-860.64C1277.64,-869.39 1266.62,-878.17 1255.71,-886.86"/>
-<polygon fill="none" stroke="black" points="1248.99,-878.78 1232.07,-905.68 1262.07,-895.21 1248.99,-878.78"/>
-</g>
-<!-- 5 -->
-<g id="node5" class="node">
-<title>5</title>
-<polygon fill="#f2f2f2" stroke="black" points="0,-647.3 0,-780.9 224.8,-780.9 224.8,-647.3 0,-647.3"/>
-<text text-anchor="middle" x="112.4" y="-764.3" font-family="Times,serif" font-size="14.00">&lt;&lt;Enum&gt;&gt;</text>
-<text text-anchor="middle" x="112.4" y="-747.5" font-family="Times,serif" font-size="14.00">TIME_ERROR_CODE</text>
-<text text-anchor="middle" x="112.4" y="-730.7" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultOpen.sol</text>
-<polyline fill="none" stroke="black" points="0,-722.5 224.8,-722.5 "/>
-<text text-anchor="start" x="8" y="-705.9" font-family="Times,serif" font-size="14.00">OK: 0</text>
-<text text-anchor="start" x="8" y="-689.1" font-family="Times,serif" font-size="14.00">CLAIM_NOT_ACTIVATED: 1</text>
-<text text-anchor="start" x="8" y="-672.3" font-family="Times,serif" font-size="14.00">TOO_LATE_TO_WITHDRAW: 2</text>
-<text text-anchor="start" x="8" y="-655.5" font-family="Times,serif" font-size="14.00">TOO_EARLY_TO_WITHDRAW: 3</text>
-</g>
-<!-- 5&#45;&gt;4 -->
-<g id="edge5" class="edge">
-<title>5&#45;&gt;4</title>
-<path fill="none" stroke="black" d="M160,-647.26C182.05,-616.73 210.54,-582.12 243.4,-558.8 319.64,-504.7 415.15,-467.04 500.07,-441.5"/>
-<polygon fill="black" stroke="black" points="500.2,-441.46 504.82,-435.93 511.71,-438.06 507.09,-443.6 500.2,-441.46"/>
+<path fill="none" stroke="black" d="M1045.36,-860.64C1034.37,-869.39 1023.35,-878.17 1012.44,-886.86"/>
+<polygon fill="none" stroke="black" points="1005.72,-878.78 988.8,-905.68 1018.8,-895.21 1005.72,-878.78"/>
 </g>
 <!-- 4&#45;&gt;1 -->
 <g id="edge7" class="edge">
 <title>4&#45;&gt;1</title>
-<path fill="none" stroke="black" d="M712.4,-497.4C712.4,-507.59 712.4,-518.13 712.4,-528.82"/>
-<polygon fill="none" stroke="black" points="701.9,-529.18 712.4,-559.18 722.9,-529.18 701.9,-529.18"/>
+<path fill="none" stroke="black" d="M1068.37,-497.25C1052,-506.38 1035.41,-515.07 1019.13,-522.8 1001.45,-531.19 983.29,-539.41 964.84,-547.42"/>
+<polygon fill="none" stroke="black" points="960.61,-537.81 937.12,-559.21 968.83,-557.13 960.61,-537.81"/>
 </g>
 <!-- 4&#45;&gt;3 -->
 <g id="edge6" class="edge">
 <title>4&#45;&gt;3</title>
-<path fill="none" stroke="black" d="M863.93,-497.24C882.72,-507.07 902.12,-515.91 921.4,-522.8 1026.78,-560.45 1069.53,-526.81 1186.35,-558.82"/>
-<polygon fill="none" stroke="black" points="1183.31,-568.87 1215.06,-567.56 1189.42,-548.78 1183.31,-568.87"/>
+<path fill="none" stroke="black" d="M1228.13,-497.4C1228.13,-510.35 1228.13,-523.87 1228.13,-537.54"/>
+<polygon fill="none" stroke="black" points="1217.63,-537.56 1228.13,-567.56 1238.63,-537.56 1217.63,-537.56"/>
+</g>
+<!-- 5 -->
+<g id="node6" class="node">
+<title>5</title>
+<polygon fill="#f2f2f2" stroke="black" points="1517.73,-647.3 1517.73,-780.9 1742.53,-780.9 1742.53,-647.3 1517.73,-647.3"/>
+<text text-anchor="middle" x="1630.13" y="-764.3" font-family="Times,serif" font-size="14.00">&lt;&lt;Enum&gt;&gt;</text>
+<text text-anchor="middle" x="1630.13" y="-747.5" font-family="Times,serif" font-size="14.00">TIME_ERROR_CODE</text>
+<text text-anchor="middle" x="1630.13" y="-730.7" font-family="Times,serif" font-size="14.00">src/public/IncomeVaultOpen.sol</text>
+<polyline fill="none" stroke="black" points="1517.73,-722.5 1742.53,-722.5 "/>
+<text text-anchor="start" x="1525.73" y="-705.9" font-family="Times,serif" font-size="14.00">OK: 0</text>
+<text text-anchor="start" x="1525.73" y="-689.1" font-family="Times,serif" font-size="14.00">CLAIM_NOT_ACTIVATED: 1</text>
+<text text-anchor="start" x="1525.73" y="-672.3" font-family="Times,serif" font-size="14.00">TOO_LATE_TO_WITHDRAW: 2</text>
+<text text-anchor="start" x="1525.73" y="-655.5" font-family="Times,serif" font-size="14.00">TOO_EARLY_TO_WITHDRAW: 3</text>
 </g>
 <!-- 4&#45;&gt;5 -->
 <g id="edge8" class="edge">
 <title>4&#45;&gt;5</title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M511.57,-433.47C418.5,-458.91 310.07,-498.72 225.4,-558.8 195.49,-580.03 169.2,-610.6 149.43,-638.94"/>
-<polygon fill="black" stroke="black" points="146.5,-637.02 143.76,-647.26 152.29,-640.96 146.5,-637.02"/>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M1417.33,-497.26C1446.28,-516.04 1474.89,-536.73 1500.13,-558.8 1526.6,-581.95 1551.42,-611.55 1572.19,-638.61"/>
+<polygon fill="black" stroke="black" points="1569.67,-641.08 1578.5,-646.92 1575.24,-636.84 1569.67,-641.08"/>
+</g>
+<!-- 5&#45;&gt;4 -->
+<g id="edge5" class="edge">
+<title>5&#45;&gt;4</title>
+<path fill="none" stroke="black" d="M1594.91,-646.92C1574.53,-617.74 1547.34,-584.35 1518.13,-558.8 1494.04,-537.74 1466.88,-517.92 1439.08,-499.83"/>
+<polygon fill="black" stroke="black" points="1438.92,-499.73 1431.71,-499.85 1428.82,-493.25 1436.03,-493.12 1438.92,-499.73"/>
 </g>
 <!-- 6&#45;&gt;1 -->
 <g id="edge10" class="edge">
 <title>6&#45;&gt;1</title>
-<path fill="none" stroke="black" d="M1015.61,-522.46C1004.76,-529.28 993.78,-536.18 982.77,-543.11"/>
-<polygon fill="none" stroke="black" points="976.84,-534.43 957.03,-559.29 988.02,-552.21 976.84,-534.43"/>
+<path fill="none" stroke="black" d="M618.76,-522.69C615.44,-526.92 612.09,-531.18 608.73,-535.46"/>
+<polygon fill="none" stroke="black" points="600.33,-529.15 590.05,-559.23 616.84,-542.13 600.33,-529.15"/>
 </g>
 <!-- 6&#45;&gt;3 -->
 <g id="edge9" class="edge">
 <title>6&#45;&gt;3</title>
-<path fill="none" stroke="black" d="M1321.77,-522.69C1327.31,-529.75 1332.92,-536.88 1338.55,-544.05"/>
-<polygon fill="none" stroke="black" points="1330.31,-550.56 1357.11,-567.66 1346.83,-537.59 1330.31,-550.56"/>
+<path fill="none" stroke="black" d="M924.92,-522.46C940.11,-532.01 955.53,-541.71 970.98,-551.42"/>
+<polygon fill="none" stroke="black" points="965.52,-560.39 996.5,-567.47 976.7,-542.61 965.52,-560.39"/>
 </g>
 </g>
 </svg>
