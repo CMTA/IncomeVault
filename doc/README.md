@@ -198,7 +198,9 @@ senderDividend = 4221 * 21555500000 /  12351 = 7366671969.880981297 = 7366671969
 
 Schema without the `ValidationModule` (see next paragraph)
 
-![IncomeVault-claimDividend.drawio](../doc/schema/drawio/IncomeVault-claimDividend.drawio.png)
+![claimDividend flow](./schema/plantuml/incomevault-claimdividend.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-claimdividend.puml](./schema/plantuml/incomevault-claimdividend.puml)._
 
 
 

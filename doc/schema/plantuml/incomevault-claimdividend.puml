@@ -1,0 +1,79 @@
+@startuml
+title claimDividend(time)
+
+skinparam shadowing false
+skinparam ActivityBackgroundColor #EEF5FF
+skinparam ActivityBorderColor #4A6FA5
+skinparam ActivityDiamondBackgroundColor #FDF6E3
+skinparam ActivityDiamondBorderColor #B58900
+skinparam NoteBackgroundColor #FDF6E3
+skinparam NoteBorderColor #B58900
+
+start
+:claimDividend(time)
+called by the token holder;<<#EEF5FF>>
+note right: nonReentrant
+
+partition "validateTime(time)" {
+  if (segregatedClaim[time]) then (open)
+  else (closed)
+    :revert IncomeVault_ClaimNotActivated;<<#FDEEEE>>
+    stop
+  endif
+
+  if (block.timestamp > time + timeLimitToWithdraw) then (too late)
+    :revert IncomeVault_TooLateToWithdraw;<<#FDEEEE>>
+    stop
+  else (in window)
+  endif
+
+  if (block.timestamp < time) then (too early)
+    :revert IncomeVault_TooEarlyToWithdraw;<<#FDEEEE>>
+    stop
+  else (in window)
+  endif
+}
+
+if (claimedDividend[sender][time]) then (already claimed)
+  :revert IncomeVault_DividendAlreadyClaimed;<<#FDEEEE>>
+  stop
+else (not claimed yet)
+endif
+
+:(senderBalance, tokenTotalSupply) =
+snapshotEngine.snapshotInfo(time, sender);<<#FFF6E5>>
+note right
+  External call to the
+  <<ISnapshotState>> source
+end note
+
+if (senderBalance == 0) then (yes)
+  :revert IncomeVault_TokenBalanceIsZero;<<#FDEEEE>>
+  stop
+else (no)
+endif
+
+:senderDividend = senderBalance * segregatedDividend[time] / tokenTotalSupply;
+note right: rounded down
+
+if (senderDividend == 0) then (yes)
+  :revert IncomeVault_NoDividendToClaim;<<#FDEEEE>>
+  stop
+else (no)
+endif
+
+if (canTransfer(vault, sender, senderDividend)\npause, freeze and RuleEngine) then (allowed)
+else (forbidden)
+  :revert IncomeVault_InvalidTransfer;<<#FDEEEE>>
+  stop
+endif
+
+partition "_transferDividend" {
+  :claimedDividend[sender][time] = true;
+  note right: set before the external call
+  :emit DividendClaimed(time, sender, senderDividend);
+  :ERC20TokenPayment.safeTransfer(sender, senderDividend);<<#FFF6E5>>
+}
+stop
+
+@enduml
