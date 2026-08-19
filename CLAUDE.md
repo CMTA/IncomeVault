@@ -36,8 +36,12 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **Claim flow** — the snapshot source schedules a snapshot at `time` → deposit role calls
   `deposit(time, amount)` → operator calls `setStatusClaim(time, true)` → holders
   call `claimDividend(time)` / `claimDividendBatch(times)`.
-- **Snapshot source** — `snapshotEngine` (`ISnapshotState`), set at initialization, never zero.
-  Only `snapshotInfo` and the two `snapshotInfoBatch` overloads are used.
+- **Snapshot source** — `snapshotEngine` (`ISnapshotSource`), set at initialization, never zero.
+  `ISnapshotSource` (`src/interfaces/ISnapshotSource.sol`) declares exactly the three functions the vault
+  calls — a strict subset of the SnapshotEngine's `ISnapshotState`, signatures verbatim, so every
+  `ISnapshotState` implementation satisfies it. **Do not add an ERC-165 guard on it**: the canonical
+  `SnapshotEngine` advertises no id for it and the guard would reject it. If the vault ever needs a
+  fourth function, add it here — not by widening back to `ISnapshotState`.
 - **Pro-rata formula** — `senderDividend = (senderBalance * segregatedDividend[time]) / tokenTotalSupply`,
   rounded down. Dust stays in the vault; the issuer withdraws it after `timeLimitToWithdraw`.
 - **Claim window** — `validateTime` / `validateTimeCode` reject a claim when the
@@ -82,6 +86,8 @@ src/
 │   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
+├── interfaces/
+│   └── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
 └── libraries/
     ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
     │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}
@@ -98,7 +104,8 @@ test/
 │                                          #   Ownable2Step handover, ERC-165
 ├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
 ├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings, incl. the
-│                                          #   push/pull claim-window parity (H-1)
+│                                          #   push/pull claim-window parity (H-1) and restrictions (H-2)
+├── SnapshotSource.t.sol                   # I-1: a 3-function source is enough; the real engine still fits
 └── mocks/IncomeVaultOverrideMock.sol      # compile guard for the `virtual` convention
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend

@@ -33,7 +33,7 @@ contract AccessControlHooksTest is HelperContract {
                 (
                     OWNER,
                     IERC20(address(tokenPayment)),
-                    ISnapshotState(address(snapshotEngine)),
+                    ISnapshotSource(address(snapshotEngine)),
                     IRuleEngine(ZERO_ADDRESS),
                     TIME_LIMIT_TO_WITHDRAW
                 )

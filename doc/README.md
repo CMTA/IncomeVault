@@ -17,9 +17,9 @@ This is the overview; the detailed flow of the same process is [further down](#s
 
 ## Snapshot source
 
-The vault never talks to the token directly. It holds a single reference, `snapshotEngine`, typed
-with the interface `ISnapshotState` defined by the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine),
-and only uses three of its functions:
+The vault never talks to the token directly. It holds a single reference, `snapshotEngine`, typed with
+**`ISnapshotSource`** (`src/interfaces/ISnapshotSource.sol`) — the three functions it actually calls,
+and nothing else:
 
 | Function | Used by |
 | --- | --- |
@@ -27,9 +27,21 @@ and only uses three of its functions:
 | `snapshotInfoBatch(uint256[] times, address[] addresses)` | `claimDividendBatch` |
 | `snapshotInfoBatch(uint256 time, address[] addresses)` | `distributeDividend` |
 
-Any contract implementing them can therefore be used: the external `SnapshotEngine`, a token
-embedding the snapshot modules, or a custom implementation. The address is set at initialization
-(parameter `snapshotEngine_`) and cannot be the zero address.
+`ISnapshotSource` is a strict subset of `ISnapshotState`, defined by the
+[SnapshotEngine](https://github.com/CMTA/SnapshotEngine), which declares eight functions. The
+signatures are copied verbatim, so **every `ISnapshotState` implementation already satisfies it** —
+the external `SnapshotEngine`, a token embedding the snapshot modules, or a custom provider — while a
+new implementation only has to write the three the vault calls, not five it would never see used.
+Solidity has no implicit conversion between unrelated interfaces, so pass one with an explicit cast:
+`ISnapshotSource(address(engine))`.
+
+The address is set at initialization (parameter `snapshotEngine_`) and cannot be the zero address.
+
+> The vault does **not** verify the interface through ERC-165. The canonical `SnapshotEngine`
+> advertises no id for it, so a guard would reject the implementation the vault is built for. And
+> ERC-165 expresses shape, never semantics: a source returning attacker-chosen balances satisfies this
+> interface exactly as an honest one does. Trusting the snapshot source stays a configuration
+> decision.
 
 ![IncomeVault global flow](./schema/plantuml/incomevault-global.png)
 

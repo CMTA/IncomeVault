@@ -11,7 +11,7 @@ import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
 import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.sol";
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
-import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
@@ -49,14 +49,14 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
     * The calls to this function will revert if the contract was deployed without a proxy
     * @param admin Address of the contract (Access Control)
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotEngine_ contract implementing {ISnapshotState}, source of the holder balances
+    * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function initialize(
         address admin,
         IERC20 ERC20TokenPayment_,
-        ISnapshotState snapshotEngine_,
+        ISnapshotSource snapshotEngine_,
         IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) public initializer {

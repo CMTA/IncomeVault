@@ -11,7 +11,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC2771Module} from "CMTAT/modules/wrapper/options/ERC2771Module.sol";
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
-import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
@@ -21,7 +21,7 @@ import {VersionModule} from "./modules/VersionModule.sol";
 * @title Income Vault to distribute dividends — logic shared by every deployment variant
 * @dev
 * The vault is not bound to a specific token implementation: the holder balances and the total
-* supply are read through the {ISnapshotState} interface, which is implemented by the CMTA
+* supply are read through the {ISnapshotSource} interface, which is implemented by the CMTA
 * `SnapshotEngine` as well as by any token embedding an equivalent snapshot module.
 *
 * This contract holds **what** is protected. It deliberately declares no access-control policy: the
@@ -42,13 +42,13 @@ abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, VersionM
     /**
     * @dev calls the initialize functions of the policy-agnostic modules
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotEngine_ contract implementing {ISnapshotState}, source of the holder balances
+    * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function __IncomeVaultBase_init_unchained(
         IERC20 ERC20TokenPayment_,
-        ISnapshotState snapshotEngine_,
+        ISnapshotSource snapshotEngine_,
         IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {

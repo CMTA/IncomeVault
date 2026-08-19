@@ -217,7 +217,7 @@ contract IncomeVaultTest is HelperContract {
 
     /* ============ Snapshot source ============ */
     /**
-    * @dev the vault is wired to the snapshot engine through {ISnapshotState}, not to the token
+    * @dev the vault is wired to the snapshot engine through {ISnapshotSource}, not to the token
     */
     function testSnapshotEngineIsTheConfiguredSource() public view {
         assertEq(address(incomeVault.snapshotEngine()), address(snapshotEngine));
@@ -230,7 +230,7 @@ contract IncomeVaultTest is HelperContract {
             (
                 DEFAULT_ADMIN_ADDRESS,
                 IERC20(address(tokenPayment)),
-                ISnapshotState(ZERO_ADDRESS),
+                ISnapshotSource(ZERO_ADDRESS),
                 IRuleEngine(ZERO_ADDRESS),
                 TIME_LIMIT_TO_WITHDRAW
             )

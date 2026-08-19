@@ -43,16 +43,15 @@ The contracts remain **unaudited**; this review does not change that.
 | H-2 | `distributeDividend` bypassed pause / freeze / RuleEngine | ✅ fixed | `IncomeVaultRestricted.sol` |
 | H-3 | The vault checks whether it has frozen *itself* | ⬜ keep, reasoning below | — |
 | H-4 | `withdrawAll` leaves the per-time accounting stale | ⬜ already documented | — |
-| I-1 | The vault requires 8 interface functions and calls 3 | ⚠️ **decide** | — |
+| I-1 | The vault required 8 interface functions and called 3 | ✅ fixed | `interfaces/ISnapshotSource.sol` |
 
-Counted from the rows above: **9 fixed**, **12 deliberately left as is**, **2 needing a decision**.
+Counted from the rows above: **10 fixed**, **12 deliberately left as is**, **1 needing a decision**.
 
 ## Outstanding
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
 | G-1 | Version string vs release heading | Semver call belongs to the maintainer; the CHANGELOG's own rule says this release is MAJOR |
-| I-1 | Minimal snapshot interface | Requires declaring a new interface, and `ISnapshotState` is owned by another repository |
 | F-2 | ERC-165 for `IERC3643Version` | Cosmetic; no consumer known to filter on it |
 
 ---
@@ -376,7 +375,7 @@ Behaviour and documentation agree; no finding. The new `WithdrawAll` event (C-4)
 
 ## I. Interface granularity
 
-### I-1. The vault requires 8 interface functions and calls 3 — ⚠️ decide
+### I-1. The vault required 8 interface functions and called 3 — ✅ fixed
 
 `ISnapshotState` declares **8** functions. The vault calls **3**:
 
@@ -385,32 +384,42 @@ Behaviour and documentation agree; no finding. The new `WithdrawAll` event (C-4)
 | `snapshotInfo(uint256,address)` | ✔ `claimDividend` |
 | `snapshotInfoBatch(uint256[],address[])` | ✔ `claimDividendBatch` |
 | `snapshotInfoBatch(uint256,address[])` | ✔ `distributeDividend` |
-| `snapshotExists` | ✘ |
-| `snapshotBalanceOf` | ✘ |
-| `snapshotBalanceOfExact` | ✘ |
-| `snapshotTotalSupply` | ✘ |
-| `snapshotTotalSupplyExact` | ✘ |
+| `snapshotExists`, `snapshotBalanceOf`, `snapshotBalanceOfExact`, `snapshotTotalSupply`, `snapshotTotalSupplyExact` | ✘ |
 
-**State the consequence honestly.** There is *no* ERC-165 guard on the snapshot source — the vault
-merely casts `ISnapshotState(addr)` — so no valid implementation is rejected **at runtime** today. The
-cost is entirely in the obligation the project advertises: `README.md` tells integrators that "any
-custom contract exposing `snapshotInfo` / `snapshotInfoBatch`" works, while the type they must satisfy
-demands five more functions. An implementer reading the interface writes five stubs it will never call —
-and stubs that return junk are worse than no interface, because they advertise a capability that is not
-there.
+**Fix.** `src/interfaces/ISnapshotSource.sol` declares exactly the three, with signatures copied
+verbatim from `ISnapshotState`, and the vault is typed against it throughout.
 
-The remedy is a minimal interface (the three used selectors) declared in this repository, with
-`ISnapshotState` implementations satisfying it automatically. Two constraints make this a decision
-rather than a mechanical fix:
+**Be precise about what moved**, because "nothing changed" would be sloppy:
 
-- `ISnapshotState` is owned by the **SnapshotEngine repository**, so the split cannot be made upstream
-  from here; this project would declare its own narrower type.
-- Since nothing checks ERC-165 today, the change buys **documentation and least-privilege value**, not a
-  correctness fix. It should be described that way rather than dressed up.
+| | |
+| --- | --- |
+| Storage layout | **identical** — both variants, verified from `--extra-output storageLayout` (`[]`, all state is ERC-7201) |
+| ABI | **identical** — 194 entries for `IncomeVault`, 184 for `IncomeVaultOwnable2Step`, diffed before/after |
+| `SnapshotEngineSet` topic | **unchanged** — the event is `SnapshotEngineSet(address)` either way |
+| Solidity types | **changed** — `initialize`, `snapshotEngine()` and `_setSnapshotEngine` now name `ISnapshotSource` |
+| Callers | must cast: `ISnapshotSource(address(engine))`, since Solidity has no implicit conversion between unrelated interfaces |
 
-**And the limit of any such check:** ERC-165 expresses shape, never semantics. A snapshot source that
-returns attacker-chosen balances satisfies the same interface as an honest one. Narrowing the type does
-not make the snapshot source trusted; that remains configuration discipline.
+**No ERC-165 guard was added, deliberately.** This is the step most often got wrong: every existing
+implementer would have to advertise the new id, and the canonical `SnapshotEngine` declares no
+`supportsInterface` of its own — a guard would reject the implementation the vault is built for, which
+is a self-inflicted outage rather than a fix. The report's own warning applied to the report's own
+recommendation.
+
+**And the limit, restated so the change is not read as more than it is.** ERC-165 expresses shape,
+never semantics, and this change adds no runtime check at all. A snapshot source returning
+attacker-chosen balances satisfies `ISnapshotSource` exactly as an honest one does. What was bought is
+documentation and least-privilege value: a third-party provider now writes three functions instead of
+five stubs it will never see called. Trusting the source remains configuration discipline.
+
+**Tests.**
+
+| Test | Asserts |
+| --- | --- |
+| `testAThreeFunctionSourceIsAccepted` | `MinimalSnapshotSourceMock` implements *only* the three; the vault initializes against it and a claim pays 100/400 of the deposit |
+| `testTheRealSnapshotEngineStillSatisfiesIt` | the real `ISnapshotState` engine still works through the narrower type — the compatibility half |
+
+The mock is the evidence: it compiles and the vault works against it, so the other five were never
+required.
 
 ---
 

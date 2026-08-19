@@ -91,6 +91,12 @@ forge lint
 
 ### Changed
 
+- The snapshot source is now typed `ISnapshotSource` (new, `src/interfaces/ISnapshotSource.sol`) rather
+  than `ISnapshotState`: the three functions the vault calls instead of the eight `ISnapshotState`
+  declares. Signatures are copied verbatim, so every `ISnapshotState` implementation still satisfies it;
+  callers pass one with an explicit cast, `ISnapshotSource(address(engine))`. **Storage layout and ABI are
+  unchanged** — interface types encode as `address` — so this is a source-level change only.
+  Finding I-1 of `CLAUDE_ANALYSIS.md`.
 - `validateTimeBatch` reads `timeLimitToWithdraw` once instead of once per element, and both batch
   entrypoints take `calldata` instead of `memory`. Measured **-1,949 gas (-5.5%)** on an 8-element
   batch, -241 gas per additional element. See `CLAUDE_ANALYSIS.md` A-1.

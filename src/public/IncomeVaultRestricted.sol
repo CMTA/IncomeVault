@@ -115,7 +115,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Same window as a holder-driven claim: the claims must be open, `time` must have passed so the
         // snapshot is recorded, and the withdraw limit must not have expired. Distributing before `time`
-        // would read the *live* balances, because {ISnapshotState} falls back to them when no snapshot
+        // would read the *live* balances, because {ISnapshotSource} falls back to them when no snapshot
         // exists yet, and would consume the holder's claim for that period at the wrong amount.
         _revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
         // Get info from the snapshot source

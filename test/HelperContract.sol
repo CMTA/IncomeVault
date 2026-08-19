@@ -12,6 +12,7 @@ import {ISnapshotEngine} from "CMTAT/interfaces/engine/ISnapshotEngine.sol";
 import {SnapshotEngine} from "SnapshotEngine/deployment/SnapshotEngine.sol";
 import {IERC20SnapshotCompatible} from "SnapshotEngine/interface/IERC20SnapshotCompatible.sol";
 import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "../src/interfaces/ISnapshotSource.sol";
 /* ==== OpenZeppelin === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
@@ -73,7 +74,7 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
 
     /**
     * @dev Deploys the CMTAT, the external SnapshotEngine bound to it, the payment token and the
-    * IncomeVault behind a transparent proxy. The vault reads the balances through {ISnapshotState},
+    * IncomeVault behind a transparent proxy. The vault reads the balances through {ISnapshotSource},
     * so the snapshot engine — not the token — is what it is wired to.
     */
     function _deployContracts(IRuleEngine ruleEngine_) internal {
@@ -112,7 +113,7 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
                 (
                     DEFAULT_ADMIN_ADDRESS,
                     IERC20(address(tokenPayment)),
-                    ISnapshotState(address(snapshotEngine)),
+                    ISnapshotSource(address(snapshotEngine)),
                     ruleEngine_,
                     TIME_LIMIT_TO_WITHDRAW
                 )

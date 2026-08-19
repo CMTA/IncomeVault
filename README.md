@@ -27,7 +27,7 @@ For the specific case where dividends are distributed in shares, meaning additio
 ## Compatibility
 
 - The dividends can be paid with ERC-20 tokens as described in the [ERC-20](https://eips.ethereum.org/EIPS/eip-20) specification
-- The shares used to compute the dividends part are read through the interface `ISnapshotState`, defined in the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine) repository. This interface is responsible to provide information on the token holder's balance and the total supply for a specific time.
+- The shares used to compute the dividends part are read through the interface `ISnapshotSource` (`src/interfaces/ISnapshotSource.sol`), a strict subset of `ISnapshotState` as defined in the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine) repository. It declares only the three functions the vault calls, so any `ISnapshotState` implementation satisfies it and a custom provider does not have to implement the five it would never use.
 
 The vault is **not** tied to the CMTAT: any contract implementing `ISnapshotState` can be used as the snapshot source, for example
 

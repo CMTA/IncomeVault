@@ -32,7 +32,7 @@ contract CodeQualityTest is HelperContract {
             abi.encodeCall(
                 IncomeVault.initialize,
                 (DEFAULT_ADMIN_ADDRESS, IERC20(address(tokenPayment)),
-                 ISnapshotState(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+                 ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
             ),
             opts
         );
@@ -111,7 +111,7 @@ contract CodeQualityTest is HelperContract {
     /**
     * @notice `distributeDividend` must refuse a distribution before `time`
     * @dev
-    * Before `time` the snapshot has not been recorded, and {ISnapshotState} falls back to the **live**
+    * Before `time` the snapshot has not been recorded, and {ISnapshotSource} falls back to the **live**
     * balance — so a distribution would pay from current balances and permanently consume the holder's
     * claim for that period at the wrong amount. This is finding H-1.
     */

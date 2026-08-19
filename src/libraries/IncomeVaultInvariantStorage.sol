@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 /* ==== Snapshot === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 
 /**
 * @title Roles, errors and events shared by the IncomeVault modules
@@ -59,7 +59,7 @@ abstract contract IncomeVaultInvariantStorage {
     * @notice Emitted when the snapshot source used to compute the dividends is set.
     * @param newSnapshotEngine The contract queried for historical balances and total supply.
     */
-    event SnapshotEngineSet(ISnapshotState indexed newSnapshotEngine);
+    event SnapshotEngineSet(ISnapshotSource indexed newSnapshotEngine);
 
     /* ============ Errors ============ */
     error IncomeVault_ClaimNotActivated();

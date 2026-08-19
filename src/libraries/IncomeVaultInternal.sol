@@ -6,14 +6,14 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /* ==== Snapshot === */
-import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
 
 /**
 * @title Internal functions and ERC-7201 storage of the IncomeVault
 * @dev
-* The vault is token-agnostic: the snapshot source is any contract implementing {ISnapshotState},
+* The vault is token-agnostic: the snapshot source is any contract implementing {ISnapshotSource},
 * e.g. the CMTA `SnapshotEngine` bound to an ERC-20, or a token embedding the snapshot logic itself.
 *
 * The state is held in an ERC-7201 namespaced storage struct, as OpenZeppelin Upgradeable and the
@@ -44,7 +44,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     /// @custom:storage-location erc7201:IncomeVault.storage.IncomeVaultInternal
     struct IncomeVaultInternalStorage {
         // Snapshot source used to read the token holder balances and the total supply
-        ISnapshotState _snapshotEngine;
+        ISnapshotSource _snapshotEngine;
         // ERC-20 token used to pay the dividends
         IERC20 _ERC20TokenPayment;
         // Records, per token holder and per dividend time, whether the dividends were claimed
@@ -65,7 +65,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     * @notice Snapshot source used to read the token holder balances and the total supply
     * @return The contract queried for historical balances and total supply
     */
-    function snapshotEngine() public view virtual returns (ISnapshotState) {
+    function snapshotEngine() public view virtual returns (ISnapshotSource) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._snapshotEngine;
     }
@@ -145,9 +145,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     /**
     * @notice Sets the snapshot source used to compute the dividends
     * @dev reverts if `snapshotEngine_` is the zero address
-    * @param snapshotEngine_ any contract implementing {ISnapshotState}
+    * @param snapshotEngine_ any contract implementing {ISnapshotSource}
     */
-    function _setSnapshotEngine(ISnapshotState snapshotEngine_) internal virtual {
+    function _setSnapshotEngine(ISnapshotSource snapshotEngine_) internal virtual {
         if(address(snapshotEngine_) == address(0)){
             revert IncomeVault_SnapshotEngineWithAddressZeroNotAllowed();
         }
