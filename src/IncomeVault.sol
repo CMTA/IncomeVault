@@ -64,6 +64,11 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
 
     /**
     * @dev calls the different initialize functions from the different modules
+    * @param admin Address of the contract (Access Control)
+    * @param ERC20TokenPayment_ ERC20 token used to perform the payment
+    * @param snapshotEngine_ contract implementing {ISnapshotState}, source of the holder balances
+    * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
+    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function __IncomeVault_init(
         address admin,
@@ -91,6 +96,7 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     
     /** 
     * @dev This surcharge is not necessary if you do not use the ERC2771Module
+    * @return sender The transaction sender, unwrapped from the forwarder calldata when relayed.
     */
     function _msgSender()
         internal
@@ -103,6 +109,7 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
 
     /** 
     * @dev This surcharge is not necessary if you do not use the ERC2771Module
+    * @return The transaction calldata, with the appended sender stripped when relayed.
     */
     function _msgData()
         internal
@@ -113,12 +120,19 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         return ERC2771ContextUpgradeable._msgData();
     }
 
+    /**
+    * @dev This surcharge is not necessary if you do not use the ERC2771Module
+    * @return The length of the ERC-2771 calldata suffix.
+    */
     function _contextSuffixLength() internal view 
     override(ERC2771ContextUpgradeable, ContextUpgradeable)
     returns (uint256) {
          return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 
-    // Use in case of inheritance
+    /**
+    * @notice Storage gap reserved for future versions of this contract
+    * @dev Use in case of inheritance
+    */
     uint256[50] private __gap;
 }

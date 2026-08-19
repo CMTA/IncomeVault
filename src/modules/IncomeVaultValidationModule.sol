@@ -35,6 +35,10 @@ abstract contract IncomeVaultValidationModule is
     IncomeVaultInvariantStorage
 {
     /* ============  Initializer Function ============ */
+    /**
+    * @notice Initializes the validation module
+    * @param ruleEngine_ the RuleEngine applied to the payouts, or the zero address for none
+    */
     function __IncomeVaultValidation_init_unchained(
         IRuleEngine ruleEngine_
     ) internal onlyInitializing {
@@ -66,6 +70,7 @@ abstract contract IncomeVaultValidationModule is
     * @param from the address sending the payment, always the vault itself
     * @param to the token holder receiving the dividends
     * @param value the amount of payment token
+    * @return True if the pause, freeze and RuleEngine checks all allow the payout
     */
     function canTransfer(
         address from,
@@ -89,6 +94,10 @@ abstract contract IncomeVaultValidationModule is
     * @notice ERC-1404 restriction code returned by the RuleEngine for a payout from the vault.
     * @dev Returns `0` (no restriction) when no RuleEngine is set. The pause and freeze states are
     * not reflected here, only the rules: use {canTransfer} for the complete answer.
+    * @param from the address sending the payment, always the vault itself
+    * @param to the token holder receiving the dividends
+    * @param value the amount of payment token
+    * @return The ERC-1404 restriction code, `0` when the rules allow the payout
     */
     function detectTransferRestriction(
         address from,
@@ -104,6 +113,8 @@ abstract contract IncomeVaultValidationModule is
 
     /**
     * @notice Human readable message matching a code returned by {detectTransferRestriction}.
+    * @param restrictionCode the ERC-1404 restriction code to translate
+    * @return The message associated with `restrictionCode`
     */
     function messageForTransferRestriction(
         uint8 restrictionCode
@@ -118,8 +129,34 @@ abstract contract IncomeVaultValidationModule is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL/PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    /* ============ Access Control ============ */
+    /**
+    * @inheritdoc PauseModule
+    */
+    function _authorizePause() internal virtual override(PauseModule) onlyRole(PAUSER_ROLE) {
+        // Nothing to do
+    }
+
+    /**
+    * @inheritdoc PauseModule
+    */
+    function _authorizeDeactivate() internal virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Nothing to do
+    }
+
+    /**
+    * @inheritdoc EnforcementModule
+    */
+    function _authorizeFreeze() internal virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {
+        // Nothing to do
+    }
+
+    /* ============ View functions ============ */
     /**
     * @dev reverts if the payout of `value` from the vault to `to` is forbidden
+    * @param from the address sending the payment, always the vault itself
+    * @param to the token holder receiving the dividends
+    * @param value the amount of payment token
     */
     function _validateTransfer(address from, address to, uint256 value) internal view virtual {
         if(!canTransfer(from, to, value)){
@@ -127,21 +164,8 @@ abstract contract IncomeVaultValidationModule is
         }
     }
 
-    /* ============ Access Control ============ */
-    /// @inheritdoc PauseModule
-    function _authorizePause() internal virtual override(PauseModule) onlyRole(PAUSER_ROLE) {
-        // Nothing to do
-    }
-
-    /// @inheritdoc PauseModule
-    function _authorizeDeactivate() internal virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Nothing to do
-    }
-
-    /// @inheritdoc EnforcementModule
-    function _authorizeFreeze() internal virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {
-        // Nothing to do
-    }
-
+    /**
+    * @notice Storage gap reserved for future versions of this module
+    */
     uint256[50] private __gap;
 }

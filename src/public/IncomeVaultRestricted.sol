@@ -19,6 +19,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     /* ============  Initializer Function ============ */
     /**
     * @dev calls the different initialize functions from the different modules
+    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function __IncomeVaultRestricted_init_unchained(
         uint256 timeLimitToWithdraw_
@@ -110,10 +111,14 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
 
     /**
     * @notice configure the time limit to withdraw
+    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
         timeLimitToWithdraw = timeLimitToWithdraw_;
     }
     
+    /**
+    * @notice Storage gap reserved for future versions of this module
+    */
     uint256[50] private __gap;
 }

@@ -17,49 +17,6 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    /* ============ View functions ============ */
-    /**
-    * @notice validate if a time is valid, return 0 if valid
-    */
-    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
-        if(!segregatedClaim[time]){
-            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
-        }
-        if(block.timestamp > timeLimitToWithdraw + time){
-            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
-        }
-        if(block.timestamp < time){
-            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
-        }
-        return TIME_ERROR_CODE.OK;
-    }
-    
-    /**
-    * @notice validate if a time is valid, revert if invalid
-     */
-    function validateTime(uint256 time) public view{
-        TIME_ERROR_CODE code = validateTimeCode(time);
-         if(code == TIME_ERROR_CODE.OK){
-            return;
-        }else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
-            revert IncomeVault_ClaimNotActivated();
-        }
-        else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
-            revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        }else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
-            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
-        }
-    }
-
-    /**
-    * @notice batch version of {validateTime}
-    */
-    function validateTimeBatch(uint256[] memory times) public view{
-        for(uint256 i = 0; i < times.length; ++i){
-           validateTime(times[i]);
-        }
-    }
-
     /* ============ State functions ============ */
     /**
     * @notice claim your payment
@@ -112,5 +69,55 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
             }
         }
     } 
+    /* ============ View functions ============ */
+    /**
+    * @notice validate if a time is valid, return 0 if valid
+    * @param time the dividend time to check
+    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+    */
+    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
+        if(!segregatedClaim[time]){
+            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
+        }
+        if(block.timestamp > timeLimitToWithdraw + time){
+            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
+        }
+        if(block.timestamp < time){
+            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
+        }
+        return TIME_ERROR_CODE.OK;
+    }
+    
+    /**
+    * @notice validate if a time is valid, revert if invalid
+    * @param time the dividend time to check
+    */
+    function validateTime(uint256 time) public view{
+        TIME_ERROR_CODE code = validateTimeCode(time);
+         if(code == TIME_ERROR_CODE.OK){
+            return;
+        }else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
+            revert IncomeVault_ClaimNotActivated();
+        }
+        else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
+            revert IncomeVault_TooLateToWithdraw(block.timestamp);
+        }else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
+            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
+        }
+    }
+
+    /**
+    * @notice batch version of {validateTime}
+    * @param times the dividend times to check
+    */
+    function validateTimeBatch(uint256[] memory times) public view{
+        for(uint256 i = 0; i < times.length; ++i){
+           validateTime(times[i]);
+        }
+    }
+
+    /**
+    * @notice Storage gap reserved for future versions of this module
+    */
     uint256[50] private __gap;
 }
