@@ -99,13 +99,31 @@ The official documentation is available in the Foundry [website](https://book.ge
 You can run the tests with
 
 ```
-forge clean && forge build
-forge test --ffi
+make test
 ```
 
-> `--ffi` is required: the tests deploy the vault behind a transparent proxy with the OpenZeppelin
-> Foundry Upgrades plugin, whose validation runs `@openzeppelin/upgrades-core` and needs a **full**
-> (non incremental) build, hence the `forge clean` before `forge build`.
+`make help` lists every target. Use `make test` rather than `forge test` directly:
+
+> The OpenZeppelin Foundry Upgrades plugin validates upgrade safety from Foundry's build-info and
+> **rejects the output of an incremental compile**. Running `forge test --ffi` straight after editing a
+> contract therefore fails *every* test with
+> `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`, which
+> names neither the cause nor the fix. `make test` does the full build first. (`--ffi` is required for
+> the same reason: the plugin shells out to `@openzeppelin/upgrades-core`.)
+
+Other useful targets:
+
+```
+make install          # submodules + npm dependencies
+make coverage         # line/branch/function coverage of src/
+make coverage-report  # the same, as HTML in doc/coverage
+make gas              # gas report
+make fmt-check lint   # formatting and lint
+make doc              # regenerate the UML and Surya diagrams
+```
+
+`npm run test`, `npm run build`, `npm run coverage` and `npm run lint` delegate to the same targets, so
+there is one definition rather than two.
 
 To run a specific test, use
 

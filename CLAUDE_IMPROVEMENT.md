@@ -16,7 +16,7 @@ levels of trust.
 1. ~~**A-1**~~ ✅ done. **A-2** — cheap correctness fix, no design debate.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
 3. ~~**B-1, B-2, B-3, B-4**~~ ✅ done. **B-5** — the untested gasless path.
-4. ~~**C-4**~~ ✅ done. **C-1** — make CI catch what is currently caught only by hand.
+4. ~~**C-3, C-4**~~ ✅ done. **C-1** — make CI catch what is currently caught only by hand.
 5. ~~**A-3, A-4, E-1**~~ ✅ all done.
 6. ~~**E-2**~~ ✅ done. Everything else as capacity allows.
 
@@ -242,7 +242,7 @@ checklist. Leaving a checklist item that nobody can run without a large diff mea
 being followed at all. (`forge lint` currently emits 14 notes, mostly the pre-existing mixed-case
 naming of `ERC20TokenPayment`.)
 
-### C-3. An incremental build breaks the test run — **verified, recurring**
+### C-3. An incremental build breaks the test run — ✅ **implemented**
 
 Running `forge test --ffi` after a partial rebuild fails every test with
 `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`. The cause
@@ -250,8 +250,23 @@ is the OpenZeppelin Upgrades plugin requiring a full build; the fix is `forge cl
 first. CI already does this, but a contributor running tests locally hits a confusing error that names
 neither the cause nor the fix.
 
-**Suggested fix:** a `Makefile` target or npm script (`npm run test` → `forge clean && forge build &&
-forge test --ffi`), and a line in the README.
+**Implemented as both**, without duplicating the commands: a `Makefile` holds the definitions and the
+npm scripts delegate to it (`"test": "make test"`). Node is already a hard dependency of this project —
+the Upgrades plugin shells out to `upgrades-core` — so neither entry point adds a requirement.
+
+CI was switched to `make test` too, so the workflow and a contributor's laptop run the same definition
+instead of two copies that can drift.
+
+**Verified by reproducing the failure rather than assuming it.** After appending a line to
+`src/IncomeVault.sol` and running an incremental `forge build`:
+
+| From the same state | Result |
+| --- | --- |
+| `forge test --ffi` | **0 passed, 19 suites failed**, "not from a full compilation" |
+| `make test` | **202 passed** |
+
+`make help` is the default target and lists everything; the note about the full build is printed with
+it, so the constraint is visible at the point someone would trip over it.
 
 ### C-4. No deployment script — ✅ **implemented**
 

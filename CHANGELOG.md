@@ -73,6 +73,12 @@ forge lint
 
 ### Added
 
+- A `Makefile` with the common tasks, and `make test` as the way to run the suite. The OpenZeppelin
+  Upgrades plugin rejects an incremental build, so `forge test --ffi` after editing a contract fails
+  every test with an error naming neither the cause nor the fix; `make test` does the full build first.
+  Verified by reproducing the failure — plain `forge test` after an incremental build: 0 passed, 19
+  suites failed; `make test` from the identical state: 202 passed. `npm run test|build|coverage|lint`
+  delegate to the same targets, and CI now runs `make test`. Finding C-3 of `CLAUDE_IMPROVEMENT.md`.
 - [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) signed operator authorisation:
   `authorizeOperator`, `invalidateNonce`, `authorizations` and `DOMAIN_SEPARATOR`, in the new
   `ERC7741Module` with its own ERC-7201 namespace and the interface declared in

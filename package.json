@@ -1,5 +1,9 @@
 {
   "scripts": {
+    "build": "make build",
+    "test": "make test",
+    "coverage": "make coverage",
+    "lint": "make lint",
     "lint:sol": "npx solium -d src",
     "lint:sol:fix": "npx solium -d src --fix",
     "lint:sol:test": "npx solium -d test",

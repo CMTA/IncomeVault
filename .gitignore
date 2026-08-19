@@ -5,6 +5,7 @@ broadcast/
 lib/
 out/
 docOut/
+lcov.info
 cache/
 .~lock.test.odt#
 nethereum-gen.settings

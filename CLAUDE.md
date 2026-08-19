@@ -168,6 +168,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
 | `doc/audits/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and code comments, and read the Outstanding table before re-opening anything |
 | `script/` | Deployment scripts, one per variant. Excluded from the style check and from coverage; their `require` messages are deliberate. Tested by `test/script/Deploy.t.sol` |
+| `Makefile` | The task definitions — `make help` lists them. npm scripts and CI both delegate here, so there is one definition. Every compiling target does a **full** build because the Upgrades plugin rejects an incremental one |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
 ## Dependencies (tested versions)
@@ -192,14 +193,14 @@ automatically — pin them to a release tag, never to an intermediary commit.
 > re-inline either — five suites used to carry a copy.
 
 ```bash
-git submodule update --init --recursive    # initialize submodules (required first)
-npm install                                # @openzeppelin/upgrades-core, needed by the Upgrades plugin
+make help                                  # every target, and why the build must be full
+make install                               # submodules + npm dependencies
+make test                                  # THE way to run the suite: full build, then forge test --ffi
+make coverage                              # src/ only, tests and mocks excluded
 
-forge clean && forge build                 # a FULL build is required by the upgrade safety validation
-forge build --sizes                        # as run in CI
-forge test --ffi                           # --ffi is mandatory (OZ Upgrades plugin)
-forge test --ffi --match-contract IncomeVaultTest --match-test testHolderCanClaimWithDepositAndOneHolder
-forge coverage --ffi                       # known not to work with the proxy deployment
+# `forge test --ffi` on its own fails every test after an incremental build — the Upgrades plugin
+# rejects partial build-info. Use `make test` unless nothing has been recompiled since the last clean.
+forge test --ffi --match-contract IncomeVaultTest   # fine right after a `make build`
 
 npm run lint:sol                           # ethlint on src/
 npm run lint:sol:prettier                  # prettier-plugin-solidity

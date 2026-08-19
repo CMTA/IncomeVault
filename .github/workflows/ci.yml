@@ -28,9 +28,7 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
-      - name: Run Forge build
-        # a full (non incremental) build is required by the upgrade safety validation
-        run: forge clean && forge build --sizes
-
-      - name: Run Forge tests
-        run: forge test -vvv --ffi
+      # `make test` does the full build first: the upgrade-safety validation rejects an
+      # incremental one. Same target a contributor runs locally.
+      - name: Build and test
+        run: make test
