@@ -132,6 +132,25 @@ The public view `canTransfer(from, to, value)` returns the same answer without r
 `detectTransferRestriction` / `messageForTransferRestriction` forward the ERC-1404 introspection to
 the RuleEngine.
 
+### Freezing the vault itself
+
+`canTransfer` is always called with the vault as `from`, and `setAddressFrozen` accepts any address —
+so `ENFORCER_ROLE` can freeze **the vault**, which stops every payout: both `claimDividend` and
+`distributeDividend` revert. It is a second kill-switch alongside `pause`, reachable without holding
+`PAUSER_ROLE`.
+
+Know its limits before reaching for it:
+
+- **It is not visible through `paused()`**, which stays `false`. A monitor watching the pause flag sees
+  a healthy vault.
+- **The revert is the ordinary `IncomeVault_InvalidTransfer`**, the same error a blocked holder gets.
+  Distinguish the two by checking the `AddressFrozen` logs for the vault's own address.
+- **It does not protect the funds.** Deposits still succeed, and `INCOME_VAULT_WITHDRAW_ROLE` can still
+  drain the contract with `withdrawAll`. It stops holders being paid; it is not a safe mode.
+
+Use `pause` for an emergency stop. Freezing the vault is the compliance-officer lever, and the pause
+state is the one an operator should monitor.
+
 ### RuleEngine 
 
 As for the CMTAT, there is the possibility to configure a ruleEngine with rules to perform transfer rectriction/verification. As relevant rules, we have:

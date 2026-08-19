@@ -358,13 +358,87 @@ Note the pause and freeze slots are now read once per holder rather than once pe
 consistent with `claimDividendBatch`, which does the same, and was not optimised: correctness of the
 control comes first, and a per-holder read is what makes a mid-batch state change impossible to miss.
 
-### H-3. The vault checks whether it has frozen itself — ⬜ keep
+### H-3. The vault checks whether it has frozen itself — ⬜ keep, with a correction
 
-`_validateTransfer(address(this), sender, ...)` reaches `EnforcementModule.isFrozen(address(this))` —
-the vault asking whether its own address is frozen. This looks redundant next to `pause()`, and it is,
-in the sense that both stop all payouts. **Keep it:** it gives the `ENFORCER_ROLE` a lever that does not
-require `PAUSER_ROLE`, and removing it would make the `from` side of the check asymmetric with the `to`
-side for no gas worth measuring. Recorded so it is not "simplified" later.
+`_validateTransfer(address(this), holder, amount)` reaches, inside `canTransfer`:
+
+```solidity
+if(EnforcementModule.isFrozen(from) || EnforcementModule.isFrozen(to)){
+    return false;
+}
+```
+
+`from` is **always the vault** — every call site passes `address(this)` — so the `from` half asks
+whether the vault has frozen *itself*. `EnforcementModule.setAddressFrozen` (inherited from CMTAT)
+accepts any address with no exclusion for `address(this)`, so `ENFORCER_ROLE` can freeze the vault.
+
+> **⚠️ Correction to this report.** The original entry said removing the check would cost "no gas worth
+> measuring". **That was an estimate and it was wrong.** Toggled in place and measured on
+> `claimDividend`: **70,688 gas with the check, 68,426 without — 2,262 gas, 3.2% of a claim.** It is a
+> *cold* `SLOAD`: the vault's own frozen slot is touched nowhere else in a payout, so it never gets
+> warmed. The verdict below is unchanged, but it is now a trade with a real price rather than a free one.
+
+#### What it does today, verified
+
+Each of these was confirmed with a temporary test, not reasoned about:
+
+| Behaviour | Result |
+| --- | --- |
+| Freeze the vault, then `claimDividend` | reverts `IncomeVault_InvalidTransfer` |
+| Freeze the vault, then `distributeDividend` | reverts (since the H-2 fix, the push path checks too) |
+| `paused()` while the vault is frozen | **`false`** |
+| `deposit` while the vault is frozen | **succeeds** |
+| `withdrawAll` while the vault is frozen | **succeeds — the vault can be fully drained** |
+
+#### The risk as it stands
+
+Three consequences follow, and the second is the one that would surprise an operator:
+
+1. **A second global kill-switch, held by a different role.** `ENFORCER_ROLE` — intended for freezing
+   *holders* — can halt every payout by freezing one address, without holding `PAUSER_ROLE`. Whether
+   that is separation of duties or an unintended capability depends on how the roles are staffed. It is
+   not documented anywhere as a way to stop the vault.
+2. **It is invisible to anything watching the pause flag.** `paused()` stays `false`, so a monitor
+   polling the pause state sees a healthy vault while every claim reverts. And the revert is the generic
+   `IncomeVault_InvalidTransfer(vault, holder, amount)` — **identical to the error a blocked holder
+   gets**. A support desk cannot tell "you are on a sanction list" from "the vault itself is halted"
+   without reading the `AddressFrozen` logs and noticing the address is the vault. This is the concrete
+   operational cost of leaving it as is.
+3. **It protects nobody's funds.** Freezing the vault stops holders being paid; it does **not** stop
+   `deposit`, and it does **not** stop `INCOME_VAULT_WITHDRAW_ROLE` draining the contract with
+   `withdrawAll`. It is a payout switch, not a safe mode. Anyone reaching for it as an emergency
+   measure should know that.
+
+#### Why it is kept
+
+**The decisive argument is what removal would do, not what the check buys.** `setAddressFrozen` comes
+from the inherited CMTAT `EnforcementModule` and cannot be un-inherited. Drop the `from` half and
+freezing the vault becomes a **silent no-op that looks like it worked**: the call succeeds, an
+`AddressFrozen` event is emitted, `isFrozen(vault)` returns `true` — and payouts continue. An enforcer
+would believe they had stopped the vault. A check that is redundant is a much smaller problem than a
+control that reports success and does nothing.
+
+Two secondary reasons:
+
+- **Symmetry with `to`, and with CMTAT semantics.** In the CMTAT a frozen address is blocked as sender
+  *and* receiver. Checking only `to` would make the vault's rule differ from the token's for no stated
+  reason.
+- **It composes with the RuleEngine.** `canTransfer(vault, holder, value)` is also handed to the engine
+  with the vault as `from`, so a rule that allow-lists senders already treats the vault as a
+  participant. Removing the local `from` check while the engine still sees `from` would leave the two
+  layers disagreeing about whether the vault is a party to the transfer.
+
+#### What could be implemented instead
+
+| Option | Effect | Verdict |
+| --- | --- | --- |
+| **A. Keep, and document it** | The capability is stated in the spec so an operator knows the lever exists and what it does not cover | **recommended, and done** — `doc/README.md` now describes it |
+| **B. Distinguishable error** | Revert `IncomeVault_VaultFrozen()` when `from` is the vault, instead of the generic `IncomeVault_InvalidTransfer`. Closes risk 2 at the cost of one comparison on the failure path only | **worth doing if operators will run a support desk**; not done, no runtime behaviour depends on it |
+| **C. Reject freezing the vault** | Override `setAddressFrozen` to revert on `address(this)`. Removes the ambiguity entirely — but also removes the enforcer's lever, and overriding an inherited control to forbid something is a bigger statement than it looks | not recommended |
+| **D. Remove the `from` check** | Saves the measured 2,262 gas per claim, and creates the silent no-op described above | **do not** |
+
+The 2,262 gas is the price of option A over option D. That is the trade to weigh: ~3% of a claim, paid
+by every holder, to keep an enforcement control honest.
 
 ### H-4. `withdrawAll` leaves the per-time accounting stale — ⬜ already documented
 
