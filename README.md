@@ -42,13 +42,12 @@ A report performed with [Slither](https://github.com/crytic/slither) is availabl
 
 Here a summary of the main documentation
 
-| Document                | Link/Files                                             |
-| ----------------------- | ------------------------------------------------------ |
-| Specification           | [doc/README.md](./doc/README.md)                       |
-| Technical documentation | [doc/technical.md](./doc/technical.md)                 |
-| Solidity API (docgen)   | [doc/solidityAPI/index.md](./doc/solidityAPI/index.md) |
-| Toolchain               | [doc/TOOLCHAIN.md](./doc/TOOLCHAIN.md)                 |
-| Surya report            | [doc/surya](./doc/surya/)                              |
+| Document                              | Link/Files                                             |
+| ------------------------------------- | ------------------------------------------------------ |
+| Specification & technical choice      | [doc/README.md](./doc/README.md)                       |
+| Solidity API (docgen)                 | [doc/solidityAPI/index.md](./doc/solidityAPI/index.md) |
+| Toolchain                             | [doc/TOOLCHAIN.md](./doc/TOOLCHAIN.md)                 |
+| Surya report                          | [doc/surya](./doc/surya/)                              |
 
 ## Foundry
 

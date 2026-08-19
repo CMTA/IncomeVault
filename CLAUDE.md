@@ -94,8 +94,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `package.json` | npm scripts: lint (ethlint/prettier), `uml`, `surya:*`, `docgen`; dependency `@openzeppelin/upgrades-core` |
 | `.soliumrc.json`, `.soliumignore` | Ethlint/Solium configuration |
 | `CHANGELOG.md` | changelog.md conventions; current release `2.0.0` |
-| `doc/README.md` | Snapshot source, roles table, claim restrictions, formula, threat model & FAQ |
-| `doc/technical.md` | Upgradeability, pause, token agnosticism, reentrancy, gasless (GSN/ERC-2771) |
+| `doc/README.md` | The reference doc: snapshot source, roles table, claim restrictions, formula, threat model & FAQ, plus the technical choices (upgradeability, pause, token agnosticism, reentrancy, gasless GSN/ERC-2771) and the schema/graphs |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
 | `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration |
 | `doc/surya/`, `doc/schema/` | Surya graphs/reports, UML and drawio diagrams — stale, regenerate with `npm run surya:graph` / `npm run uml` |
