@@ -39,6 +39,9 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **Claim flow** — the snapshot source schedules a snapshot at `time` → deposit role calls
   `deposit(time, amount)` → operator calls `setStatusClaim(time, true)` → holders
   call `claimDividend(time)` / `claimDividendBatch(times)`.
+- **Claim delegation reuses ERC-7540's operator signatures exactly.** `IERC7540Operator` must keep
+  `type(...).interfaceId == 0xe3bc4e65`; a test asserts it. Do **not** add that id to
+  `supportsInterface` — the vault is not an asynchronous vault and must not advertise as one.
 - **Snapshot source** — `snapshotEngine` (`ISnapshotSource`), set at initialization, never zero.
   `ISnapshotSource` (`src/interfaces/ISnapshotSource.sol`) declares exactly the three functions the vault
   calls — a strict subset of the SnapshotEngine's `ISnapshotState`, signatures verbatim, so every
@@ -106,7 +109,8 @@ src/
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
 ├── interfaces/
-│   └── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
+│   ├── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
+│   └── IERC7540Operator.sol               # The ERC-7540 operator subset, verbatim; id MUST stay 0xe3bc4e65
 └── libraries/
     ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
     │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}

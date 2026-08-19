@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
+import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 
 /**
 * @title Internal functions and ERC-7201 storage of the IncomeVault
@@ -20,7 +21,7 @@ import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
 * CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
 * inherited modules; no `__gap` is needed and new fields can be appended to the struct freely.
 */
-abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
+abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Operator {
     // Manage transfer failure
     using SafeERC20 for IERC20;
 
@@ -121,13 +122,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     }
 
     /**
-    * @notice Whether `operator` may claim on behalf of `controller`
-    * @dev Same signature as ERC-7540's `isOperator`.
-    * @param controller the token holder
-    * @param operator the address to check
-    * @return True if `operator` is authorised by `controller`
+    * @inheritdoc IERC7540Operator
     */
-    function isOperator(address controller, address operator) public view virtual returns (bool) {
+    function isOperator(address controller, address operator) public view virtual override(IERC7540Operator) returns (bool) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._isOperator[controller][operator];
     }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
+import {IERC7540Operator} from "../src/interfaces/IERC7540Operator.sol";
 
 /**
 * @title Claim delegation — finding E-1
@@ -27,7 +28,7 @@ contract OperatorTest is HelperContract {
 
     function testSetOperatorGrantsAndEmits() public {
         vm.expectEmit(true, true, false, true);
-        emit OperatorSet(ADDRESS1, CUSTODIAN, true);
+        emit IERC7540Operator.OperatorSet(ADDRESS1, CUSTODIAN, true);
         vm.prank(ADDRESS1);
         bool ok = incomeVault.setOperator(CUSTODIAN, true);
 
@@ -155,5 +156,47 @@ contract OperatorTest is HelperContract {
             IncomeVault_TooLateToWithdraw.selector, block.timestamp));
         vm.prank(CUSTODIAN);
         incomeVault.claimDividendFor(ADDRESS1, defaultSnapshotTime);
+    }
+
+    /* ============ conformance with the ERC-7540 operator subset ============ */
+    /**
+    * @notice The interface id matches the value ERC-7540 assigns to its operator methods
+    * @dev
+    * This is what pins the signatures to the standard. ERC-7540 states that `0xe3bc4e65` represents
+    * "the operator methods that all ERC-7540 Vaults implement"; `IERC7540Operator` inherits nothing,
+    * so `type(...).interfaceId` is exactly `setOperator(address,bool) ^ isOperator(address,address)`.
+    * Change either signature and this fails — which is the point, because a custodian written against
+    * ERC-7540 would then silently stop working.
+    */
+    function testOperatorInterfaceIdMatchesTheStandard() public pure {
+        assertEq(type(IERC7540Operator).interfaceId, bytes4(0xe3bc4e65));
+    }
+
+    /**
+    * @notice The vault really is callable through the standard interface type
+    */
+    function testCallableThroughTheStandardInterface() public {
+        IERC7540Operator asStandard = IERC7540Operator(address(incomeVault));
+
+        vm.prank(ADDRESS1);
+        assertTrue(asStandard.setOperator(CUSTODIAN, true), "setOperator MUST return true");
+        assertEq(asStandard.isOperator(ADDRESS1, CUSTODIAN), true);
+
+        vm.prank(CUSTODIAN);
+        incomeVault.claimDividendFor(ADDRESS1, defaultSnapshotTime);
+        assertEq(tokenPayment.balanceOf(ADDRESS1), defaultDepositAmount);
+    }
+
+    /**
+    * @notice The vault deliberately does NOT advertise the id through ERC-165
+    * @dev Sharing the operator methods does not make it an asynchronous ERC-7540 vault; a caller
+    * discovering `0xe3bc4e65` would reasonably expect the request lifecycle and ERC-7575's `share()`,
+    * neither of which exists here. Asserted so the under-claim is a decision, not an oversight.
+    */
+    function testDoesNotClaimToBeAnErc7540Vault() public view {
+        assertEq(incomeVault.supportsInterface(bytes4(0xe3bc4e65)), false);
+        assertEq(incomeVault.supportsInterface(bytes4(0xce3bbe50)), false, "not an async deposit vault");
+        assertEq(incomeVault.supportsInterface(bytes4(0x620ee8e4)), false, "not an async redeem vault");
+        assertEq(incomeVault.supportsInterface(bytes4(0x2f0a18c5)), false, "not an ERC-7575 vault");
     }
 }

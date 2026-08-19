@@ -7,6 +7,7 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /* ==== IncomeVault === */
 import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 
 /**
 * @title Permissionless functions
@@ -63,11 +64,9 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @notice Authorise or revoke an address to claim on your behalf
     * @dev Same signature, semantics and event as ERC-7540's `setOperator`, so tooling written for
     * that standard works here. The operator can never receive the dividends, only trigger the claim.
-    * @param operator the address to authorise or revoke
-    * @param approved true to authorise, false to revoke
-    * @return True, always — the ERC-7540 return convention
+    * @inheritdoc IERC7540Operator
     */
-    function setOperator(address operator, bool approved) public virtual returns (bool) {
+    function setOperator(address operator, bool approved) public virtual override(IERC7540Operator) returns (bool) {
         address controller = _msgSender();
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         $._isOperator[controller][operator] = approved;

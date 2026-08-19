@@ -48,14 +48,6 @@ abstract contract IncomeVaultInvariantStorage {
     * @param amount the amount of payment token withdrawn
     */
     event Withdraw(uint256 indexed time, address indexed withdrawAddress, uint256 amount);
-    /**
-    * @notice Emitted when a token holder grants or revokes an operator
-    * @dev Signature matches ERC-7540's `OperatorSet`, so tooling written for that standard can index it.
-    * @param controller the token holder granting or revoking
-    * @param operator the address being authorised to claim on their behalf
-    * @param approved true when granted, false when revoked
-    */
-    event OperatorSet(address indexed controller, address indexed operator, bool approved);
 
     /**
     * @notice Emitted when a best-effort distribution skips a token holder

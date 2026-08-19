@@ -310,6 +310,29 @@ for that standard can index it.
 This closes the gap noted in the ERC-7540 comparison below: a custodian can now claim for the holders
 it serves, and a holder without gas can have someone claim for them.
 
+The three members whose signatures are the standard's are declared in their own interface,
+`src/interfaces/IERC7540Operator.sol`, so the compatibility is stated in the type system rather than
+in a comment:
+
+```solidity
+interface IERC7540Operator {
+    event OperatorSet(address indexed controller, address indexed operator, bool approved);
+    function setOperator(address operator, bool approved) external returns (bool success);
+    function isOperator(address controller, address operator) external view returns (bool status);
+}
+```
+
+It inherits nothing, so `type(IERC7540Operator).interfaceId` is exactly the XOR of the two selectors
+and equals **`0xe3bc4e65`** — the value ERC-7540 assigns to "the operator methods that all ERC-7540
+Vaults implement". `testOperatorInterfaceIdMatchesTheStandard` asserts that equality, so changing
+either signature breaks the build rather than silently breaking a custodian's integration.
+
+> **The vault does not answer `true` for `0xe3bc4e65` from `supportsInterface`, on purpose.** Sharing
+> the operator methods does not make it an asynchronous vault: a caller discovering that id would
+> reasonably expect the ERC-7540 request lifecycle and ERC-7575's `share()`, none of which exists here.
+> `testDoesNotClaimToBeAnErc7540Vault` pins the under-claim so it stays a decision rather than
+> becoming an oversight.
+
 > Not implemented: [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) signed authorisation, which
 > would let a holder grant an operator without sending a transaction at all. `setOperator` requires
 > the holder to transact once.
