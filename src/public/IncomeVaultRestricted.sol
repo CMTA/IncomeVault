@@ -82,6 +82,42 @@ abstract contract IncomeVaultRestricted is ReentrancyGuardTransient, IncomeVault
     }
 
     /**
+    * @notice Deposit for several dividend times in one transaction
+    * @dev
+    * Equivalent to calling {deposit} once per entry — same accounting, same `newDeposit` event per
+    * entry — but the payment token is pulled **once** for the total instead of once per time. That is
+    * the reason the function exists; the common case is an issuer opening a year of coupon periods.
+    *
+    * Repeating a `time` is allowed and accumulates, exactly as separate calls would.
+    *
+    * @param times the dividend times to deposit for
+    * @param amounts the amount to deposit for each time, must be the same length and each non-zero
+    */
+    function depositBatch(uint256[] calldata times, uint256[] calldata amounts)
+        public virtual onlyDepositManager
+    {
+        if(times.length != amounts.length){
+            revert IncomeVault_InvalidLengths(times.length, amounts.length);
+        }
+        if(times.length == 0){
+            revert IncomeVault_NoAmountSend();
+        }
+        address sender = _msgSender();
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        uint256 total;
+        for(uint256 i = 0; i < times.length; ++i){
+            if(amounts[i] == 0) {
+                revert IncomeVault_NoAmountSend();
+            }
+            $._segregatedDividend[times[i]] += amounts[i];
+            total += amounts[i];
+            emit newDeposit(times[i], sender, amounts[i]);
+        }
+        // One transfer for the whole batch. Will revert in case of failure.
+        $._ERC20TokenPayment.safeTransferFrom(sender, address(this), total);
+    }
+
+    /**
     * @notice withdraw a certain amount at a specified time.
     * @param time provide the date where you want to perform a deposit
     * @param amount the amount to withdraw

@@ -98,7 +98,7 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 
 | Capability | Function(s) | Hook | `IncomeVault` | `IncomeVaultOwnable2Step` |
 | --- | --- | --- | --- | --- |
-| Fund the vault | `deposit` | `_authorizeDeposit` | `INCOME_VAULT_DEPOSIT_ROLE` | owner |
+| Fund the vault | `deposit`, `depositBatch` | `_authorizeDeposit` | `INCOME_VAULT_DEPOSIT_ROLE` | owner |
 | Remove funds | `withdraw`, `withdrawAll` | `_authorizeWithdraw` | `INCOME_VAULT_WITHDRAW_ROLE` | owner |
 | Push payouts | `distributeDividend`, `distributeDividendBestEffort` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
 | Claim window | `setStatusClaim`, `setTimeLimitToWithdraw` | `_authorizeOperator` | `INCOME_VAULT_OPERATOR_ROLE` | owner |
@@ -127,6 +127,26 @@ role-based variant; in the single-owner variant, ownership moves through the two
 > they are never checked; granting them is impossible there and reading them means nothing. The
 > vault's own four roles are declared in `IncomeVaultRolesStorage`, inherited only by `IncomeVault`,
 > so they are not published by the variant that does not enforce them.
+
+### Depositing for several periods
+
+`depositBatch(times[], amounts[])` credits each `time` exactly as a separate `deposit` would — same
+accounting, one `newDeposit` event per entry — and pulls the payment token **once** for the total.
+Repeating a `time` accumulates, as separate calls would. The arrays must be the same non-zero length
+and every amount must be non-zero; otherwise the whole batch reverts and nothing is credited.
+
+**Where the saving actually is, measured:** *inside* a transaction the batch is the more expensive of
+the two — decoding two dynamic `calldata` arrays outweighs the single token transfer. For three
+periods: **136,546 gas batched against 116,812 for three separate calls.** The win is the intrinsic
+per-transaction cost, paid once instead of N times:
+
+| Three periods | in-call | + intrinsic | total |
+| --- | --- | --- | --- |
+| `depositBatch` | 136,546 | 21,000 x 1 | **157,546** |
+| 3 x `deposit` | 116,812 | 21,000 x 3 | 179,812 |
+
+So it is worth using for two or more periods, and the advantage grows with the count — but it is a
+transaction-count optimisation, not a cheaper deposit.
 
 ## Segregated Deposit
 

@@ -73,6 +73,12 @@ forge lint
 
 ### Added
 
+- `depositBatch(times[], amounts[])`, crediting several dividend times in one transaction and pulling
+  the payment token once for the total. Measured for three periods: **136,546 gas in-call against
+  116,812 for three separate `deposit` calls** — the batch is the more expensive of the two per call,
+  and wins only once the 21,000 intrinsic cost of each saved transaction is counted (157,546 against
+  179,812 in total). It is a transaction-count optimisation, not a cheaper deposit.
+  Finding E-2 of `CLAUDE_IMPROVEMENT.md`.
 - `distributeDividendBestEffort`, a variant of `distributeDividend` that **skips** a holder whose payout
   is refused instead of reverting the whole run, returning `(paidCount, skipped[])` and emitting
   `DividendDistributionSkipped(time, holder, reason)` with the raw revert data. Each payout goes through

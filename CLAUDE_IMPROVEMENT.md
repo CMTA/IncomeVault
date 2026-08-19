@@ -18,7 +18,7 @@ levels of trust.
 3. ~~**B-1, B-2, B-3, B-4**~~ ✅ done. **B-5** — the untested gasless path.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
 5. ~~**A-3**~~ ✅ done (option b). ~~**A-4**~~ ✅ done. **E-1** — genuine design decision; discuss before building.
-6. Everything else as capacity allows.
+6. ~~**E-2**~~ ✅ done. Everything else as capacity allows.
 
 ---
 
@@ -312,11 +312,25 @@ ERC-7540's `setOperator` (with ERC-7741 signed authorisation) is the standard sh
 comparison section in `doc/README.md` already notes the vault lacks it. Adding a holder-authorised
 operator is the single largest usability gap.
 
-### E-2. No batch deposit — **suggestion**
+### E-2. No batch deposit — ✅ **implemented**
 
 An issuer opening several periods calls `deposit` once per `time`. A `depositBatch(times[], amounts[])`
 would cut the transaction count for the common "quarterly coupons for the year" setup. Small, and
 symmetric with the existing batch claim.
+
+**Implemented — and the stated rationale turned out to be wrong.** "One transfer instead of N" does
+*not* make the call cheaper: measured over three periods the batch costs **136,546 gas against 116,812**
+for three separate `deposit` calls, because decoding two dynamic `calldata` arrays outweighs the saved
+transfers. The benefit is entirely the intrinsic per-transaction cost — 21,000 once instead of three
+times — giving **157,546 against 179,812** for what a caller actually pays.
+
+The first version of the gas test asserted the batch was cheaper and **failed**, which is what surfaced
+this. It now measures the honest comparison and asserts *both* facts: more expensive in-call, cheaper
+per transaction.
+
+A follow-up worth noting: neither `deposit` nor `depositBatch` refuses a deposit into a period whose
+claims are already open, although `doc/README.md` warns that doing so dilutes holders who have not
+claimed yet. Enforcing it would be a behaviour change to both, so it is left as a separate decision.
 
 ### E-3. Dust is only recoverable by an untimed sweep — **suggestion**
 

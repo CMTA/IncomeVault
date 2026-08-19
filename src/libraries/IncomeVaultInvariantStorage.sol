@@ -96,6 +96,12 @@ abstract contract IncomeVaultInvariantStorage {
     * which requires an external call. It must never be reachable from outside.
     */
     error IncomeVault_OnlySelfCall();
+    /**
+    * @notice Thrown when {IncomeVaultRestricted-depositBatch} is given arrays of different lengths.
+    * @param timesLength the number of dividend times supplied
+    * @param amountsLength the number of amounts supplied
+    */
+    error IncomeVault_InvalidLengths(uint256 timesLength, uint256 amountsLength);
     error IncomeVault_NoAmountSend();
     error IncomeVault_NotEnoughAmount();
     error IncomeVault_TokenBalanceIsZero();
