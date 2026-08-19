@@ -43,10 +43,11 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **Claim window** — `validateTime` / `validateTimeCode` reject a claim when the
   claim is not activated, `block.timestamp < time` (too early), or
   `block.timestamp > time + timeLimitToWithdraw` (too late).
-- **Access control** — OpenZeppelin `AccessControl` via CMTAT's `AccessControlModule`
-  (`DEFAULT_ADMIN_ROLE` implicitly holds every role). Vault roles:
-  `INCOME_VAULT_OPERATOR_ROLE`, `INCOME_VAULT_DEPOSIT_ROLE`, `INCOME_VAULT_WITHDRAW_ROLE`,
-  `INCOME_VAULT_DISTRIBUTE_ROLE`; plus `PAUSER_ROLE` and `ENFORCER_ROLE` from the CMTAT modules.
+- **Access control — authorization-hook pattern.** The logic contracts declare *what* is protected:
+  one `internal view virtual` hook per capability, invoked by a modifier, declared **without a body**.
+  The deployment contract declares *who*: `IncomeVault` overrides every hook with `onlyRole(...)`,
+  `IncomeVaultOwnable2Step` with `onlyOwner`. The two are chosen at deployment and are not
+  interchangeable. Capability table: `doc/README.md` → Access control.
 - **Transfer restriction** — a claim is treated as a transfer from the vault to the holder and goes
   through `IncomeVaultValidationModule`: pause, address freeze, and an optional `IRuleEngine`.
   Rejected payouts revert with `IncomeVault_InvalidTransfer(from, to, value)`.
@@ -67,7 +68,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 
 ```
 src/
-├── IncomeVault.sol                        # Entry point: constructor(forwarder), initialize(), _msgSender/_msgData overrides
+├── IncomeVaultBase.sol                    # Policy-agnostic logic: modules, __IncomeVaultBase_init_unchained,
+│                                          #   ERC-2771 _msgSender/_msgData overrides. Hooks left abstract.
+├── IncomeVault.sol                        # Deployment: AccessControlModule; 8 hooks -> onlyRole(...)
+├── IncomeVaultOwnable2Step.sol            # Deployment: Ownable2StepUpgradeable; 8 hooks -> onlyOwner
 ├── modules/
 │   └── IncomeVaultValidationModule.sol    # AccessControl + Pause + Enforcement + RuleEngine;
 │                                          #   canTransfer, setRuleEngine, detectTransferRestriction
@@ -78,13 +82,17 @@ src/
 └── libraries/
     ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
     │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}
-    └── IncomeVaultInvariantStorage.sol    # Role constants, custom errors, events
+    ├── IncomeVaultInvariantStorage.sol    # Custom errors and events shared by every variant
+    ├── IncomeVaultRolesStorage.sol        # The four INCOME_VAULT_*_ROLE constants — inherited ONLY by IncomeVault
+    └── Ownable2StepERC165Module.sol       # ERC-165 advertisement of ERC-173 / Ownable2Step
 
 test/
 ├── HelperContract.sol                     # Constants + `_deployContracts()`: CMTAT, SnapshotEngine, payment token, proxy
 ├── mocks/ERC20PaymentMock.sol             # Minimal ERC-20 used as payment token
 ├── IncomeVault.t.sol                      # Single claim: deposit, claim, pause, freeze, error cases
 ├── IncomeVaultStorage.t.sol               # ERC-7201: slot derivation, field offsets, getters
+├── AccessControlHooks.t.sol               # Both variants: every hook accepts/rejects, role separation,
+│                                          #   Ownable2Step handover, ERC-165
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
 └── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
@@ -157,6 +165,17 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
   its slot with `SlotDerivation.erc7201Slot()` and keep the derivation comment above the constant.
   `IncomeVault` has an `/// @custom:oz-upgrades-unsafe-allow constructor` annotation
   — keep it and keep `_disableInitializers()` in the constructor.
+- **Authorization hooks:** a hook is `internal view virtual` on the declaration **and on every
+  override** — `view` is what makes "an auth hook cannot mutate state" compiler-enforced, and it is
+  free. CMTAT declares its hooks non-`view`; overriding them `view` is legal (an override may
+  tighten mutability) and is what this project does. Override bodies stay **empty**, with the check
+  riding on the modifier (`onlyRole(...)` / `onlyOwner`), never a bare `_checkRole` call. A new
+  guarded capability means a new hook plus an override in **every** deployment variant.
+- **Role constants live with the layer that enforces them.** They belong in
+  `IncomeVaultRolesStorage`, inherited only by `IncomeVault` — never in `IncomeVaultInvariantStorage`,
+  or the Ownable variant would publish a role it never checks.
+- **`@inheritdoc` needs the base imported by name** in the referencing file, even when it is already
+  in scope through inheritance; otherwise the build fails with "references inexistent contract".
 - **Claim accounting:** always set `claimedDividend[holder][time]` before any
   external call; keep `nonReentrant` on the claim entry points.
 - **Deposits vs. open claims:** do not deposit for a `time` whose claim status is

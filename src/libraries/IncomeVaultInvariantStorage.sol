@@ -9,24 +9,6 @@ import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
 * @title Roles, errors and events shared by the IncomeVault modules
 */
 abstract contract IncomeVaultInvariantStorage {
-    /* ============ Role ============ */
-    /**
-    * @notice Role allowed to open/close the claims and to configure the withdraw time limit
-    */
-    bytes32 public constant INCOME_VAULT_OPERATOR_ROLE = keccak256("INCOME_VAULT_OPERATOR_ROLE");
-    /**
-    * @notice Role allowed to deposit the payment token in the vault
-    */
-    bytes32 public constant INCOME_VAULT_DEPOSIT_ROLE = keccak256("INCOME_VAULT_DEPOSIT_ROLE");
-    /**
-    * @notice Role allowed to push the dividends to a list of token holders
-    */
-    bytes32 public constant INCOME_VAULT_DISTRIBUTE_ROLE = keccak256("INCOME_VAULT_DISTRIBUTE_ROLE");
-    /**
-    * @notice Role allowed to withdraw the payment token from the vault
-    */
-    bytes32 public constant INCOME_VAULT_WITHDRAW_ROLE = keccak256("INCOME_VAULT_WITHDRAW_ROLE");
-
     /* ============ Events ============ */
     /**
     * @notice Emitted when an authorized address deposits dividends for a given time

@@ -18,12 +18,13 @@ import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /* ==== IncomeVault === */
 import {IncomeVault} from "../src/IncomeVault.sol";
 import {IncomeVaultInvariantStorage} from "../src/libraries/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultRolesStorage} from "../src/libraries/IncomeVaultRolesStorage.sol";
 import {ERC20PaymentMock} from "./mocks/ERC20PaymentMock.sol";
 
 /**
 * @title Constants and shared deployment used by the tests
 */
-abstract contract HelperContract is Test, IncomeVaultInvariantStorage {
+abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVaultRolesStorage {
     // EOA to perform tests
     address constant ZERO_ADDRESS = address(0);
     address constant DEFAULT_ADMIN_ADDRESS = address(1);

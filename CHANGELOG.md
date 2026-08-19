@@ -2,6 +2,50 @@
 
 Please follow [https://changelog.md/](https://changelog.md/) conventions.
 
+## Semantic Version 2.0.0
+
+Given a version number MAJOR.MINOR.PATCH, increment the:
+
+1. MAJOR version when the new version makes:
+   -  Incompatible proxy **storage** change internally or through the upgrade of an external library (OpenZeppelin)
+   -  A significant change in external APIs (public/external functions) or in the internal architecture
+2. MINOR version when the new version adds functionality in a backward compatible manner
+3. PATCH version when the new version makes backward compatible bug fixes
+
+See [https://semver.org](https://semver.org)
+
+## Type of changes
+
+- `Summary`: main new features/change with a description (keep it short) (not a changelog tag)
+- `Added` for new features.
+- `Changed` for changes in existing functionality.
+- `Deprecated` for soon-to-be removed features.
+- `Removed` for now removed features.
+- `Fixed` for any bug fixes.
+- `Security` in case of vulnerabilities.
+
+Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
+
+Custom changelog tag: `Dependencies`, `Documentation`, `Testing`
+
+## Checklist
+
+> Before a new release, perform the following tasks
+
+- Code: Update the version name, variable VERSION
+- Run formatter and linter
+
+```bash
+forge fmt
+forge lint
+```
+
+- Documentation
+  - Perform a code coverage and update the files in the corresponding directory [./doc/coverage](./doc/coverage)
+  - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/security/audits/tools](./doc/security/audits/tools)
+  - Update surya doc by running the 3 scripts in [./doc/script](./doc/script)
+  - Update changelog
+
 ## 2.0.0
 
 ### Breaking changes
@@ -26,6 +70,26 @@ Please follow [https://changelog.md/](https://changelog.md/) conventions.
   is unchanged — `snapshotEngine()`, `ERC20TokenPayment()`, `claimedDividend()`, `segregatedDividend()`,
   `segregatedClaim()` and `timeLimitToWithdraw()` are kept as explicit getters — but the storage
   layout is **not** compatible with a 1.x/2.0-rc deployment: this is a redeploy, not an upgrade.
+
+### Added
+
+- `IncomeVaultOwnable2Step`, a second deployment contract using a single ERC-173 owner
+  (`Ownable2StepUpgradeable`) instead of roles. The variant is chosen at deployment and cannot be
+  swapped afterwards. It **cannot express separated duties** — the owner both funds and drains the
+  vault — so it suits simple deployments only.
+- `Ownable2StepERC165Module`, advertising ERC-173 and the Ownable2Step selectors.
+
+### Changed
+
+- Access control moved to the authorization-hook pattern. `IncomeVaultBase` (new) and the logic
+  modules declare one `internal view virtual` hook per capability (`_authorizeDeposit`,
+  `_authorizeWithdraw`, `_authorizeDistribute`, `_authorizeOperator`,
+  `_authorizeRuleEngineManagement`, plus the CMTAT `_authorizePause`, `_authorizeDeactivate`,
+  `_authorizeFreeze`); the deployment contract supplies the policy. `IncomeVault` keeps exactly the
+  roles it had, so its behaviour is unchanged.
+- The four `INCOME_VAULT_*_ROLE` constants moved from `IncomeVaultInvariantStorage` to the new
+  `IncomeVaultRolesStorage`, inherited only by `IncomeVault`, so the single-owner variant does not
+  publish roles it never checks.
 
 ### Fixed
 

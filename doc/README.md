@@ -30,19 +30,63 @@ embedding the snapshot modules, or a custom implementation. The address is set a
 
 ## Access control
 
-All restricted functions are defined in the file `IncomeVaultRestricted`.
+The vault separates **what** is protected from **who** may do it. The logic contracts declare one
+`internal view virtual` authorization hook per capability, invoked by a modifier; each deployment
+contract overrides the hooks with the policy it wants. Because the hooks are declared without a
+body, the compiler refuses to deploy a vault that has not answered the question.
 
-| Role                         | Function                                                     |
-| ---------------------------- | ------------------------------------------------------------ |
-| DEFAULT_ADMIN_ROLE           | Manage all others roles<br />`setRuleEngine`<br />`deactivateContract`<br /><br />This role has also all the others roles by default through the CMTAT `AccessControlModule` |
-| INCOME_VAULT_DEPOSIT_ROLE    | `deposit`                                                    |
-| INCOME_VAULT_WITHDRAW_ROLE   | `withdraw`<br />`withdrawAll`                                |
-| INCOME_VAULT_OPERATOR_ROLE   | `setStatusClaim`<br /> `setTimeLimitToWithdraw`              |
-| INCOME_VAULT_DISTRIBUTE_ROLE | `distributeDividend`                                         |
-| PAUSER_ROLE                  | `pause`<br />`unpause`                                       |
-| ENFORCER_ROLE                | `setAddressFrozen`<br />`batchSetAddressFrozen`              |
+```solidity
+// IncomeVaultRestricted — declares the capability
+modifier onlyWithdrawManager() { _authorizeWithdraw(); _; }
+function withdraw(...) public virtual onlyWithdrawManager { ... }
+function _authorizeWithdraw() internal view virtual;
 
+// IncomeVault — declares the policy
+function _authorizeWithdraw() internal view virtual override onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {}
+```
 
+### Deployment variants
+
+Two deployments ship. **The choice is made at deployment and cannot be changed afterwards** — they
+are different contracts, not a setting, and a deployed proxy cannot be swapped from one to the other.
+
+| Contract | Access control | `initialize` first argument |
+| --- | --- | --- |
+| `IncomeVault` | Role-based, CMTAT `AccessControlModule` (`AccessControlUpgradeable`) | `address admin` |
+| `IncomeVaultOwnable2Step` | Single owner, ERC-173 `Ownable2StepUpgradeable` | `address owner_` |
+
+### Capability table
+
+| Capability | Function(s) | Hook | `IncomeVault` | `IncomeVaultOwnable2Step` |
+| --- | --- | --- | --- | --- |
+| Fund the vault | `deposit` | `_authorizeDeposit` | `INCOME_VAULT_DEPOSIT_ROLE` | owner |
+| Remove funds | `withdraw`, `withdrawAll` | `_authorizeWithdraw` | `INCOME_VAULT_WITHDRAW_ROLE` | owner |
+| Push payouts | `distributeDividend` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
+| Claim window | `setStatusClaim`, `setTimeLimitToWithdraw` | `_authorizeOperator` | `INCOME_VAULT_OPERATOR_ROLE` | owner |
+| Compliance engine | `setRuleEngine` | `_authorizeRuleEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
+| Emergency stop | `pause`, `unpause` | `_authorizePause` | `PAUSER_ROLE` | owner |
+| Permanent kill | `deactivateContract` | `_authorizeDeactivate` | `DEFAULT_ADMIN_ROLE` | owner |
+| Address freeze | `setAddressFrozen`, `batchSetAddressFrozen` | `_authorizeFreeze` | `ENFORCER_ROLE` | owner |
+
+Role management itself (`grantRole` / `revokeRole`) is held by `DEFAULT_ADMIN_ROLE` in the
+role-based variant; in the single-owner variant, ownership moves through the two-step
+`transferOwnership` / `acceptOwnership` handover.
+
+> **`IncomeVaultOwnable2Step` cannot express separated duties.** Every capability collapses to the
+> single owner, so the account that funds the vault is also the account that can empty it through
+> `withdrawAll`. Pick it only when one key legitimately holds everything; an issuer paying dividends
+> normally wants `IncomeVault`, where depositing and withdrawing are distinct privileges.
+
+> **The role-based admin is not constrained by role separation.** The CMTAT `AccessControlModule`
+> treats `DEFAULT_ADMIN_ROLE` as implicitly holding every role, so the admin passes every check —
+> but it does **not** appear in `getRoleMember` enumerations, so an off-chain tool listing role
+> holders will not show it. Role separation constrains the operators, never the admin.
+
+> **`PAUSER_ROLE` and `ENFORCER_ROLE` are published by both variants** because they are declared by
+> the CMTAT `PauseModule` and `EnforcementModule` the vault inherits. In `IncomeVaultOwnable2Step`
+> they are never checked; granting them is impossible there and reading them means nothing. The
+> vault's own four roles are declared in `IncomeVaultRolesStorage`, inherited only by `IncomeVault`,
+> so they are not published by the variant that does not enforce them.
 
 ## Segregated Deposit
 

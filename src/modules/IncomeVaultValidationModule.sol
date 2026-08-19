@@ -3,7 +3,6 @@
 pragma solidity ^0.8.24;
 
 /* ==== CMTAT modules === */
-import {AccessControlModule} from "CMTAT/modules/wrapper/security/AccessControlModule.sol";
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
 import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.sol";
 import {ValidationModuleRuleEngineInternal} from "CMTAT/modules/internal/ValidationModuleRuleEngineInternal.sol";
@@ -28,12 +27,18 @@ import {IncomeVaultInvariantStorage} from "../libraries/IncomeVaultInvariantStor
 * must not update the stateful rules of the engine.
 */
 abstract contract IncomeVaultValidationModule is
-    AccessControlModule,
     PauseModule,
     EnforcementModule,
     ValidationModuleRuleEngineInternal,
     IncomeVaultInvariantStorage
 {
+    /* ============ Modifier ============ */
+    /// @dev Restricts the management of the RuleEngine
+    modifier onlyRuleEngineManager() {
+        _authorizeRuleEngineManagement();
+        _;
+    }
+
     /* ============  Initializer Function ============ */
     /**
     * @notice Initializes the validation module
@@ -52,12 +57,10 @@ abstract contract IncomeVaultValidationModule is
     /**
     * @notice Updates the RuleEngine applied to the dividend payouts.
     * @param ruleEngine_ the new RuleEngine, or the zero address to disable the rule checks
-    * @custom:access-control
-    * - the caller must have the `DEFAULT_ADMIN_ROLE`.
     */
     function setRuleEngine(
         IRuleEngine ruleEngine_
-    ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public virtual onlyRuleEngineManager {
         if(address(ruleEngine_) == address(ruleEngine())){
             revert IncomeVault_SameValue();
         }
@@ -131,25 +134,10 @@ abstract contract IncomeVaultValidationModule is
     //////////////////////////////////////////////////////////////*/
     /* ============ Access Control ============ */
     /**
-    * @inheritdoc PauseModule
+    * @dev Authorization hook invoked before {setRuleEngine}.
+    * Implemented by the deployment contract with the desired access-control policy.
     */
-    function _authorizePause() internal virtual override(PauseModule) onlyRole(PAUSER_ROLE) {
-        // Nothing to do
-    }
-
-    /**
-    * @inheritdoc PauseModule
-    */
-    function _authorizeDeactivate() internal virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Nothing to do
-    }
-
-    /**
-    * @inheritdoc EnforcementModule
-    */
-    function _authorizeFreeze() internal virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {
-        // Nothing to do
-    }
+    function _authorizeRuleEngineManagement() internal view virtual;
 
     /* ============ View functions ============ */
     /**

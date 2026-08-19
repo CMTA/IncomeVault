@@ -5,8 +5,9 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 /* ==== CMTAT === */
-import {AccessControlModule} from "CMTAT/modules/wrapper/security/AccessControlModule.sol";
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
 import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.sol";
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
@@ -16,21 +17,22 @@ import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
-import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
+import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
 
 /**
-* @title Income Vault to distribute dividends — role-based deployment
+* @title Income Vault to distribute dividends — single-owner deployment
 * @dev
-* Answers **who** may do what: every authorization hook of {IncomeVaultBase} is overridden with the
-* role that gates it. Suited to institutional operations, where funding the vault, withdrawing from
-* it and running the claim window are held by different accounts.
+* Answers **who** may do what with a single ERC-173 owner: every authorization hook collapses to
+* `onlyOwner`. `Ownable2Step` is used rather than `Ownable` so a mistyped address cannot lose the
+* contract — the handover only completes when the new owner calls `acceptOwnership`.
 *
-* Note the CMTAT `AccessControlModule` treats `DEFAULT_ADMIN_ROLE` as implicitly holding every role:
-* the admin passes every `hasRole` check but does **not** appear in role enumerations, so an
-* off-chain tool listing role holders will not see them. Role separation therefore constrains the
-* operators, never the admin.
+* @custom:security This variant **cannot express separated duties**. The owner deposits, withdraws,
+* distributes, runs the claim window, pauses, freezes and repoints the RuleEngine. In particular the
+* account that funds the vault is the same account that can empty it through `withdrawAll`. Choose
+* {IncomeVault}, the role-based deployment, whenever depositing and withdrawing must be held by
+* different accounts — which is the usual requirement for an issuer paying dividends.
 */
-contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesStorage {
+contract IncomeVaultOwnable2Step is IncomeVaultBase, Ownable2StepUpgradeable, Ownable2StepERC165Module {
 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
@@ -47,30 +49,41 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
     * @notice
     * initialize the proxy contract
     * The calls to this function will revert if the contract was deployed without a proxy
-    * @param admin Address of the contract (Access Control)
+    * @param owner_ Address of the initial contract owner (ERC-173)
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
     * @param snapshotEngine_ contract implementing {ISnapshotState}, source of the holder balances
     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function initialize(
-        address admin,
+        address owner_,
         IERC20 ERC20TokenPayment_,
         ISnapshotState snapshotEngine_,
         IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) public initializer {
-        if(admin == address(0)){
+        if(owner_ == address(0)){
             revert IncomeVault_AdminWithAddressZeroNotAllowed();
         }
-        __AccessControl_init_unchained();
-        __AccessControlModule_init_unchained(admin);
+        __Ownable_init_unchained(owner_);
+        __Ownable2Step_init_unchained();
+        __ERC165_init_unchained();
         __IncomeVaultBase_init_unchained(
             ERC20TokenPayment_,
             snapshotEngine_,
             ruleEngine_,
             timeLimitToWithdraw_
         );
+    }
+
+    /* ============ ERC-165 ============ */
+    /**
+    * @inheritdoc Ownable2StepERC165Module
+    */
+    function supportsInterface(bytes4 interfaceId)
+        public view virtual override(Ownable2StepERC165Module) returns (bool)
+    {
+        return Ownable2StepERC165Module.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -106,26 +119,26 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
 
     /* ============ Access Control ============ */
     /// @inheritdoc IncomeVaultRestricted
-    function _authorizeDeposit() internal view virtual override onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {}
+    function _authorizeDeposit() internal view virtual override onlyOwner {}
 
     /// @inheritdoc IncomeVaultRestricted
-    function _authorizeWithdraw() internal view virtual override onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {}
+    function _authorizeWithdraw() internal view virtual override onlyOwner {}
 
     /// @inheritdoc IncomeVaultRestricted
-    function _authorizeDistribute() internal view virtual override onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {}
+    function _authorizeDistribute() internal view virtual override onlyOwner {}
 
     /// @inheritdoc IncomeVaultRestricted
-    function _authorizeOperator() internal view virtual override onlyRole(INCOME_VAULT_OPERATOR_ROLE) {}
+    function _authorizeOperator() internal view virtual override onlyOwner {}
 
     /// @inheritdoc IncomeVaultValidationModule
-    function _authorizeRuleEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeRuleEngineManagement() internal view virtual override onlyOwner {}
 
     /// @inheritdoc PauseModule
-    function _authorizePause() internal view virtual override(PauseModule) onlyRole(PAUSER_ROLE) {}
+    function _authorizePause() internal view virtual override(PauseModule) onlyOwner {}
 
     /// @inheritdoc PauseModule
-    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyOwner {}
 
     /// @inheritdoc EnforcementModule
-    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {}
+    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyOwner {}
 }

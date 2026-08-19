@@ -16,6 +16,31 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     // Security
     using SafeERC20 for IERC20;
 
+    /* ============ Modifier ============ */
+    /// @dev Restricts the deposit of dividends
+    modifier onlyDepositManager() {
+        _authorizeDeposit();
+        _;
+    }
+
+    /// @dev Restricts the withdrawal of the deposited funds
+    modifier onlyWithdrawManager() {
+        _authorizeWithdraw();
+        _;
+    }
+
+    /// @dev Restricts the issuer-driven distribution of the dividends
+    modifier onlyDistributeManager() {
+        _authorizeDistribute();
+        _;
+    }
+
+    /// @dev Restricts the configuration of the claim window
+    modifier onlyVaultOperator() {
+        _authorizeOperator();
+        _;
+    }
+
     /* ============  Initializer Function ============ */
     /**
     * @dev calls the different initialize functions from the different modules
@@ -36,7 +61,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param time provide the date where you want to perform a deposit
     * @param amount the amount to deposit
     */
-    function deposit(uint256 time, uint256 amount) public onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {
+    function deposit(uint256 time, uint256 amount) public virtual onlyDepositManager {
         address sender = _msgSender();
         if(amount == 0) {
             revert IncomeVault_NoAmountSend();
@@ -54,7 +79,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param amount the amount to withdraw
     * @param withdrawAddress address to receive `amount`of tokens
     */
-    function withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
+    function withdraw(uint256 time, uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         if($._segregatedDividend[time] < amount) {
             revert IncomeVault_NotEnoughAmount();
@@ -69,7 +94,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param amount the amount to withdraw
     * @param withdrawAddress address to receive `amount`of tokens
     */
-    function withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
+    function withdrawAll(uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Will revert in case of failure
         $._ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
@@ -81,7 +106,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param time dividend time
     * @dev The dividends are distributed only if they have not yet been claimed by the token holder
     */
-    function distributeDividend(address[] calldata addresses, uint256 time) public onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {
+    function distributeDividend(address[] calldata addresses, uint256 time) public virtual onlyDistributeManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Check if the claim is activated
         if(!$._segregatedClaim[time]){
@@ -109,7 +134,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param status boolean (true or false)
     * 
     */
-    function setStatusClaim(uint256 time, bool status) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
+    function setStatusClaim(uint256 time, bool status) public virtual onlyVaultOperator {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         $._segregatedClaim[time] = status;
     }
@@ -118,7 +143,33 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @notice configure the time limit to withdraw
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
-    function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
+    function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public virtual onlyVaultOperator {
         _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
-    }
+    
+
+    /* ============ Access Control ============ */
+    /**
+    * @dev Authorization hook invoked before a deposit.
+    * Implemented by the deployment contract with the desired access-control policy.
+    */
+    function _authorizeDeposit() internal view virtual;
+
+    /**
+    * @dev Authorization hook invoked before {withdraw} and {withdrawAll}.
+    * Implemented by the deployment contract with the desired access-control policy.
+    */
+    function _authorizeWithdraw() internal view virtual;
+
+    /**
+    * @dev Authorization hook invoked before {distributeDividend}.
+    * Implemented by the deployment contract with the desired access-control policy.
+    */
+    function _authorizeDistribute() internal view virtual;
+
+    /**
+    * @dev Authorization hook invoked before {setStatusClaim} and {setTimeLimitToWithdraw}.
+    * Implemented by the deployment contract with the desired access-control policy.
+    */
+    function _authorizeOperator() internal view virtual;
+}
