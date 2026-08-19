@@ -17,7 +17,7 @@ levels of trust.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
 3. ~~**B-1, B-2, B-3, B-4**~~ ✅ done. **B-5** — the untested gasless path.
 4. **C1, C4** — make CI catch what is currently caught only by hand.
-5. ~~**A-3**~~ ✅ done (option b). ~~**A-4**~~ ✅ done. **E-1** — genuine design decision; discuss before building.
+5. ~~**A-3, A-4, E-1**~~ ✅ all done.
 6. ~~**E-2**~~ ✅ done. Everything else as capacity allows.
 
 ---
@@ -301,7 +301,7 @@ route to report.
 
 ## E. Product gaps
 
-### E-1. A holder cannot delegate their claim — **suggestion**
+### E-1. A holder cannot delegate their claim — ✅ **implemented**
 
 `claimDividend` always pays `_msgSender()`. There is no `claimDividendFor(holder, time)` and no
 operator concept, so a custodian cannot claim on behalf of the holders it serves, and a holder who has
@@ -311,6 +311,18 @@ holder's.
 ERC-7540's `setOperator` (with ERC-7741 signed authorisation) is the standard shape for this; the
 comparison section in `doc/README.md` already notes the vault lacks it. Adding a holder-authorised
 operator is the single largest usability gap.
+
+**Implemented** with the ERC-7540 shape — `setOperator`, `isOperator`, `OperatorSet`, plus
+`claimDividendFor` and `claimDividendBatchFor`. Payouts always go to the holder; the operator only
+pays the gas and picks the moment. 13 tests, including that a revoked operator, a stranger, and an
+operator authorised by a *different* holder are all refused, and that every other rule (window,
+already-claimed, freeze) still applies. Removing the authorisation check fails three of them.
+
+ERC-7741 signed authorisation is **not** implemented: the holder must transact once to grant. That
+remains a follow-up.
+
+**Implementing this surfaced a pre-existing accounting defect**, via the invariant suite added in B-3
+rather than via E-1 itself — see the note under E-3.
 
 ### E-2. No batch deposit — ✅ **implemented**
 
@@ -355,6 +367,17 @@ So E-3 delivered three things rather than one:
    original invariant suite compared against total *deposits* and was blind to this; the new one fails
    with an arithmetic underflow against the old code, which is itself proof the old bound could drive
    `segregated < paid`.
+
+**A second defect, found later by the invariant suite.** With the residue now tracked, a fuzz run
+failed on the sequence deposit -> claim -> withdraw: sweeping a period mid-window lowers
+`segregatedDividend`, so a holder claiming afterwards is priced against the reduced denominator while
+the period no longer holds that much, and the shortfall was **silently funded from another period's
+deposit**. Two fixes followed — `unclaimedDividend` saturates at zero instead of underflowing (a view
+must never revert), and `_transferDividend` refuses a payout larger than its own period's residue.
+
+Note the fuzzer found this **once** and did not re-find it when the fix was removed, so it is not a
+reliable regression test on its own; `testAClaimCannotBeFundedByAnotherPeriod` reproduces it
+deterministically and does fail without the bound.
 
 **Cost, measured:** +22,274 gas on the first claim of each period (66,687 -> 88,961), a cold `SSTORE`
 for the new counter; warm afterwards. The alternative — document the hazard and leave `withdraw`

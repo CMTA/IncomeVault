@@ -138,7 +138,8 @@ abstract contract IncomeVaultRestricted is ReentrancyGuardTransient, IncomeVault
         // Bound by what this period STILL holds, not by what was deposited into it. `_segregatedDividend`
         // is the pro-rata denominator and is never reduced by a payout, so checking against it alone
         // would let a fully-claimed period be swept again — taking another period's money.
-        if($._segregatedDividend[time] - $._paidDividend[time] < amount) {
+        // {unclaimedDividend} saturates at zero, so an over-drawn period simply allows nothing.
+        if(unclaimedDividend(time) < amount) {
             revert IncomeVault_NotEnoughAmount();
         }
         $._segregatedDividend[time] -= amount;

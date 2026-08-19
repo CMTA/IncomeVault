@@ -22,8 +22,102 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @param time provide the date where you want to receive your payment
     */
     function claimDividend(uint256 time) public virtual nonReentrant() {
+        _claimDividend(_msgSender(), time);
+    }
+
+    /**
+    * @notice Claim on behalf of a token holder
+    * @dev
+    * Callable by the holder, or by an address the holder authorised through {setOperator}. The
+    * dividends always go to **the holder** — an operator pays the gas and chooses the moment, it can
+    * never redirect the payment. Every other rule is unchanged: the claim window, the
+    * already-claimed check and the transfer restrictions all apply exactly as for {claimDividend}.
+    * @param holder the token holder to claim for
+    * @param time provide the date of the payment
+    */
+    function claimDividendFor(address holder, uint256 time) public virtual nonReentrant() {
+        _requireHolderOrOperator(holder);
+        _claimDividend(holder, time);
+    }
+
+    /**
+    * @notice Batch version of {claimDividendFor}
+    * @param holder the token holder to claim for
+    * @param times provide the dates of the payments
+    */
+    function claimDividendBatchFor(address holder, uint256[] calldata times) public virtual nonReentrant() {
+        _requireHolderOrOperator(holder);
+        _claimDividendBatch(holder, times);
+    }
+
+    /**
+    * @notice batch version of {claimDividend}
+    * @param times provide the dates where you want to receive your payment
+    * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
+    */
+    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant() {
+        _claimDividendBatch(_msgSender(), times);
+    }
+
+    /**
+    * @notice Authorise or revoke an address to claim on your behalf
+    * @dev Same signature, semantics and event as ERC-7540's `setOperator`, so tooling written for
+    * that standard works here. The operator can never receive the dividends, only trigger the claim.
+    * @param operator the address to authorise or revoke
+    * @param approved true to authorise, false to revoke
+    * @return True, always — the ERC-7540 return convention
+    */
+    function setOperator(address operator, bool approved) public virtual returns (bool) {
+        address controller = _msgSender();
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        $._isOperator[controller][operator] = approved;
+        emit OperatorSet(controller, operator, approved);
+        return true;
+    }
+
+    /* ============ View functions ============ */
+    /**
+    * @notice validate if a time is valid, return 0 if valid
+    * @param time the dividend time to check
+    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+    */
+    function validateTimeCode(uint256 time) public view virtual returns(TIME_ERROR_CODE code){
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return _timeCode($, time, $._timeLimitToWithdraw);
+    }
+
+    /**
+    * @notice validate if a time is valid, revert if invalid
+    * @param time the dividend time to check
+    */
+    function validateTime(uint256 time) public view virtual {
+        _revertOnInvalidTime(validateTimeCode(time));
+    }
+
+    /**
+    * @notice batch version of {validateTime}
+    * @param times the dividend times to check
+    */
+    function validateTimeBatch(uint256[] calldata times) public view virtual {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        // `_timeLimitToWithdraw` is the same slot for every element: read it once
+        uint256 timeLimit = $._timeLimitToWithdraw;
+        for(uint256 i = 0; i < times.length; ++i){
+           _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL/PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /* ============ State functions ============ */
+    /**
+    * @dev {claimDividend} for an explicit holder
+    * @param sender the token holder being paid
+    * @param time the dividend time
+    */
+    function _claimDividend(address sender, uint256 time) internal virtual {
         validateTime(time);
-        address sender = _msgSender();
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // At the beginning since no external call to do
         if ($._claimedDividend[sender][time]){
@@ -47,14 +141,13 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     }
 
     /**
-    * @notice batch version of {claimDividend}
-    * @param times provide the dates where you want to receive your payment
-    * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
+    * @dev {claimDividendBatch} for an explicit holder
+    * @param sender the token holder being paid
+    * @param times the dividend times
     */
-    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant() {
+    function _claimDividendBatch(address sender, uint256[] calldata times) internal virtual {
         // Check if the claim is activated for each times
         validateTimeBatch(times);
-        address sender = _msgSender();
         address[] memory senders = new address[](1);
         senders[0] = sender;
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -70,35 +163,17 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
             }
         }
     } 
+
     /* ============ View functions ============ */
     /**
-    * @notice validate if a time is valid, return 0 if valid
-    * @param time the dividend time to check
-    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+    * @dev reverts unless the caller is `holder` or an operator `holder` authorised
+    * @param holder the token holder being claimed for
     */
-    function validateTimeCode(uint256 time) public view virtual returns(TIME_ERROR_CODE code){
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        return _timeCode($, time, $._timeLimitToWithdraw);
-    }
-    
-    /**
-    * @notice validate if a time is valid, revert if invalid
-    * @param time the dividend time to check
-    */
-    function validateTime(uint256 time) public view virtual {
-        _revertOnInvalidTime(validateTimeCode(time));
-    }
-
-    /**
-    * @notice batch version of {validateTime}
-    * @param times the dividend times to check
-    */
-    function validateTimeBatch(uint256[] calldata times) public view virtual {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        // `_timeLimitToWithdraw` is the same slot for every element: read it once
-        uint256 timeLimit = $._timeLimitToWithdraw;
-        for(uint256 i = 0; i < times.length; ++i){
-           _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
+    function _requireHolderOrOperator(address holder) internal view virtual {
+        address caller = _msgSender();
+        if(caller != holder && !isOperator(holder, caller)){
+            revert IncomeVault_UnauthorizedOperator(holder, caller);
         }
     }
+
 }

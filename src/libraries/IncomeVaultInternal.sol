@@ -62,6 +62,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         // reduced on a payout — it is the pro-rata denominator and must stay fixed for the period —
         // so this is what makes "how much of that deposit is still here" answerable.
         mapping(uint256 time => uint256 paid) _paidDividend;
+        // Holders that authorised another address to claim on their behalf. Payouts always go to the
+        // holder, never to the operator; the operator only pays the gas and chooses the moment.
+        mapping(address controller => mapping(address operator => bool)) _isOperator;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -118,6 +121,18 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     }
 
     /**
+    * @notice Whether `operator` may claim on behalf of `controller`
+    * @dev Same signature as ERC-7540's `isOperator`.
+    * @param controller the token holder
+    * @param operator the address to check
+    * @return True if `operator` is authorised by `controller`
+    */
+    function isOperator(address controller, address operator) public view virtual returns (bool) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return $._isOperator[controller][operator];
+    }
+
+    /**
     * @notice Total already paid out for a dividend time
     * @param time the dividend time
     * @return The amount of payment token already transferred to holders for `time`
@@ -142,7 +157,13 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     */
     function unclaimedDividend(uint256 time) public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        return $._segregatedDividend[time] - $._paidDividend[time];
+        uint256 segregated = $._segregatedDividend[time];
+        uint256 paid = $._paidDividend[time];
+        // Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a
+        // claim made afterwards is priced against the reduced figure and can push `paid` above
+        // `segregated`. That state means the period is over-drawn and nothing is left to sweep — a
+        // view must report zero, never revert.
+        return segregated > paid ? segregated - paid : 0;
     }
 
     /**
@@ -184,6 +205,13 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         // transfer
         // We don't revert if SenderBalance == 0 to record the claim
         if(tokenHolderDividend != 0){
+            // A payout must come out of its own period. Without this a claim made after the period
+            // was swept mid-window would silently be funded from another period's deposit, leaving
+            // that one unable to pay its holders. Unreachable in normal operation: the entitlements
+            // of a period always sum to at most its deposit.
+            if(tokenHolderDividend > unclaimedDividend(time)){
+                revert IncomeVault_NotEnoughAmount();
+            }
             $._paidDividend[time] += tokenHolderDividend;
             // Will revert in case of failure
             $._ERC20TokenPayment.safeTransfer(tokenHolder, tokenHolderDividend);

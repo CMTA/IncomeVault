@@ -145,4 +145,67 @@ contract UnclaimedDividendTest is HelperContract {
         assertEq(incomeVault.paidDividend(t1), 1_000);
         assertEq(incomeVault.unclaimedDividend(t1), 0);
     }
+
+    /* ============ over-drawn periods ============ */
+    /**
+    * @notice A claim is never funded from another period's deposit
+    * @dev
+    * Deterministic reproduction of the sequence the invariant fuzzer found once: sweeping a period
+    * mid-window lowers the pro-rata denominator, so a holder claiming afterwards is priced against
+    * the reduced figure while the period no longer holds that much. Before the bound, the shortfall
+    * was silently taken from another period's money.
+    */
+    function testAClaimCannotBeFundedByAnotherPeriod() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
+
+        _deposit(t1, 900);
+        _deposit(t2, 900);          // a second period, whose money must stay untouched
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        // one holder takes their third
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(t1);
+        assertEq(incomeVault.paidDividend(t1), 300);
+        assertEq(incomeVault.unclaimedDividend(t1), 600);
+
+        // the issuer sweeps everything the period still holds, mid-window
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, 600, ADDRESS3);
+        assertEq(incomeVault.segregatedDividend(t1), 300, "denominator lowered by the sweep");
+        assertEq(incomeVault.unclaimedDividend(t1), 0, "nothing left for this period");
+
+        // the next holder is now priced against 300 and would be owed 100 the period cannot fund
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NotEnoughAmount.selector));
+        vm.prank(ADDRESS2);
+        incomeVault.claimDividend(t1);
+
+        // t2's deposit is intact
+        assertEq(incomeVault.unclaimedDividend(t2), 900);
+        assertEq(tokenPayment.balanceOf(address(incomeVault)), 900);
+    }
+
+    /**
+    * @notice `unclaimedDividend` reports zero rather than reverting on an over-drawn period
+    */
+    function testUnclaimedSaturatesInsteadOfUnderflowing() public {
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        _deposit(t1, 1_000);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(t1, true);
+        vm.warp(t1 + 10);
+
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(t1);                  // paid 500
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.withdraw(t1, 500, ADDRESS3);        // segregated down to 500
+
+        assertEq(incomeVault.paidDividend(t1), 500);
+        assertEq(incomeVault.segregatedDividend(t1), 500);
+        assertEq(incomeVault.unclaimedDividend(t1), 0, "a view must never revert");
+    }
 }

@@ -73,6 +73,11 @@ forge lint
 
 ### Added
 
+- Claim delegation in the shape of ERC-7540: `setOperator(operator, approved)`,
+  `isOperator(controller, operator)`, `claimDividendFor(holder, time)` and
+  `claimDividendBatchFor(holder, times)`, with an `OperatorSet` event matching the standard. The
+  dividends always go to the holder — an operator pays the gas and picks the moment, and can never
+  redirect the payment. Finding E-1 of `CLAUDE_IMPROVEMENT.md`.
 - `paidDividend(time)` and `unclaimedDividend(time)`, reporting how much a dividend time has paid out
   and how much it still holds. The residue an issuer sweeps is now readable on-chain instead of being
   reconstructed from `DividendClaimed` events. Costs **+22,274 gas on the first claim of each period**
@@ -160,6 +165,13 @@ forge lint
 
 ### Fixed
 
+- A payout is now bounded by what its own dividend time still holds. Sweeping a period mid-window
+  lowers `segregatedDividend`, so a holder claiming afterwards was priced against the reduced figure
+  while the period no longer held that much — and the shortfall was silently funded from **another
+  period's deposit**. Such a claim now reverts `IncomeVault_NotEnoughAmount`. Found by the invariant
+  suite; a deterministic reproduction is `testAClaimCannotBeFundedByAnotherPeriod`.
+- `unclaimedDividend` saturates at zero instead of underflowing on an over-drawn period. A view must
+  never revert.
 - `withdraw` is now bounded by what a dividend time **still holds** (`unclaimedDividend`) rather than by
   what was deposited into it. `segregatedDividend` is the pro-rata denominator and is never reduced by a
   payout, so the old bound let a fully-claimed period be swept again — draining the funds deposited for

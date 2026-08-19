@@ -289,6 +289,31 @@ _Diagram source: [doc/schema/plantuml/incomevault-claimdividend.puml](./schema/p
 
 
 
+## Claiming on behalf of a holder
+
+A holder can authorise another address to trigger their claims, using the shape ERC-7540 defines:
+
+```solidity
+vault.setOperator(custodian, true);                  // the holder authorises
+vault.claimDividendFor(holder, time);                // the custodian triggers
+vault.claimDividendBatchFor(holder, times);
+vault.isOperator(holder, custodian);                 // -> true
+```
+
+**The operator can never receive the dividends.** They always go to the holder; the operator pays the
+gas and chooses the moment. Authorisation is per holder, revocable at any time with
+`setOperator(operator, false)`, and every other rule is unchanged — the claim window, the
+already-claimed check, the pause, the freeze and the RuleEngine all apply exactly as for
+`claimDividend`. `OperatorSet(controller, operator, approved)` matches ERC-7540, so tooling written
+for that standard can index it.
+
+This closes the gap noted in the ERC-7540 comparison below: a custodian can now claim for the holders
+it serves, and a holder without gas can have someone claim for them.
+
+> Not implemented: [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) signed authorisation, which
+> would let a holder grant an operator without sending a transaction at all. `setOperator` requires
+> the holder to transact once.
+
 ## Per-period residue
 
 Dividends round down, so a period keeps a residue: the rounding dust plus whatever was never claimed.
@@ -311,6 +336,11 @@ period's holders unpayable with no error raised.
 > The bound stops the damage spreading between periods. It does **not** make an early sweep safe:
 > withdrawing before the claim window closes takes money the remaining holders of *that* period are
 > entitled to, and lowers `segregatedDividend`, re-pricing every claim that has not happened yet.
+>
+> A claim that the period can no longer fund now **reverts** with `IncomeVault_NotEnoughAmount` rather
+> than being paid out of another period's deposit. The holder is not silently short-changed and the
+> other periods stay whole, but the swept period is genuinely unable to pay — the sweep, not the
+> revert, is the mistake.
 
 ## Withdraw funds
 

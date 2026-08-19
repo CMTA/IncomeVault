@@ -49,6 +49,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `msg.sender == address(this)` (raw `msg.sender`, never `_msgSender()`, so a forwarder cannot
   impersonate the vault). It exists because `try`/`catch` needs an external call. Never relax that
   guard, and never add another public entry point to `_transferDividend`.
+- **Every payout must come out of its own period.** `_transferDividend` refuses an amount larger than
+  `unclaimedDividend(time)`. Without it, a claim made after a mid-window sweep is funded from another
+  period's deposit. Unreachable in normal operation — a period's entitlements sum to at most its
+  deposit — so the check only bites when a period has been over-swept.
 - **`segregatedDividend` is the pro-rata denominator, not a balance.** It is fixed at the deposit for
   the whole period and never reduced by a payout. What a period still holds is
   `unclaimedDividend(time) = segregatedDividend - paidDividend`, and that is what bounds `withdraw`.

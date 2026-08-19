@@ -49,6 +49,15 @@ abstract contract IncomeVaultInvariantStorage {
     */
     event Withdraw(uint256 indexed time, address indexed withdrawAddress, uint256 amount);
     /**
+    * @notice Emitted when a token holder grants or revokes an operator
+    * @dev Signature matches ERC-7540's `OperatorSet`, so tooling written for that standard can index it.
+    * @param controller the token holder granting or revoking
+    * @param operator the address being authorised to claim on their behalf
+    * @param approved true when granted, false when revoked
+    */
+    event OperatorSet(address indexed controller, address indexed operator, bool approved);
+
+    /**
     * @notice Emitted when a best-effort distribution skips a token holder
     * @dev Reported by {IncomeVaultRestricted-distributeDividendBestEffort}. The holder is left
     * completely untouched — not marked as claimed — and can still claim later, or be included in a
@@ -102,6 +111,12 @@ abstract contract IncomeVaultInvariantStorage {
     * @param amountsLength the number of amounts supplied
     */
     error IncomeVault_InvalidLengths(uint256 timesLength, uint256 amountsLength);
+    /**
+    * @notice Thrown when a caller claims for a holder without being that holder or their operator.
+    * @param holder the token holder whose dividends were targeted
+    * @param caller the address that attempted the claim
+    */
+    error IncomeVault_UnauthorizedOperator(address holder, address caller);
     error IncomeVault_NoAmountSend();
     error IncomeVault_NotEnoughAmount();
     error IncomeVault_TokenBalanceIsZero();
