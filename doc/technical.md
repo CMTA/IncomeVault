@@ -18,7 +18,7 @@ A paused contract can also be permanently deactivated with `deactivateContract`
 
 The vault reads the holder balances and the total supply through the `ISnapshotState` interface of
 the [SnapshotEngine](https://github.com/CMTA/SnapshotEngine), so it works with any contract
-implementing it and not only with the CMTAT. See [specification](./specification.md).
+implementing it and not only with the CMTAT. See [specification](./README.md).
 
 ### Reentrancy
 

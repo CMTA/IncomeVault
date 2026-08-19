@@ -44,8 +44,8 @@ Here a summary of the main documentation
 
 | Document                | Link/Files                                             |
 | ----------------------- | ------------------------------------------------------ |
-| Specification           | [doc/specification](./doc/specification)               |
-| Technical documentation | [doc/technical](./doc/technical)                       |
+| Specification           | [doc/README.md](./doc/README.md)                       |
+| Technical documentation | [doc/technical.md](./doc/technical.md)                 |
 | Solidity API (docgen)   | [doc/solidityAPI/index.md](./doc/solidityAPI/index.md) |
 | Toolchain               | [doc/TOOLCHAIN.md](./doc/TOOLCHAIN.md)                 |
 | Surya report            | [doc/surya](./doc/surya/)                              |
