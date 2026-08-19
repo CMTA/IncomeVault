@@ -114,7 +114,8 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/README.md` | The reference doc: snapshot source, roles table, claim restrictions, formula, threat model & FAQ, plus the technical choices (upgradeability, pause, token agnosticism, reentrancy, gasless GSN/ERC-2771) and the schema/graphs |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
 | `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration, refresh with `npx hardhat docgen` |
-| `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram and drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
+| `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram, PlantUML sources and the remaining drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
+| `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 

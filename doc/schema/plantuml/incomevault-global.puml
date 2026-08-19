@@ -1,0 +1,54 @@
+@startuml
+title IncomeVault — global flow
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam ParticipantBackgroundColor #EEF5FF
+skinparam ParticipantBorderColor #4A6FA5
+skinparam ActorBorderColor #4A6FA5
+skinparam NoteBackgroundColor #FDF6E3
+skinparam NoteBorderColor #B58900
+
+actor "SNAPSHOOTER_ROLE" as SNAPSHOOTER
+actor "INCOME_VAULT_DEPOSIT_ROLE" as DEPOSITOR
+actor "INCOME_VAULT_OPERATOR_ROLE" as OPERATOR
+actor "Token holder" as HOLDER
+
+participant "IncomeVault" as VAULT
+participant "SnapshotEngine\n<<ISnapshotState>>" as SNAPSHOT
+participant "Payment token\n<<ERC-20>>" as PAYMENT
+
+== 0. Register the dividend date ==
+SNAPSHOOTER -> SNAPSHOT : scheduleSnapshot(time)
+note right of SNAPSHOT
+  Records the holder balances
+  and the total supply at "time"
+end note
+
+== 1. Fund the vault ==
+DEPOSITOR -> VAULT : deposit(time, amount)
+VAULT -> PAYMENT : safeTransferFrom(depositor, vault, amount)
+VAULT -> VAULT : segregatedDividend[time] += amount
+
+== 2. Open the claims ==
+OPERATOR -> VAULT : setStatusClaim(time, true)
+note right of VAULT
+  Do not deposit for a "time"
+  whose claims are already open:
+  it dilutes the holders who
+  have not claimed yet
+end note
+
+== 3. Claim the dividends ==
+HOLDER -> VAULT : claimDividend(time)
+activate VAULT
+VAULT -> SNAPSHOT : snapshotInfo(time, holder)
+SNAPSHOT --> VAULT : (holderBalance, totalSupply)
+VAULT -> VAULT : dividend = holderBalance * segregatedDividend[time] / totalSupply
+note right of VAULT : rounded down
+VAULT -> VAULT : validate the payout\n(pause, freeze, RuleEngine)
+VAULT -> PAYMENT : safeTransfer(holder, dividend)
+PAYMENT --> HOLDER : dividend
+deactivate VAULT
+
+@enduml

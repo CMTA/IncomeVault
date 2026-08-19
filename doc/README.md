@@ -26,7 +26,9 @@ Any contract implementing them can therefore be used: the external `SnapshotEngi
 embedding the snapshot modules, or a custom implementation. The address is set at initialization
 (parameter `snapshotEngine_`) and cannot be the zero address.
 
-![IncomeVault-Global.drawio](../doc/schema/drawio/IncomeVault-Global.drawio.png)
+![IncomeVault global flow](./schema/plantuml/incomevault-global.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-global.puml](./schema/plantuml/incomevault-global.puml)._
 
 ## Access control
 
@@ -92,7 +94,9 @@ role-based variant; in the single-owner variant, ownership moves through the two
 
 Each deposit is segregated in its time value. A `time` is the dividends distribution date (Unix Timestamp) to the token holders. 
 
-![IncomeVault-Segragated Deposit.drawio](../doc/schema/drawio/IncomeVault-Segragated Deposit.drawio.png)
+![IncomeVault segregated deposit](./schema/plantuml/incomevault-segregated-deposit.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-segregated-deposit.puml](./schema/plantuml/incomevault-segregated-deposit.puml)._
 
 ## ValidationModule
 
