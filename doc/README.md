@@ -248,9 +248,14 @@ the "too early" bound the distribution would read the *live* balances — `ISnap
 them when no snapshot has been recorded yet — and would consume each holder's claim for that period at
 the wrong amount.
 
-It does **not** go through the ValidationModule: the pause, freeze and RuleEngine restrictions apply to
-the holder-driven claims only. That asymmetry is deliberate for a forced payout, but it does mean an
-address the RuleEngine would refuse can still be paid by the issuer.
+It also goes through the **ValidationModule**, exactly like a claim: the vault must not be paused,
+neither the vault nor the holder may be frozen, and the RuleEngine must allow the payout. A holder the
+RuleEngine refuses cannot be paid by the issuer either.
+
+One blocked holder **reverts the whole distribution** rather than being skipped, so a compliance
+failure can never be silently dropped from a payout the operator believes succeeded. The revert carries
+`IncomeVault_InvalidTransfer(from, to, value)`, which names the offending address: remove it from the
+list and retry.
 
 ## Improvement
 

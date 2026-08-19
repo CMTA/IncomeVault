@@ -250,4 +250,54 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
         // Without a RuleEngine there is no rule restriction anymore
         assertEq(incomeVault.canTransfer(address(incomeVault), ADDRESS1, 11), true);
     }
+
+    /******* distributeDividend — H-2 *******/
+    /**
+    * @notice The issuer cannot push a dividend to an address the RuleEngine refuses
+    * @dev This is the compliance property the RuleEngine integration exists to provide: before the
+    * H-2 fix the push path skipped the engine entirely, so a non-whitelisted holder could be paid.
+    */
+    function testCannotDistributeToANonWhitelistedHolder() public {
+        // only the vault is whitelisted, not the holder
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        ruleWhitelist.addAddressToTheList(address(incomeVault));
+
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        assertEq(tokenPayment.balanceOf(ADDRESS1), 0);
+        assertEq(incomeVault.claimedDividend(ADDRESS1, defaultSnapshotTime), false);
+    }
+
+    /**
+    * @notice Once both addresses are whitelisted the distribution goes through
+    */
+    function testCanDistributeWhenBothAddressesWhitelisted() public {
+        address[] memory whitelist = new address[](2);
+        whitelist[0] = ADDRESS1;
+        whitelist[1] = address(incomeVault);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        ruleWhitelist.addAddressesToTheList(whitelist);
+
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        assertEq(tokenPayment.balanceOf(ADDRESS1), defaultDepositAmount);
+    }
 }

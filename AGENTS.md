@@ -48,9 +48,11 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   The deployment contract declares *who*: `IncomeVault` overrides every hook with `onlyRole(...)`,
   `IncomeVaultOwnable2Step` with `onlyOwner`. The two are chosen at deployment and are not
   interchangeable. Capability table: `doc/README.md` → Access control.
-- **Transfer restriction** — a claim is treated as a transfer from the vault to the holder and goes
-  through `IncomeVaultValidationModule`: pause, address freeze, and an optional `IRuleEngine`.
-  Rejected payouts revert with `IncomeVault_InvalidTransfer(from, to, value)`.
+- **Transfer restriction** — every payout, pull (`claimDividend`) **and** push (`distributeDividend`),
+  goes through `IncomeVaultValidationModule`: pause, address freeze, and an optional `IRuleEngine`.
+  Rejected payouts revert with `IncomeVault_InvalidTransfer(from, to, value)`; in a batch one blocked
+  holder reverts the whole call rather than being skipped, so a compliance failure cannot be silently
+  dropped. Any new payout path must call `_validateTransfer` too.
 - **RuleEngine is read-only here** — the vault uses `IRuleEngine.canTransfer` only. It is not a
   bound token, so `transferred(...)` would revert, and a payout must not mutate stateful rules.
 - **Upgradeable** — deployed behind an OpenZeppelin **Transparent Proxy**;

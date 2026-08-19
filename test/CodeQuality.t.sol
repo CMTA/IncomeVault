@@ -212,4 +212,101 @@ contract CodeQualityTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
+
+    /* ============ H-2 — the push path enforces the same restrictions as the pull path ============ */
+    /**
+    * @notice A frozen holder cannot be paid by the issuer either
+    */
+    function testCannotDistributeToAFrozenHolder() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setAddressFrozen(ADDRESS1, true, "");
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        assertEq(tokenPayment.balanceOf(ADDRESS1), 0);
+        assertEq(incomeVault.claimedDividend(ADDRESS1, defaultSnapshotTime), false);
+    }
+
+    /**
+    * @notice Pausing the vault stops the issuer-driven distribution too
+    */
+    function testCannotDistributeWhilePaused() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.pause();
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+    }
+
+    /**
+    * @notice One blocked holder reverts the whole batch, and the error names that holder
+    * @dev Same semantics as {claimDividendBatch}: the vault fails closed rather than paying a
+    * partial set silently. `IncomeVault_InvalidTransfer` carries the address so the operator can
+    * remove it from the list and retry.
+    */
+    function testOneBlockedHolderRevertsTheWholeDistribution() public {
+        _performOnlyDeposit();
+        vm.prank(CMTAT_ADMIN);
+        snapshotEngine.scheduleSnapshot(defaultSnapshotTime);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS2, ADDRESS1_INITIAL_AMOUNT);
+
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        // only the second holder is frozen
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setAddressFrozen(ADDRESS2, true, "");
+
+        address[] memory addresses = new address[](2);
+        addresses[0] = ADDRESS1;
+        addresses[1] = ADDRESS2;
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS2, defaultDepositAmount / 2));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        // the whole batch is rolled back, including the holder who was allowed
+        assertEq(tokenPayment.balanceOf(ADDRESS1), 0);
+        assertEq(incomeVault.claimedDividend(ADDRESS1, defaultSnapshotTime), false);
+    }
+
+    /**
+    * @notice With every holder allowed the distribution is unchanged
+    */
+    function testDistributeStillWorksWhenEveryHolderIsAllowed() public {
+        _performDeposit();
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setStatusClaim(defaultSnapshotTime, true);
+        vm.warp(defaultSnapshotTime + 50);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = ADDRESS1;
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.distributeDividend(addresses, defaultSnapshotTime);
+
+        assertEq(tokenPayment.balanceOf(ADDRESS1), defaultDepositAmount);
+    }
 }

@@ -107,7 +107,9 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param addresses compute and transfer dividend for these holders
     * @param time dividend time
     * @dev The dividends are distributed only if they have not yet been claimed by the token holder.
-    * Subject to the same claim window as {IncomeVaultOpen-claimDividend}.
+    * Subject to the same claim window **and** the same transfer restrictions as
+    * {IncomeVaultOpen-claimDividend}: a holder the pause, freeze or RuleEngine refuses cannot be paid
+    * by the issuer either, and one blocked holder reverts the whole distribution.
     */
     function distributeDividend(address[] calldata addresses, uint256 time) public virtual onlyDistributeManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -126,6 +128,11 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
              if (!$._claimedDividend[addresses[i]][time]){
                 // transfer dividends
                 if(tokenHolderDividend[i] > 0){
+                    // Same transfer restriction as a holder-driven claim: pause, freeze and RuleEngine.
+                    // Reverts the whole distribution rather than skipping the holder, so a blocked
+                    // address cannot be silently dropped from a payout the operator believes succeeded.
+                    // The error carries the address, so it can be removed from the list and retried.
+                    _validateTransfer(address(this), addresses[i], tokenHolderDividend[i]);
                     _transferDividend(time, addresses[i], tokenHolderDividend[i]);
                 }
             }

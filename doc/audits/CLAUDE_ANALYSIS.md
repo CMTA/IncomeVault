@@ -10,7 +10,7 @@
 
 **This is a code-quality review, not a security audit.** Nothing in this report is a vulnerability.
 No finding here lets an unauthorized party move value, bypass a restriction, or brick a contract.
-The findings with real behavioural weight (H-1, since fixed, and H-2) both require a **privileged role** to reach,
+The findings with real behavioural weight (H-1 and H-2, both since fixed) required a **privileged role** to reach,
 so they are compliance and consistency defects rather than exploitable ones — but they are the two
 worth a maintainer decision, and they are described in full.
 
@@ -40,19 +40,18 @@ The contracts remain **unaudited**; this review does not change that.
 | G-3 | NatSpec block length | ⬜ measured, healthy, no action | — |
 | G-4 | One production comment referencing a `.md` file | ⬜ left as is, reasoning below | — |
 | H-1 | `distributeDividend` ignored the claim window, so it could pay on **live** balances | ✅ fixed | `IncomeVaultRestricted.sol`, `IncomeVaultInternal.sol` |
-| H-2 | `distributeDividend` bypasses pause / freeze / RuleEngine | ⚠️ **decide** | — |
+| H-2 | `distributeDividend` bypassed pause / freeze / RuleEngine | ✅ fixed | `IncomeVaultRestricted.sol` |
 | H-3 | The vault checks whether it has frozen *itself* | ⬜ keep, reasoning below | — |
 | H-4 | `withdrawAll` leaves the per-time accounting stale | ⬜ already documented | — |
 | I-1 | The vault requires 8 interface functions and calls 3 | ⚠️ **decide** | — |
 
-Counted from the rows above: **8 fixed**, **12 deliberately left as is**, **3 needing a decision**.
+Counted from the rows above: **9 fixed**, **12 deliberately left as is**, **2 needing a decision**.
 
 ## Outstanding
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
 | G-1 | Version string vs release heading | Semver call belongs to the maintainer; the CHANGELOG's own rule says this release is MAJOR |
-| H-2 | `distributeDividend` and the ValidationModule | Changes behaviour of a privileged entrypoint; may be deliberate for a forced payout |
 | I-1 | Minimal snapshot interface | Requires declaring a new interface, and `ISnapshotState` is owned by another repository |
 | F-2 | ERC-165 for `IERC3643Version` | Cosmetic; no consumer known to filter on it |
 
@@ -260,7 +259,7 @@ the file. Removing it would delete the one thing that ties the constant to the r
 Both findings here concern `distributeDividend`, the issuer-driven push path. Both are reachable only
 with `INCOME_VAULT_DISTRIBUTE_ROLE` (or the owner, in the single-owner variant), so neither is
 exploitable by an outsider — but both make the push path behave differently from the pull path in ways
-that undercut the vault's stated purpose. **H-1 has since been fixed; H-2 remains open.**
+that undercut the vault's stated purpose. **Both have since been fixed.**
 
 ### H-1. `distributeDividend` ignored the claim window — ✅ fixed
 
@@ -317,20 +316,48 @@ The "too late" bound came along with the fix. That is coherent: after the withdr
 meant to return to the issuer through `withdraw`, so a push at that point would contradict the limit.
 An issuer who wants to pay later extends `timeLimitToWithdraw` rather than bypassing it.
 
-### H-2. `distributeDividend` bypasses the ValidationModule — ⚠️ decide
+### H-2. `distributeDividend` bypassed the ValidationModule — ✅ fixed
 
-`claimDividend` and `claimDividendBatch` both call `_validateTransfer(...)` — pause, address freeze, and
-the RuleEngine. `distributeDividend` calls `_transferDividend` directly and performs none of them.
+`claimDividend` and `claimDividendBatch` both called `_validateTransfer(...)` — pause, address freeze,
+and the RuleEngine. `distributeDividend` called `_transferDividend` directly and performed none of them.
 
-The vault fails **closed** on the pull path and **open** on the push path. A holder who is frozen, or
-whom the RuleEngine's allow-list rejects, cannot claim — but can be paid. Since the RuleEngine
-integration exists precisely to enforce transfer compliance on payouts, a privileged path that skips it
-weakens the property the module is there to provide.
+The vault failed **closed** on the pull path and **open** on the push path. A holder who was frozen, or
+whom the RuleEngine's allow-list rejected, could not claim — but could be paid. Pausing the vault did
+not stop a distribution either. Since the RuleEngine integration exists precisely to enforce transfer
+compliance on payouts, a privileged path that skipped it removed the property the module is there to
+provide.
 
-This was previously described in `doc/README.md` as deliberate ("an issuer-driven push, unlike the
-holder-driven claims"), so it is reported as a decision to confirm rather than a defect to fix. If it is
-deliberate, the reason belongs next to the function; if not, `_validateTransfer` inside the loop makes
-the two paths agree.
+**Fix.** The same check the claim paths use, inside the loop, before the transfer:
+
+```solidity
+// Same transfer restriction as a holder-driven claim: pause, freeze and RuleEngine.
+_validateTransfer(address(this), addresses[i], tokenHolderDividend[i]);
+_transferDividend(time, addresses[i], tokenHolderDividend[i]);
+```
+
+**The design decision worth recording: one blocked holder reverts the whole distribution**, rather than
+being skipped. Skipping was the alternative and it is worse — `distributeDividend` would return
+successfully having quietly not paid part of the list, and the operator would have no signal. Reverting
+matches `claimDividendBatch`, and `IncomeVault_InvalidTransfer(from, to, value)` names the offending
+address so it can be removed from the list and the call retried. The cost is that a single
+non-compliant address in a large batch blocks the batch, which is the correct trade for a compliance
+control.
+
+**Tests, written before the fix and confirmed to fail against the old code** (four failures, all
+`next call did not revert as expected`):
+
+| Test | Asserts |
+| --- | --- |
+| `testCannotDistributeToAFrozenHolder` | reverts; nothing paid, claim not consumed |
+| `testCannotDistributeWhilePaused` | pause now stops the push path |
+| `testOneBlockedHolderRevertsTheWholeDistribution` | the allowed holder is rolled back too, error names the blocked one |
+| `testDistributeStillWorksWhenEveryHolderIsAllowed` | the normal payout is unchanged |
+| `testCannotDistributeToANonWhitelistedHolder` (RuleEngine suite) | the compliance case that motivated the finding |
+| `testCanDistributeWhenBothAddressesWhitelisted` | still works once whitelisted |
+
+Note the pause and freeze slots are now read once per holder rather than once per call. That is
+consistent with `claimDividendBatch`, which does the same, and was not optimised: correctness of the
+control comes first, and a per-holder read is what makes a mid-batch state change impossible to miss.
 
 ### H-3. The vault checks whether it has frozen itself — ⬜ keep
 

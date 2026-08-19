@@ -108,6 +108,11 @@ forge lint
 
 ### Fixed
 
+- `distributeDividend` now applies the same transfer restrictions as a holder-driven claim — pause,
+  address freeze and the RuleEngine. It previously bypassed the ValidationModule entirely, so an
+  address the RuleEngine refuses, or a frozen holder, could still be paid by the issuer, and pausing
+  the vault did not stop a distribution. One blocked holder reverts the whole distribution rather than
+  being skipped. Finding H-2 of `CLAUDE_ANALYSIS.md`.
 - `distributeDividend` now applies the same claim window as `claimDividend` (claims open, `time`
   reached, withdraw limit not expired). It previously checked only `segregatedClaim[time]`, so a
   distribution before `time` computed every payout from the **live** balances — `ISnapshotState` falls
