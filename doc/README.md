@@ -282,15 +282,23 @@ Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#recei
 
 ### Schema
 
-> The Surya graphs and the UML schema below are generated from the sources and have not been
-> regenerated since the migration to CMTAT v3 / SnapshotEngine. Run `npm run surya:graph` and
-> `npm run uml` to refresh them.
+> The diagrams below are generated from the sources. Regenerate them with `npm run uml` (UML class
+> diagram) and the three scripts in [doc/script](./script) — they rebuild the full per-contract set
+> under [doc/surya](./surya): call graphs, inheritance graphs and markdown reports.
 
 #### UML
 
 ![uml](./schema/classDiagram.svg)
 
+### Inheritance
 
+#### IncomeVault
+
+![surya_inheritance_IncomeVault](./surya/surya_inheritance/surya_inheritance_IncomeVault.sol.png)
+
+#### IncomeVaultValidationModule
+
+![surya_inheritance_IncomeVaultValidationModule](./surya/surya_inheritance/surya_inheritance_IncomeVaultValidationModule.sol.png)
 
 ### Graph
 
@@ -305,3 +313,12 @@ Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#recei
 #### IncomeVaultRestricted
 
 ![surya_graph_IncomeVaultRestricted](./surya/surya_graph/surya_graph_IncomeVaultRestricted.sol.png)
+
+#### IncomeVaultValidationModule
+
+![surya_graph_IncomeVaultValidationModule](./surya/surya_graph/surya_graph_IncomeVaultValidationModule.sol.png)
+
+### Report
+
+A markdown report per contract (functions, visibility, modifiers) is available in
+[doc/surya/surya_report](./surya/surya_report).

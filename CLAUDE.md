@@ -96,8 +96,8 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `CHANGELOG.md` | changelog.md conventions; current release `2.0.0` |
 | `doc/README.md` | The reference doc: snapshot source, roles table, claim restrictions, formula, threat model & FAQ, plus the technical choices (upgradeability, pause, token agnosticism, reentrancy, gasless GSN/ERC-2771) and the schema/graphs |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
-| `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration |
-| `doc/surya/`, `doc/schema/` | Surya graphs/reports, UML and drawio diagrams — stale, regenerate with `npm run surya:graph` / `npm run uml` |
+| `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration, refresh with `npx hardhat docgen` |
+| `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram and drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
@@ -130,7 +130,7 @@ forge coverage --ffi                       # known not to work with the proxy de
 
 npm run lint:sol                           # ethlint on src/
 npm run lint:sol:prettier                  # prettier-plugin-solidity
-npm run surya:graph && npm run surya:report
+npm run surya:graph && npm run surya:inheritance && npm run surya:report   # then replace doc/surya/ with docOut/
 npm run uml && npx hardhat docgen
 
 slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngine|SnapshotEngine|forge-std" > slither-report.md

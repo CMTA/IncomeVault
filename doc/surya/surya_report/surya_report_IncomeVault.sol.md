@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./IncomeVault.sol | 32ca196e65692ae173ccb00988a492e5b8e942ed |
+| ./IncomeVault.sol | 6bf8827c9b3bd63fe825b32e750f96e30f89524e |
 
 
 ### Contracts Description Table
@@ -15,8 +15,8 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVault** | Implementation | Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, MetaTxModule |||
-| └ | <Constructor> | Public ❗️ | 🛑  | MetaTxModule |
+| **IncomeVault** | Implementation | Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Module |
 | └ | initialize | Public ❗️ | 🛑  | initializer |
 | └ | __IncomeVault_init | Internal 🔒 | 🛑  | onlyInitializing |
 | └ | _msgSender | Internal 🔒 |   | |

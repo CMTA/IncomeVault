@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./libraries/IncomeVaultInvariantStorage.sol | 29271b2dc8a51952990adf824c54e9235f26ac9c |
+| ./libraries/IncomeVaultInvariantStorage.sol | 60002935720bd365d107b08addad6f39830d5a22 |
 
 
 ### Contracts Description Table

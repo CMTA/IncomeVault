@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./libraries/IncomeVaultInternal.sol | 7751f36237e74a1979555ff165eab6bf38f9d1ea |
+| ./libraries/IncomeVaultInternal.sol | 0a7996ee09aa5b1097f610c9207f092bc58cb634 |
 
 
 ### Contracts Description Table
@@ -16,9 +16,10 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **IncomeVaultInternal** | Implementation | IncomeVaultInvariantStorage |||
+| └ | _transferDividend | Internal 🔒 | 🛑  | |
+| └ | _setSnapshotEngine | Internal 🔒 | 🛑  | |
 | └ | _computeDividendBatch | Internal 🔒 |   | |
 | └ | _computeDividend | Internal 🔒 |   | |
-| └ | _transferDividend | Internal 🔒 | 🛑  | |
 
 
 ### Legend

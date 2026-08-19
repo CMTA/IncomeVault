@@ -100,30 +100,41 @@ The related component can be installed with `npm install` (see [package.json](./
 
 ### [Surya](https://github.com/ConsenSys/surya)
 
-Several bash scripts are available to generate the documentation in [doc/script](./script).
-
-#### Graph
-
-To generate  graphs with Surya, you can run the following command
+Three bash scripts in [doc/script](./script) regenerate the whole documentation set — one call graph,
+one inheritance graph and one markdown report per `.sol` file under `src/`:
 
 ```bash
-npm run-script surya:graph
+npm run-script surya:graph          # doc/script/script_surya_graph.sh
+npm run-script surya:inheritance    # doc/script/script_surya_inheritance.sh
+npm run-script surya:report         # doc/script/script_surya_report.sh
 ```
 
-OR
+Run `surya:graph` **first**: it creates the scratch directory `docOut/` with `mkdir -p`, which the two
+other scripts expect to already exist.
+
+The output lands in `docOut/{surya_graph,surya_inheritance,surya_report}` at the repository root. Replace
+the committed directories under [doc/surya](./surya) with it, deleting the old ones first so the diagrams
+of a renamed or removed contract do not survive:
 
 ```bash
- npx surya graph  src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
+rm -rf doc/surya/surya_graph doc/surya/surya_inheritance doc/surya/surya_report
+mkdir -p doc/surya/surya_graph doc/surya/surya_inheritance doc/surya/surya_report
+mv docOut/surya_graph/*       doc/surya/surya_graph/
+mv docOut/surya_inheritance/* doc/surya/surya_inheritance/
+mv docOut/surya_report/*      doc/surya/surya_report/
+rm -rf docOut
 ```
 
-
-#### Report
+Graphviz (`dot`) is required — without it the scripts silently produce 0-byte PNGs. To generate a single
+graph by hand:
 
 ```bash
-npm run-script surya:report
+npx surya graph src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
 ```
 
-
+> Known `surya graph` bug: it crashes on a contract calling `super.<fn>()` when the base is declared in
+> another file, and because the scripts pipe into `dot` the crash shows up as an empty PNG rather than an
+> error. Check for `find doc/surya -name '*.png' -size 0` after regenerating.
 
 ### [Slither](https://github.com/crytic/slither)
 

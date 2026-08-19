@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./public/IncomeVaultOpen.sol | a9a9489512e617a87179a89b1c0eb4743ff68917 |
+| ./public/IncomeVaultOpen.sol | f9f4f0f868393b6c105b4226da89ba8357229f0a |
 
 
 ### Contracts Description Table
@@ -15,12 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultOpen** | Implementation | ReentrancyGuardUpgradeable, ValidationModule, IncomeVaultInternal |||
+| **IncomeVaultOpen** | Implementation | ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal |||
+| └ | claimDividend | Public ❗️ | 🛑  | nonReentrant |
+| └ | claimDividendBatch | Public ❗️ | 🛑  | nonReentrant |
 | └ | validateTimeCode | Public ❗️ |   |NO❗️ |
 | └ | validateTime | Public ❗️ |   |NO❗️ |
 | └ | validateTimeBatch | Public ❗️ |   |NO❗️ |
-| └ | claimDividend | Public ❗️ | 🛑  | nonReentrant |
-| └ | claimDividendBatch | Public ❗️ | 🛑  | nonReentrant |
 
 
 ### Legend
