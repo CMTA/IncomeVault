@@ -68,6 +68,12 @@ abstract contract IncomeVaultInvariantStorage {
     error IncomeVault_AdminWithAddressZeroNotAllowed();
     error IncomeVault_TokenPaymentWithAddressZeroNotAllowed();
     error IncomeVault_SnapshotEngineWithAddressZeroNotAllowed();
+    /**
+    * @notice Thrown when the withdraw time limit is set to zero.
+    * @dev A limit of zero collapses the claim window `[time, time + limit]` to the single instant
+    * `block.timestamp == time`, making the period effectively unclaimable.
+    */
+    error IncomeVault_TimeLimitToWithdrawZeroNotAllowed();
     error IncomeVault_NoAmountSend();
     error IncomeVault_NotEnoughAmount();
     error IncomeVault_TokenBalanceIsZero();

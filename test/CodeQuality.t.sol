@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
 * @title Regression tests for the findings of CLAUDE_ANALYSIS.md
@@ -308,5 +309,52 @@ contract CodeQualityTest is HelperContract {
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
 
         assertEq(tokenPayment.balanceOf(ADDRESS1), defaultDepositAmount);
+    }
+
+    /* ============ A-1 — a zero withdraw limit cannot be configured ============ */
+    /**
+    * @notice `setTimeLimitToWithdraw(0)` is refused
+    * @dev
+    * With `timeLimitToWithdraw == 0` the claim window `[time, time + limit]` collapses to the single
+    * instant `block.timestamp == time`: one second later `_timeCode` already returns
+    * `TOO_LATE_TO_WITHDRAW`. The period becomes effectively unclaimable, and nothing signalled it —
+    * the transaction succeeded and the event fired. Finding A-1 of `CLAUDE_IMPROVEMENT.md`.
+    */
+    function testCannotSetAZeroTimeLimitToWithdraw() public {
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setTimeLimitToWithdraw(0);
+
+        // the previous value is untouched
+        assertEq(incomeVault.timeLimitToWithdraw(), TIME_LIMIT_TO_WITHDRAW);
+    }
+
+    /**
+    * @notice The guard lives in the internal setter, so `initialize` is covered too
+    * @dev This is the point of validating in `_setTimeLimitToWithdraw` rather than at the call site:
+    * a vault cannot be *deployed* into the bricked state either.
+    */
+    function testCannotInitializeWithAZeroTimeLimitToWithdraw() public {
+        IncomeVault implementation = new IncomeVault(ZERO_ADDRESS);
+        bytes memory data = abi.encodeCall(
+            IncomeVault.initialize,
+            (DEFAULT_ADMIN_ADDRESS, IERC20(address(tokenPayment)),
+             ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), 0)
+        );
+        vm.expectRevert(
+        abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
+        new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
+    }
+
+    /**
+    * @notice Any positive value is still accepted — only zero is refused
+    * @dev A short window may be a deliberate settlement policy; zero is the only value that is
+    * broken by definition, so it is the only one rejected.
+    */
+    function testAOneSecondTimeLimitIsStillAccepted() public {
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.setTimeLimitToWithdraw(1);
+        assertEq(incomeVault.timeLimitToWithdraw(), 1);
     }
 }

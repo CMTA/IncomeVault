@@ -194,6 +194,12 @@ a. The claim time is in the future (`IncomeVault_TooEarlyToWithdraw`)
 
 b. The claim time is too far in the past, specified by `timeLimitToWithdraw` (`IncomeVault_TooLateToWithdraw`)
 
+   `timeLimitToWithdraw` must be **greater than zero**: a limit of zero would collapse the window
+   `[time, time + limit]` to the single instant `block.timestamp == time`, making the period
+   unclaimable. Both `initialize` and `setTimeLimitToWithdraw` reject it with
+   `IncomeVault_TimeLimitToWithdrawZeroNotAllowed`. Any positive value is accepted — a short
+   settlement window can be deliberate.
+
 c. Claim is not enabled for this specific `time` (`IncomeVault_ClaimNotActivated`)
 
 d. Holder has already claim its dividends (`IncomeVault_DividendAlreadyClaimed`)

@@ -114,6 +114,12 @@ forge lint
 
 ### Fixed
 
+- `timeLimitToWithdraw` can no longer be set to zero, at initialization or through
+  `setTimeLimitToWithdraw`. Zero collapsed the claim window `[time, time + limit]` to the single instant
+  `block.timestamp == time` — one second later every claim already reverted `TooLateToWithdraw` — so a
+  period became effectively unclaimable with no signal, the transaction having succeeded and the event
+  fired. Reverts with `IncomeVault_TimeLimitToWithdrawZeroNotAllowed`. Any positive value is still
+  accepted. Finding A-1 of `CLAUDE_IMPROVEMENT.md`.
 - `distributeDividend` now applies the same transfer restrictions as a holder-driven claim — pause,
   address freeze and the RuleEngine. It previously bypassed the ValidationModule entirely, so an
   address the RuleEngine refuses, or a frozen holder, could still be paid by the issuer, and pausing

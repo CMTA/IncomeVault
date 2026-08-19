@@ -151,7 +151,9 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
 
     /**
     * @notice configure the time limit to withdraw
-    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
+    * @dev reverts if `timeLimitToWithdraw_` is zero: that would leave a one-second claim window
+    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted,
+    * must be greater than zero
     */
     function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public virtual onlyVaultOperator {
         _setTimeLimitToWithdraw(timeLimitToWithdraw_);

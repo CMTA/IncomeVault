@@ -172,9 +172,16 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
 
     /**
     * @notice Sets the delay, after the dividend time, during which a claim is still accepted
-    * @param timeLimitToWithdraw_ the delay in seconds
+    * @dev reverts if `timeLimitToWithdraw_` is zero — see {IncomeVault_TimeLimitToWithdrawZeroNotAllowed}
+    * @param timeLimitToWithdraw_ the delay in seconds, must be greater than zero
     */
     function _setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) internal virtual {
+        // Zero collapses the claim window to the single instant `block.timestamp == time`: one second
+        // later {_timeCode} already returns TOO_LATE_TO_WITHDRAW and the period is unclaimable. Any
+        // positive value is allowed — a short settlement window may be deliberate; zero never is.
+        if(timeLimitToWithdraw_ == 0){
+            revert IncomeVault_TimeLimitToWithdrawZeroNotAllowed();
+        }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         $._timeLimitToWithdraw = timeLimitToWithdraw_;
         emit TimeLimitToWithdrawSet(timeLimitToWithdraw_);
