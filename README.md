@@ -20,6 +20,8 @@ Currently, the vault supports only dividend under the form of another ERC-20 and
 - Dividends in ERC-20 compatible, which could be an ERC-20 stablecoin such as USDC or USDT for example
 - Interest paid out at given intervals which shall be a configurable parameter (i.e. every 6 months, every 1 year)
 
+The `IncomeVault` is **not** an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vault, and deliberately so: an ERC-4626 share entitles whoever holds it *now*, whereas a dividend must be allocated to whoever held the security token at a **record date**. See [Comparison with ERC-4626 / ERC-7540 vaults](./doc/README.md#comparison-with-erc-4626--erc-7540-vaults) for the full comparison, including when a 4626 vault *is* the right tool.
+
 For the specific case where dividends are distributed in shares, meaning additional payout of the “existing” CMTAT Token, it is not currently supported due to the following reasons:
 \- With the current architecture, depending on when you decide to mint the new tokens, you will increase the total supply used to compute the token holder shares. Therefore, you will reduce the dividends distributed to the token holders.
 \- In general, for yield tokens, the formula used can be different.

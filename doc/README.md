@@ -288,6 +288,87 @@ failure can never be silently dropped from a payout the operator believes succee
 `IncomeVault_InvalidTransfer(from, to, value)`, which names the offending address: remove it from the
 list and retry.
 
+## Comparison with ERC-4626 / ERC-7540 vaults
+
+The `IncomeVault` is called a vault, but it is **not** an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626)
+tokenized vault and deliberately does not implement that standard. The two solve different problems, and
+the difference comes down to one question: **where does the entitlement come from?**
+
+| | `IncomeVault` | ERC-4626 vault |
+| --- | --- | --- |
+| Entitlement | fixed by a **snapshot at a record date** — who held the token at `time` | continuous — whoever holds shares **now** owns a pro-rata claim |
+| Unit of account | the security token (CMTAT), issued and governed elsewhere | the vault's own ERC-20 share, minted on deposit |
+| How value reaches the holder | a **transfer** of a *different* token (e.g. USDC) | the **share price rises**; value is extracted by redeeming |
+| Effect on the position | none — the holder keeps every token | `redeem`/`withdraw` **burns shares** |
+| Periods | many, segregated by `time`, each with its own deadline | one pooled `totalAssets()` |
+| Compliance on payout | RuleEngine, pause and freeze checked on every payout | no hook in the standard; `maxWithdraw` must return `0` rather than revert |
+| Undistributed funds | swept by the issuer after `timeLimitToWithdraw` | remain in `totalAssets()`, accruing to holders |
+
+### Why ERC-4626 does not fit a dividend
+
+Four of those rows are not preferences, they are blockers:
+
+1. **There is no record date in ERC-4626.** Entitlement follows the share. A buyer who acquires the
+   token *after* the record date but before the payout would capture the dividend, and a seller who
+   sold after the record date would lose it. That inverts the corporate-action semantics a coupon or
+   dividend is meant to have — which is precisely what the snapshot exists to pin down.
+2. **The security token would have to *be* the share.** ERC-4626's share is the vault contract's own
+   ERC-20. A CMTAT is already issued, with its own register, transfer restrictions and identifier; its
+   supply is set by the issuer, not by deposits. Making it 4626-compliant is not possible, and the
+   alternative — holders depositing the CMTAT to receive vault shares — puts a *different* token into
+   circulation and splits the register.
+3. **A dividend is not a redemption.** ERC-4626 offers exactly one way to extract value, and it burns
+   shares. Paying a coupon must not reduce the holder's stake in the instrument. The standard has no
+   operation for "pay out without reducing the claim".
+4. **Two different tokens.** `asset()` is the single token shares are redeemed for. The vault pays USDC
+   to holders of a CMTAT — shares of X, paid in Y — which is outside the standard's model.
+
+### What ERC-7540 changes, and what it does not
+
+[ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) extends ERC-4626 with **asynchronous** flows:
+`requestDeposit` / `requestRedeem` queue an intent, an operator fulfils it at a price decided at
+fulfilment, and the controller then claims. It exists because real-world-asset and cross-chain vaults
+cannot settle atomically.
+
+That solves a **settlement-timing** problem, not an **entitlement** problem. The claim is still
+share-price based and still continuous, so none of the four blockers above is removed by adopting it.
+
+It does bring things this vault does not have, and they are worth knowing about:
+
+- a standard **request lifecycle** any 7540-aware interface can drive, instead of this project's bespoke
+  `deposit` → `setStatusClaim` → `claimDividend` sequence;
+- `setOperator` delegation (extended by [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) for signed
+  authorisation), where the vault has none — a holder cannot appoint someone to claim on their behalf;
+- specified **cancellation** of a pending request ([ERC-7887](https://eips.ethereum.org/EIPS/eip-7887));
+- multi-asset share tokens ([ERC-7575](https://eips.ethereum.org/EIPS/eip-7575)).
+
+Two ERC-7540 rules are worth noting because they show how different the model is: `preview*` functions
+**must revert** in an async flow, since no honest quote exists before fulfilment — whereas this vault
+can always compute a claim exactly from the snapshot; and `requestId = 0` has a defined meaning rather
+than signalling "no request".
+
+### When a 4626 vault *is* the right tool
+
+If the instrument is **accumulating** rather than distributing — the holder's claim grows continuously
+and they realise it by redeeming — then ERC-4626 is the correct standard and reimplementing it here
+would be a mistake. A money-market fund share, a staking wrapper, or a fund whose NAV simply rises all
+fit that shape. Use ERC-7540 on top when settlement cannot be atomic.
+
+The dividing line is whether the payout is **discrete and dated** (this vault) or **continuous and
+embedded in the price** (ERC-4626).
+
+### A place the two could meet
+
+Payment tokens deposited for a `time` sit idle in this contract from `deposit` until each holder claims
+— potentially months. A future version could hold that float as shares of a 4626 vault and redeem on
+each payout, so the undistributed dividend earns yield instead of nothing.
+
+It is deliberately **not** implemented, and the reason is worth stating: the vault owes a *fixed
+nominal amount* per period, while 4626 shares carry share-price risk. A loss in the underlying vault
+would leave the contract unable to pay the amount it recorded at `deposit`, turning a bookkeeping
+contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who
+absorbs a shortfall — a materially larger design than the one this prototype implements.
+
 ## Improvement
 
 - An automatic distribution of dividend could be performed through [Chainlink Automation](https://docs.chain.link/chainlink-automation) but it requires several changes to allow that.

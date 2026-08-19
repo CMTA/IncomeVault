@@ -30,6 +30,9 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 
 ## Key concepts
 
+- **Not an ERC-4626 vault, deliberately** — a 4626 share entitles whoever holds it *now*; a dividend is
+  allocated by **record date**. `doc/README.md` → "Comparison with ERC-4626 / ERC-7540 vaults" has the
+  full reasoning and the cases where 4626/7540 *would* be right. Do not "standardise" this onto 4626.
 - **Segregated deposits by `time`** — `time` is a Unix timestamp identifying a
   distribution. State is keyed by it: `segregatedDividend[time]`,
   `segregatedClaim[time]`, `claimedDividend[holder][time]`.
