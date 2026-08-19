@@ -118,6 +118,10 @@ src/
     ├── IncomeVaultRolesStorage.sol        # The four INCOME_VAULT_*_ROLE constants — inherited ONLY by IncomeVault
     └── Ownable2StepERC165Module.sol       # ERC-165 advertisement of ERC-173 / Ownable2Step
 
+script/
+├── DeployIncomeVault.s.sol                # role-based variant; `deploy(config)` split from `run()`
+└── DeployIncomeVaultOwnable2Step.s.sol    # single-owner variant
+
 test/
 ├── HelperContract.sol                     # Constants + `_deployContracts()`: CMTAT, SnapshotEngine, payment token, proxy
 ├── mocks/ERC20PaymentMock.sol             # Minimal ERC-20 used as payment token
@@ -157,6 +161,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png`. `incomevault-architecture` is the overview embedded in **both** READMEs — keep it low-detail; `incomevault-global`, `-claimdividend`, `-ruleengine` and `-segregated-deposit` are the detailed ones in `doc/README.md`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
 | `doc/audits/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and code comments, and read the Outstanding table before re-opening anything |
+| `script/` | Deployment scripts, one per variant. Excluded from the style check and from coverage; their `require` messages are deliberate. Tested by `test/script/Deploy.t.sol` |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
 ## Dependencies (tested versions)

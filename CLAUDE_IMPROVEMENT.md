@@ -16,7 +16,7 @@ levels of trust.
 1. ~~**A-1**~~ ✅ done. **A-2** — cheap correctness fix, no design debate.
 2. **D1, D3** — the two documentation artefacts that are actively misleading.
 3. ~~**B-1, B-2, B-3, B-4**~~ ✅ done. **B-5** — the untested gasless path.
-4. **C1, C4** — make CI catch what is currently caught only by hand.
+4. ~~**C-4**~~ ✅ done. **C-1** — make CI catch what is currently caught only by hand.
 5. ~~**A-3, A-4, E-1**~~ ✅ all done.
 6. ~~**E-2**~~ ✅ done. Everything else as capacity allows.
 
@@ -253,14 +253,31 @@ neither the cause nor the fix.
 **Suggested fix:** a `Makefile` target or npm script (`npm run test` → `forge clean && forge build &&
 forge test --ffi`), and a line in the README.
 
-### C-4. No deployment script — **verified**
+### C-4. No deployment script — ✅ **implemented**
 
 There is no `script/` directory. `package.json` referenced one until recently. Both deployment variants
 need a non-trivial sequence (deploy implementation, deploy proxy, initialize with five arguments, grant
 roles), and the ordering constraints are currently documented only in the test helper.
 
-**Suggested fix:** `script/DeployIncomeVault.s.sol` and `script/DeployIncomeVaultOwnable2Step.s.sol`,
-using the same `Upgrades` plugin the tests use so the deployment path is the tested one.
+**Implemented**, one per variant, using the same `Upgrades` plugin as the tests.
+
+Two decisions worth recording:
+
+- **`deploy(config)` is separated from `run()`.** `run()` reads the environment and broadcasts;
+  `deploy` takes an explicit struct and does neither, so `test/script/Deploy.t.sol` drives the exact
+  code an operator runs without needing any environment. The env path is covered too — a dry run with
+  the variables set reaches the config check and reports the right failure.
+- **The scripts validate what the contract cannot.** Zero addresses are already rejected by
+  `initialize`, so the scripts add only the check the contract has no way to make: that
+  `PAYMENT_TOKEN`, `SNAPSHOT_ENGINE` and any `RULE_ENGINE` are actually contracts. An EOA there
+  initializes cleanly and reverts on the first claim, long after the deployment looked successful.
+
+13 tests, the strongest being that a vault produced by the script pays a dividend end to end, rather
+than merely returning an address.
+
+Scripts are excluded from the style check (`check_order.py src/`) and from coverage, so their
+`require(..., "message")` guards are deliberate: a readable console message is worth more than a custom
+error to someone running a deployment.
 
 ## D. Documentation and repository hygiene
 

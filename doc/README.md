@@ -539,13 +539,48 @@ The contract has to be deployed with a transparent proxy and the contract is com
 
 ```
 initialize(
-    address admin,
+    address admin,                        // `owner_` on IncomeVaultOwnable2Step
     IERC20 ERC20TokenPayment_,
-    ISnapshotState snapshotEngine_,
+    ISnapshotSource snapshotEngine_,
     IRuleEngine ruleEngine_,
     uint256 timeLimitToWithdraw_
 )
 ```
+
+### Deployment scripts
+
+One script per variant, in [script](../script):
+
+| Script | Deploys |
+| --- | --- |
+| `script/DeployIncomeVault.s.sol` | the role-based `IncomeVault` |
+| `script/DeployIncomeVaultOwnable2Step.s.sol` | the single-owner `IncomeVaultOwnable2Step` |
+
+Both use the same `Upgrades` plugin the tests use, so the deployment path is the tested one.
+
+```bash
+forge clean && forge build          # a FULL build: the upgrade-safety validation requires it
+
+export PROXY_ADMIN=0x...            # owner of the ProxyAdmin, i.e. who may upgrade
+export VAULT_ADMIN=0x...            # receives DEFAULT_ADMIN_ROLE (VAULT_OWNER for the Ownable variant)
+export PAYMENT_TOKEN=0x...          # the ERC-20 dividends are paid in
+export SNAPSHOT_ENGINE=0x...        # the ISnapshotSource
+export TIME_LIMIT_TO_WITHDRAW=31536000
+export FORWARDER=0x...              # optional, ERC-2771; omit to disable gasless support
+export RULE_ENGINE=0x...            # optional; omit for no transfer restrictions
+
+forge script script/DeployIncomeVault.s.sol --rpc-url <RPC> --broadcast --ffi
+```
+
+`--ffi` is required, as it is for the tests.
+
+Before spending gas the script rejects a configuration the **contract cannot check for itself**: that
+`PAYMENT_TOKEN`, `SNAPSHOT_ENGINE` and any `RULE_ENGINE` are actually contracts. A mistyped address, or
+one copied from another chain, otherwise initializes cleanly and only reverts on the first claim.
+
+`deploy(config)` is separated from the environment reading in `run()`, so `test/script/Deploy.t.sol`
+drives the same code an operator runs — including an end-to-end check that a vault the script produced
+actually pays a dividend.
 
  
 

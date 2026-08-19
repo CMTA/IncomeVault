@@ -73,6 +73,12 @@ forge lint
 
 ### Added
 
+- Deployment scripts: `script/DeployIncomeVault.s.sol` and
+  `script/DeployIncomeVaultOwnable2Step.s.sol`, using the same `Upgrades` plugin as the tests so the
+  deployment path is the tested one. Configuration comes from the environment, and `deploy(config)` is
+  separated from `run()` so `test/script/Deploy.t.sol` exercises the same code without one. The scripts
+  reject what the contract cannot check for itself — a payment token, snapshot source or rule engine
+  that is not a contract. Finding C-4 of `CLAUDE_IMPROVEMENT.md`.
 - `IERC7540Operator` (`src/interfaces/IERC7540Operator.sol`), declaring the three members whose
   signatures are ERC-7540's verbatim. `type(IERC7540Operator).interfaceId` equals the standard's
   `0xe3bc4e65`, asserted in the tests, so a signature drift breaks the build. The vault deliberately
