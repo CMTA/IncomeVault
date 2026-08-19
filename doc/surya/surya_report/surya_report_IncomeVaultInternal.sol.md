@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./libraries/IncomeVaultInternal.sol | 0a7996ee09aa5b1097f610c9207f092bc58cb634 |
+| ./libraries/IncomeVaultInternal.sol | b831637aceba115b93cbe90d1152b1d05f2ea3da |
 
 
 ### Contracts Description Table
@@ -16,10 +16,19 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **IncomeVaultInternal** | Implementation | IncomeVaultInvariantStorage |||
+| └ | snapshotEngine | Public ❗️ |   |NO❗️ |
+| └ | ERC20TokenPayment | Public ❗️ |   |NO❗️ |
+| └ | claimedDividend | Public ❗️ |   |NO❗️ |
+| └ | segregatedDividend | Public ❗️ |   |NO❗️ |
+| └ | segregatedClaim | Public ❗️ |   |NO❗️ |
+| └ | timeLimitToWithdraw | Public ❗️ |   |NO❗️ |
 | └ | _transferDividend | Internal 🔒 | 🛑  | |
 | └ | _setSnapshotEngine | Internal 🔒 | 🛑  | |
+| └ | _setERC20TokenPayment | Internal 🔒 | 🛑  | |
+| └ | _setTimeLimitToWithdraw | Internal 🔒 | 🛑  | |
 | └ | _computeDividendBatch | Internal 🔒 |   | |
 | └ | _computeDividend | Internal 🔒 |   | |
+| └ | _getIncomeVaultInternalStorage | Internal 🔒 |   | |
 
 
 ### Legend

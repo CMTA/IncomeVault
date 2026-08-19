@@ -46,8 +46,9 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **RuleEngine is read-only here** — the vault uses `IRuleEngine.canTransfer` only. It is not a
   bound token, so `transferred(...)` would revert, and a payout must not mutate stateful rules.
 - **Upgradeable** — deployed behind an OpenZeppelin **Transparent Proxy**;
-  `initialize(...)` replaces the constructor, every contract reserves a
-  `uint256[50] private __gap`.
+  `initialize(...)` replaces the constructor. State is held in an **ERC-7201** namespaced struct
+  (`IncomeVault.storage.IncomeVaultInternal`, slot `0xe4f8b033…0c00`), as in OZ Upgradeable and
+  CMTAT v3 — there is no `__gap` and no sequential storage slot.
 - **Gasless / meta-tx** — inherits CMTAT's `ERC2771Module` (ERC-2771). The forwarder address is set
   in the constructor and is **immutable**. `_msgSender()`, `_msgData()` and
   `_contextSuffixLength()` are overridden to resolve the
@@ -68,14 +69,15 @@ src/
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
 └── libraries/
-    ├── IncomeVaultInternal.sol            # Storage (snapshotEngine, ERC20TokenPayment, mappings) +
-    │                                      #   _computeDividend(Batch), _transferDividend, _setSnapshotEngine
+    ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
+    │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}
     └── IncomeVaultInvariantStorage.sol    # Role constants, custom errors, events
 
 test/
 ├── HelperContract.sol                     # Constants + `_deployContracts()`: CMTAT, SnapshotEngine, payment token, proxy
 ├── mocks/ERC20PaymentMock.sol             # Minimal ERC-20 used as payment token
 ├── IncomeVault.t.sol                      # Single claim: deposit, claim, pause, freeze, error cases
+├── IncomeVaultStorage.t.sol               # ERC-7201: slot derivation, field offsets, getters
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
 └── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
@@ -140,8 +142,12 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
 
 - **Versioning:** `CHANGELOG.md` follows [changelog.md](https://changelog.md/);
   add an entry for any user-visible contract change.
-- **Upgrade safety:** never reorder or remove existing storage variables; add new
-  ones at the end and shrink the trailing `uint256[50] private __gap` accordingly.
+- **Upgrade safety:** the state lives in the ERC-7201 struct `IncomeVaultInternalStorage`
+  (namespace `IncomeVault.storage.IncomeVaultInternal`). Append new fields to the **end** of that
+  struct; never reorder or remove existing ones. Do **not** reintroduce `uint256[50] private __gap`
+  — namespaced storage replaces it, and the contract must keep declaring zero sequential slots.
+  A new module with its own state gets its own namespace, never a sequential variable; recompute
+  its slot with `SlotDerivation.erc7201Slot()` and keep the derivation comment above the constant.
   `IncomeVault` has an `/// @custom:oz-upgrades-unsafe-allow constructor` annotation
   — keep it and keep `_disableInitializers()` in the constructor.
 - **Claim accounting:** always set `claimedDividend[holder][time]` before any

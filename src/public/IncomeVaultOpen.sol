@@ -25,13 +25,14 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     function claimDividend(uint256 time) public nonReentrant() {
         validateTime(time);
         address sender = _msgSender();
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // At the beginning since no external call to do
-        if (claimedDividend[sender][time]){
+        if ($._claimedDividend[sender][time]){
             revert IncomeVault_DividendAlreadyClaimed();
         }
 
         // External call to the snapshot source to retrieve the total supply and the sender balance
-        (uint256 senderBalance, uint256 TokenTotalSupply) = snapshotEngine.snapshotInfo(time, sender);
+        (uint256 senderBalance, uint256 TokenTotalSupply) = $._snapshotEngine.snapshotInfo(time, sender);
         if (senderBalance == 0){
             revert IncomeVault_TokenBalanceIsZero();
         }
@@ -57,10 +58,11 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
         address sender = _msgSender();
         address[] memory senders = new address[](1);
         senders[0] = sender;
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // External call to the snapshot source to retrieve the total supply and the sender balance
-        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = snapshotEngine.snapshotInfoBatch(times, senders);
+        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = $._snapshotEngine.snapshotInfoBatch(times, senders);
         for(uint256 i = 0; i < times.length; ++i){
-            if (!claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0 )){
+            if (!$._claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0 )){
                 uint256 senderDividend = _computeDividend(times[i], senderBalances[i][0], TokenTotalSupplys[i]);
                 // Transfer restriction
                 _validateTransfer(address(this), sender, senderDividend);
@@ -76,10 +78,11 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
     */
     function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
-        if(!segregatedClaim[time]){
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        if(!$._segregatedClaim[time]){
             return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
         }
-        if(block.timestamp > timeLimitToWithdraw + time){
+        if(block.timestamp > $._timeLimitToWithdraw + time){
             return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
         }
         if(block.timestamp < time){
@@ -115,9 +118,4 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
            validateTime(times[i]);
         }
     }
-
-    /**
-    * @notice Storage gap reserved for future versions of this module
-    */
-    uint256[50] private __gap;
 }

@@ -18,7 +18,7 @@
     "prettier-plugin-solidity": "^1.0.0-rc.1",
     "sol2uml": "^2.5.26",
     "solidity-docgen": "^0.6.0-beta.35",
-    "surya": "^0.4.6"
+    "surya": "^0.4.13"
   },
   "dependencies": {
     "@openzeppelin/upgrades-core": "^1.46.0"

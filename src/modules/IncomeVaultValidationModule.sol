@@ -163,9 +163,4 @@ abstract contract IncomeVaultValidationModule is
             revert IncomeVault_InvalidTransfer(from, to, value);
         }
     }
-
-    /**
-    * @notice Storage gap reserved for future versions of this module
-    */
-    uint256[50] private __gap;
 }

@@ -24,7 +24,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     function __IncomeVaultRestricted_init_unchained(
         uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {
-       timeLimitToWithdraw = timeLimitToWithdraw_;
+       _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -41,10 +41,11 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
         if(amount == 0) {
             revert IncomeVault_NoAmountSend();
         }
-        segregatedDividend[time] += amount;
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        $._segregatedDividend[time] += amount;
         emit newDeposit(time, sender, amount);
         // Will revert in case of failure
-        ERC20TokenPayment.safeTransferFrom(sender, address(this), amount);
+        $._ERC20TokenPayment.safeTransferFrom(sender, address(this), amount);
     }
 
     /**
@@ -54,12 +55,13 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdraw(uint256 time, uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
-        if(segregatedDividend[time] < amount) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        if($._segregatedDividend[time] < amount) {
             revert IncomeVault_NotEnoughAmount();
         }
-        segregatedDividend[time] -= amount;
+        $._segregatedDividend[time] -= amount;
         // Will revert in case of failure
-        ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
+        $._ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
 
     /**
@@ -68,8 +70,9 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param withdrawAddress address to receive `amount`of tokens
     */
     function withdrawAll(uint256 amount, address withdrawAddress) public onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Will revert in case of failure
-        ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
+        $._ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
 
     /**
@@ -79,18 +82,19 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @dev The dividends are distributed only if they have not yet been claimed by the token holder
     */
     function distributeDividend(address[] calldata addresses, uint256 time) public onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Check if the claim is activated
-        if(!segregatedClaim[time]){
+        if(!$._segregatedClaim[time]){
              revert IncomeVault_ClaimNotActivated();
         }
         // Get info from the snapshot source
-        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = snapshotEngine.snapshotInfoBatch(time, addresses);
+        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
         // Compute dividend for all token holders
         uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
         // transfer the dividends for all token holders
         for(uint256 i = 0; i < addresses.length; ++i){
              // The dividends are distributed only if they have not yet been claimed by the token holder
-             if (!claimedDividend[addresses[i]][time]){
+             if (!$._claimedDividend[addresses[i]][time]){
                 // transfer dividends
                 if(tokenHolderDividend[i] > 0){
                     _transferDividend(time, addresses[i], tokenHolderDividend[i]);
@@ -106,7 +110,8 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * 
     */
     function setStatusClaim(uint256 time, bool status) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
-        segregatedClaim[time] = status;
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        $._segregatedClaim[time] = status;
     }
 
     /**
@@ -114,11 +119,6 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public onlyRole(INCOME_VAULT_OPERATOR_ROLE){
-        timeLimitToWithdraw = timeLimitToWithdraw_;
+        _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
-    
-    /**
-    * @notice Storage gap reserved for future versions of this module
-    */
-    uint256[50] private __gap;
-}
+    }

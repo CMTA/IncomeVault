@@ -80,10 +80,7 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
         if(admin == address(0)){
             revert IncomeVault_AdminWithAddressZeroNotAllowed();
         }
-        if(address(ERC20TokenPayment_) == address(0)){     
-            revert IncomeVault_TokenPaymentWithAddressZeroNotAllowed(); 
-        }
-        ERC20TokenPayment = ERC20TokenPayment_;
+        _setERC20TokenPayment(ERC20TokenPayment_);
         _setSnapshotEngine(snapshotEngine_);
 
         // Initialization
@@ -129,10 +126,4 @@ contract IncomeVault is Initializable, ContextUpgradeable, IncomeVaultRestricted
     returns (uint256) {
          return ERC2771ContextUpgradeable._contextSuffixLength();
     }
-
-    /**
-    * @notice Storage gap reserved for future versions of this contract
-    * @dev Use in case of inheritance
-    */
-    uint256[50] private __gap;
 }

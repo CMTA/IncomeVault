@@ -20,6 +20,12 @@ Please follow [https://changelog.md/](https://changelog.md/) conventions.
   `IncomeVault_InvalidTransfer(from, to, value)` instead of `CMTAT_InvalidTransfer`.
 - `withdraw` and `withdrawAll` use `SafeERC20.safeTransfer` directly; the self-approval step and
   the error `IncomeVault_FailApproval` are removed.
+- The state moved from sequential storage slots guarded by `uint256[50] private __gap` to a single
+  **ERC-7201 namespaced storage** struct, as OpenZeppelin Upgradeable and CMTAT v3 do. Every `__gap`
+  is removed and `IncomeVault` now declares **no** sequential storage slot at all. The external ABI
+  is unchanged — `snapshotEngine()`, `ERC20TokenPayment()`, `claimedDividend()`, `segregatedDividend()`,
+  `segregatedClaim()` and `timeLimitToWithdraw()` are kept as explicit getters — but the storage
+  layout is **not** compatible with a 1.x/2.0-rc deployment: this is a redeploy, not an upgrade.
 
 ### Fixed
 

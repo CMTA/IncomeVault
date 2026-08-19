@@ -251,6 +251,39 @@ In this case, the whole transaction is reverted, and the smart contract still co
 
 The `IncomeVault` is upgradeable and can be deployed with a Transparent Proxy.
 
+#### Storage (ERC-7201)
+
+The state of the vault is held in a single [ERC-7201](https://eips.ethereum.org/EIPS/eip-7201)
+namespaced storage struct, the pattern used by OpenZeppelin Upgradeable and by the CMTAT:
+
+```solidity
+// keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.IncomeVaultInternal")) - 1)) & ~bytes32(uint256(0xff))
+bytes32 private constant IncomeVaultInternalStorageLocation = 0xe4f8b033bcfc537db031b0e68e3c1ab0f1de86cf03893d031b6590510b0c0c00;
+
+/// @custom:storage-location erc7201:IncomeVault.storage.IncomeVaultInternal
+struct IncomeVaultInternalStorage {
+    ISnapshotState _snapshotEngine;
+    IERC20 _ERC20TokenPayment;
+    mapping(address tokenHolder => mapping(uint256 time => bool claimed)) _claimedDividend;
+    mapping(uint256 time => uint256 dividend) _segregatedDividend;
+    mapping(uint256 time => bool status) _segregatedClaim;
+    uint256 _timeLimitToWithdraw;
+}
+```
+
+Because the namespace is derived from a hash, it cannot collide with the storage of the inherited
+CMTAT and OpenZeppelin modules, which use their own namespaces. Consequences:
+
+- there is **no** `uint256[50] private __gap` anywhere, and the contract declares no sequential
+  storage slot at all;
+- a new field can simply be appended to the struct in a later version;
+- the fields are read through the public getters `snapshotEngine()`, `ERC20TokenPayment()`,
+  `claimedDividend()`, `segregatedDividend()`, `segregatedClaim()` and `timeLimitToWithdraw()`,
+  so the external interface is the same as if they were public state variables.
+
+The hardcoded slot is re-derived from the namespace and compared against what the proxy really
+stores in `test/IncomeVaultStorage.t.sol`.
+
 #### Urgency mechanism
 
 Through the `PauseModule`, the contract can be put in pause (`PAUSER_ROLE`), forbidding all claims.
