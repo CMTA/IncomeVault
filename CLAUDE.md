@@ -6,6 +6,13 @@
 > **Note — commit messages:** After each group of modifications or each feature
 > added, always provide a **one-line GitHub commit message** (Conventional-Commits
 > style, e.g. `feat: ...`, `fix: ...`, `docs: ...`).
+>
+> **Never put `!` in a commit message** — not as the breaking-change marker
+> (`feat!: ...`), not anywhere else. In an interactive bash, `!` inside double quotes
+> triggers history expansion, so `git commit -m "feat!: ..."` aborts with
+> `bash: !: unrecognized history modifier`. Signal a breaking change with an
+> uppercase `BREAKING CHANGE:` line in the commit body instead, and keep the subject
+> line free of `!`.
 
 ## What this project is
 
