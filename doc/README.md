@@ -4,6 +4,11 @@
 
 ## Introduction
 
+![IncomeVault architecture](./schema/plantuml/incomevault-architecture.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./schema/plantuml/incomevault-architecture.puml).
+This is the overview; the detailed flow of the same process is [further down](#snapshot-source)._
+
  \0. On the snapshot source (e.g. a `SnapshotEngine` bound to a CMTAT), the admin registers the dividend `time` to perform a snapshot and store the holder’s balance at this specified time.
 
 1. An authorized address perform a deposit in the `IncomeVault` for a specific `time`

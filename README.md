@@ -6,6 +6,11 @@
 
 The `IncomeVault` is a prototype to perform coupon-payment dividend with a token supporting on-chain snapshots, typically a [CMTAT](https://github.com/CMTA/CMTAT) bound to a [SnapshotEngine](https://github.com/CMTA/SnapshotEngine).
 
+![IncomeVault architecture](./doc/schema/plantuml/incomevault-architecture.png)
+
+_Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schema/plantuml/incomevault-architecture.puml).
+The detailed step-by-step flow is in [doc/README.md](./doc/README.md)._
+
 ## Introduction
 
 The dividends are deposited in a Vault. Once the claims are open, a token holder can then perform a claim to get his dividends for a given period.
