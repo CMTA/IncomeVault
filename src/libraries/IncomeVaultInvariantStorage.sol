@@ -3,6 +3,7 @@
 pragma solidity ^0.8.24;
 
 /* ==== Snapshot === */
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
 
 /**
@@ -24,6 +25,36 @@ abstract contract IncomeVaultInvariantStorage {
     * @param dividend the amount of payment token transferred
     */
     event DividendClaimed(uint256 indexed time, address indexed sender, uint256 dividend);
+    /**
+    * @notice Emitted when the ERC-20 used to pay the dividends is set
+    * @param newERC20TokenPayment the payment token
+    */
+    event ERC20TokenPaymentSet(IERC20 indexed newERC20TokenPayment);
+    /**
+    * @notice Emitted when the claims are opened or closed for a dividend time
+    * @param time the dividend time
+    * @param status true when the token holders can claim
+    */
+    event ClaimStatusSet(uint256 indexed time, bool status);
+    /**
+    * @notice Emitted when the delay during which a claim is accepted is set
+    * @param timeLimitToWithdraw the delay in seconds
+    */
+    event TimeLimitToWithdrawSet(uint256 timeLimitToWithdraw);
+    /**
+    * @notice Emitted when an authorized address withdraws the funds deposited for a dividend time
+    * @param time the dividend time the funds were deposited for
+    * @param withdrawAddress the address receiving the funds
+    * @param amount the amount of payment token withdrawn
+    */
+    event Withdraw(uint256 indexed time, address indexed withdrawAddress, uint256 amount);
+    /**
+    * @notice Emitted when an authorized address withdraws funds without a dividend time
+    * @dev the per-time accounting in `segregatedDividend` is left untouched, see {withdrawAll}
+    * @param withdrawAddress the address receiving the funds
+    * @param amount the amount of payment token withdrawn
+    */
+    event WithdrawAll(address indexed withdrawAddress, uint256 amount);
     /**
     * @notice Emitted when the snapshot source used to compute the dividends is set.
     * @param newSnapshotEngine The contract queried for historical balances and total supply.

@@ -41,8 +41,8 @@ forge lint
 ```
 
 - Documentation
-  - Perform a code coverage and update the files in the corresponding directory [./doc/coverage](./doc/coverage)
-  - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/security/audits/tools](./doc/security/audits/tools)
+  - Perform a code coverage and update the files in the corresponding directory [./doc/test/coverage](./doc/test/coverage)
+  - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/audits/tools](./doc/audits/tools)
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script)
   - Update changelog
 
@@ -73,6 +73,11 @@ forge lint
 
 ### Added
 
+- Events for every state write that had none: `ClaimStatusSet`, `ERC20TokenPaymentSet`,
+  `TimeLimitToWithdrawSet`, `Withdraw` and `WithdrawAll`. Each is emitted from the internal `_setX`
+  helper that performs the write, so they also fire during `initialize` — a vault configured once at
+  deployment now has a complete on-chain trail. See `CLAUDE_ANALYSIS.md` C-1 to C-4.
+- `doc/audits/CLAUDE_ANALYSIS.md`, a code-quality review (not a security audit).
 - `VersionModule`, exposing the release version through `IERC3643Version.version()`, as the CMTAT,
   RuleEngine and SnapshotEngine do. `VERSION` currently reads **1.1.0**; note this conflicts with the
   MAJOR rule stated above, which this release triggers (incompatible proxy storage change, changed
@@ -86,6 +91,11 @@ forge lint
 
 ### Changed
 
+- `validateTimeBatch` reads `timeLimitToWithdraw` once instead of once per element, and both batch
+  entrypoints take `calldata` instead of `memory`. Measured **-1,949 gas (-5.5%)** on an 8-element
+  batch, -241 gas per additional element. See `CLAUDE_ANALYSIS.md` A-1.
+- The five `public` functions of `IncomeVaultOpen` are now `virtual`, matching every other public
+  function in the project. See `CLAUDE_ANALYSIS.md` E-1.
 - Access control moved to the authorization-hook pattern. `IncomeVaultBase` (new) and the logic
   modules declare one `internal view virtual` hook per capability (`_authorizeDeposit`,
   `_authorizeWithdraw`, `_authorizeDistribute`, `_authorizeOperator`,

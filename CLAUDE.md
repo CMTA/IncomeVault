@@ -95,6 +95,9 @@ test/
 ├── AccessControlHooks.t.sol               # Both variants: every hook accepts/rejects, role separation,
 │                                          #   Ownable2Step handover, ERC-165
 ├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
+├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings; H-1 is a
+│                                          #   characterisation test that MUST fail if H-1 is fixed
+└── mocks/IncomeVaultOverrideMock.sol      # compile guard for the `virtual` convention
 ├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
 ├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
 └── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
@@ -119,6 +122,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram, PlantUML sources and the remaining drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
 | `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png`. `incomevault-architecture` is the overview embedded in **both** READMEs — keep it low-detail; `incomevault-global`, `-claimdividend`, `-ruleengine` and `-segregated-deposit` are the detailed ones in `doc/README.md`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
 | `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
+| `doc/audits/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and code comments, and read the Outstanding table before re-opening anything |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
 
 ## Dependencies (tested versions)

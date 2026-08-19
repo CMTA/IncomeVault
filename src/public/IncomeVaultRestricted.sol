@@ -85,6 +85,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
             revert IncomeVault_NotEnoughAmount();
         }
         $._segregatedDividend[time] -= amount;
+        emit Withdraw(time, withdrawAddress, amount);
         // Will revert in case of failure
         $._ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
@@ -96,6 +97,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     */
     function withdrawAll(uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        emit WithdrawAll(withdrawAddress, amount);
         // Will revert in case of failure
         $._ERC20TokenPayment.safeTransfer(withdrawAddress, amount);
     }
@@ -135,8 +137,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationModule, IncomeVa
     * 
     */
     function setStatusClaim(uint256 time, bool status) public virtual onlyVaultOperator {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        $._segregatedClaim[time] = status;
+        _setStatusClaim(time, status);
     }
 
     /**

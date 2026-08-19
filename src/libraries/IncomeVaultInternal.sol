@@ -159,6 +159,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
         }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         $._ERC20TokenPayment = ERC20TokenPayment_;
+        emit ERC20TokenPaymentSet(ERC20TokenPayment_);
     }
 
     /**
@@ -168,6 +169,18 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage {
     function _setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) internal virtual {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         $._timeLimitToWithdraw = timeLimitToWithdraw_;
+        emit TimeLimitToWithdrawSet(timeLimitToWithdraw_);
+    }
+
+    /**
+    * @notice Opens or closes the claims for a dividend time
+    * @param time the dividend time
+    * @param status true when the token holders can claim
+    */
+    function _setStatusClaim(uint256 time, bool status) internal virtual {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        $._segregatedClaim[time] = status;
+        emit ClaimStatusSet(time, status);
     }
 
     /* ============ View functions ============ */

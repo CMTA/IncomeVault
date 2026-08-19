@@ -22,7 +22,7 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @notice claim your payment
     * @param time provide the date where you want to receive your payment
     */
-    function claimDividend(uint256 time) public nonReentrant() {
+    function claimDividend(uint256 time) public virtual nonReentrant() {
         validateTime(time);
         address sender = _msgSender();
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -52,7 +52,7 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @param times provide the dates where you want to receive your payment
     * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
     */
-    function claimDividendBatch(uint256[] memory times) public nonReentrant() {
+    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant() {
         // Check if the claim is activated for each times
         validateTimeBatch(times);
         address sender = _msgSender();
@@ -77,45 +77,71 @@ abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValida
     * @param time the dividend time to check
     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
     */
-    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
+    function validateTimeCode(uint256 time) public view virtual returns(TIME_ERROR_CODE code){
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        if(!$._segregatedClaim[time]){
-            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
-        }
-        if(block.timestamp > $._timeLimitToWithdraw + time){
-            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
-        }
-        if(block.timestamp < time){
-            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
-        }
-        return TIME_ERROR_CODE.OK;
+        return _timeCode($, time, $._timeLimitToWithdraw);
     }
     
     /**
     * @notice validate if a time is valid, revert if invalid
     * @param time the dividend time to check
     */
-    function validateTime(uint256 time) public view{
-        TIME_ERROR_CODE code = validateTimeCode(time);
-         if(code == TIME_ERROR_CODE.OK){
-            return;
-        }else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
-            revert IncomeVault_ClaimNotActivated();
-        }
-        else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
-            revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        }else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
-            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
-        }
+    function validateTime(uint256 time) public view virtual {
+        _revertOnInvalidTime(validateTimeCode(time));
     }
 
     /**
     * @notice batch version of {validateTime}
     * @param times the dividend times to check
     */
-    function validateTimeBatch(uint256[] memory times) public view{
+    function validateTimeBatch(uint256[] calldata times) public view virtual {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        // `_timeLimitToWithdraw` is the same slot for every element: read it once
+        uint256 timeLimit = $._timeLimitToWithdraw;
         for(uint256 i = 0; i < times.length; ++i){
-           validateTime(times[i]);
+           _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL/PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /**
+    * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}
+    * @param code the code returned by {_timeCode}
+    */
+    function _revertOnInvalidTime(TIME_ERROR_CODE code) internal view virtual {
+        if(code == TIME_ERROR_CODE.OK){
+            return;
+        } else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
+            revert IncomeVault_ClaimNotActivated();
+        } else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
+            revert IncomeVault_TooLateToWithdraw(block.timestamp);
+        } else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
+            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
+        }
+    }
+
+    /**
+    * @dev {validateTimeCode} with the caller supplying the storage pointer and the withdraw limit,
+    * so a batch can read the limit once instead of once per element.
+    * @param $ the ERC-7201 storage of the vault
+    * @param time the dividend time to check
+    * @param timeLimit the value of `timeLimitToWithdraw`
+    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+    */
+    function _timeCode(IncomeVaultInternalStorage storage $, uint256 time, uint256 timeLimit)
+        internal view virtual returns(TIME_ERROR_CODE code)
+    {
+        if(!$._segregatedClaim[time]){
+            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
+        }
+        if(block.timestamp > timeLimit + time){
+            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
+        }
+        if(block.timestamp < time){
+            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
+        }
+        return TIME_ERROR_CODE.OK;
     }
 }
