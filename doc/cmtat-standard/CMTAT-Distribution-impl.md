@@ -2,15 +2,9 @@
 
 > The contracts are **NOT audited**. Do not use them in production without an audit.
 
-The CMTA framework functional specifications (June 2026) describe an optional **Distribution
-module** in section 3.2.4, with functionalities numbered 27 to 32 — see
-[`cmtat-framework-functional-specifications-june-2026.pdf`](./cmtat-framework-functional-specifications-june-2026.pdf).
+The CMTA framework functional specifications (June 2026) describe an optional **Distribution module** in section 3.2.4, with functionalities numbered 27 to 32 — see [`cmtat-framework-functional-specifications-june-2026.pdf`](./cmtat-framework-functional-specifications-june-2026.pdf).
 
-This document is the long form of the comparison summarised in
-[`doc/README.md`](../README.md#coverage-of-the-cmtat-distribution-module). It states which parts of
-the module `IncomeVault` covers, which it answers differently, which it does not implement, what it
-adds that the specification does not describe, and the changes we would propose to the specification
-as a result of implementing it.
+This document is the long form of the comparison summarised in [`doc/README.md`](../README.md#coverage-of-the-cmtat-distribution-module). It states which parts of the module `IncomeVault` covers, which it answers differently, which it does not implement, what it adds that the specification does not describe, and the changes we would propose to the specification as a result of implementing it.
 
 ## Coverage, functionality by functionality
 
@@ -27,22 +21,13 @@ Legend: ● implemented, ◑ partial or answered differently, ○ not implemente
 
 ## The two gaps
 
-**One settlement token per vault (27).** The specification lets each distribution name its own
-settlement token; here the token is chosen at deployment. An issuer distributing in two currencies
-deploys two vaults. This is a deliberate simplification, not an oversight: making the token
-per-`time` would put a second address in every accounting entry and make `withdrawAll` ambiguous
-about which balance it sweeps.
+**One settlement token per vault (27).** The specification lets each distribution name its own settlement token; here the token is chosen at deployment. An issuer distributing in two currencies deploys two vaults. This is a deliberate simplification, not an oversight: making the token per-`time` would put a second address in every accounting entry and make `withdrawAll` ambiguous about which balance it sweeps.
 
-**No payment schedule (31, 32).** Both are listed by the specification as *additional* use cases for
-debt instruments, and both belong more naturally beside the Debt module than beside distribution: a
-coupon schedule is derived from the instrument's terms, which `IncomeVault` does not hold. The vault
-is the settlement half — given a date and an amount, it segregates, restricts and pays. Scheduling
-is left to whatever produces those dates.
+**No payment schedule (31, 32).** Both are listed by the specification as *additional* use cases for debt instruments, and both belong more naturally beside the Debt module than beside distribution: a coupon schedule is derived from the instrument's terms, which `IncomeVault` does not hold. The vault is the settlement half — given a date and an amount, it segregates, restricts and pays. Scheduling is left to whatever produces those dates.
 
 ## What `IncomeVault` adds beyond the specification
 
-The specification defines the minimum; several behaviours here have no counterpart in it and are
-answers to questions it leaves open.
+The specification defines the minimum; several behaviours here have no counterpart in it and are answers to questions it leaves open.
 
 | Capability | Why it exists |
 | --- | --- |
@@ -55,9 +40,7 @@ answers to questions it leaves open.
 
 ## Functionalities 31 and 32 need no new state
 
-Both look like missing features, but the parameters a payment schedule needs **already exist** in
-the CMTAT framework — split across two other modules. What is missing is the link between them, and
-in one case the type.
+Both look like missing features, but the parameters a payment schedule needs **already exist** in the CMTAT framework — split across two other modules. What is missing is the link between them, and in one case the type.
 
 | A schedule needs | Where it already lives | Type |
 | --- | --- | --- |
@@ -71,47 +54,23 @@ in one case the type.
 
 Two consequences follow.
 
-**The Debt module already holds the terms, but as prose.** Every schedule field is a `string`. That
-is enough for a human, a prospectus or an off-chain agent, and it is deliberate — the CMTA formats
-A/B/C are descriptive. It is *not* enough for a contract: nothing can iterate
-`interestScheduleFormat` to learn that a payment falls due next Tuesday. So the Debt module can
-carry the parameters of functionality 31 today, and the CMTAT reference implementation would need no
-new storage — but a contract cannot act on them.
+**The Debt module already holds the terms, but as prose.** Every schedule field is a `string`. That is enough for a human, a prospectus or an off-chain agent, and it is deliberate — the CMTA formats A/B/C are descriptive. It is *not* enough for a contract: nothing can iterate `interestScheduleFormat` to learn that a payment falls due next Tuesday. So the Debt module can carry the parameters of functionality 31 today, and the CMTAT reference implementation would need no new storage — but a contract cannot act on them.
 
-**The Snapshot module already holds the dates, and in the right type.** `getNextSnapshots()` returns
-the scheduled record dates as sorted `uint256` timestamps. That *is* the executable half of a
-distribution schedule, and it already exists on-chain. Functionality **32 (unschedule)** maps almost
-exactly onto `unscheduleSnapshotNotOptimized(time)`: cancelling the record date cancels the
-distribution, as long as nothing has been deposited for it.
+**The Snapshot module already holds the dates, and in the right type.** `getNextSnapshots()` returns the scheduled record dates as sorted `uint256` timestamps. That *is* the executable half of a distribution schedule, and it already exists on-chain. Functionality **32 (unschedule)** maps almost exactly onto `unscheduleSnapshotNotOptimized(time)`: cancelling the record date cancels the distribution, as long as nothing has been deposited for it.
 
-So the proposal is not "add a scheduler" — see item 9 of *Changes we would propose to the standard*.
-It is: **specify 31 and 32 as derived rather than stored** — the dates are the scheduled snapshots,
-the terms are the debt attributes, and a distribution schedule is the join of the two plus an amount
-per date. That keeps one source of truth for record dates, which matters because a second list could
-disagree with the snapshots the balances are actually read from.
+So the proposal is not "add a scheduler" — see item 9 of *Changes we would propose to the standard*. It is: **specify 31 and 32 as derived rather than stored** — the dates are the scheduled snapshots, the terms are the debt attributes, and a distribution schedule is the join of the two plus an amount per date. That keeps one source of truth for record dates, which matters because a second list could disagree with the snapshots the balances are actually read from.
 
-`IncomeVault` implements neither, and does not read the schedule at all: `ISnapshotSource` is
-deliberately the three balance-reading functions and nothing else.
+`IncomeVault` implements neither, and does not read the schedule at all: `ISnapshotSource` is deliberately the three balance-reading functions and nothing else.
 
 ## Where the module lives
 
-The specification presents Distribution as an **optional module of a CMTAT**. This project ships it
-as a separate contract, so an existing token needs no upgrade and the distribution logic can be
-redeployed independently. Since the modularity work it is also embeddable: a CMTAT with internal
-snapshots can inherit `IncomeVaultOpen` and `IncomeVaultRestricted` and pay its own dividends, with
-no second contract — see
-[*Embedding the distribution logic in a token*](../README.md#embedding-the-distribution-logic-in-a-token).
-Both shapes use the same `IIncomeVault` API.
+The specification presents Distribution as an **optional module of a CMTAT**. This project ships it as a separate contract, so an existing token needs no upgrade and the distribution logic can be redeployed independently. Since the modularity work it is also embeddable: a CMTAT with internal snapshots can inherit `IncomeVaultOpen` and `IncomeVaultRestricted` and pay its own dividends, with no second contract — see [*Embedding the distribution logic in a token*](../README.md#embedding-the-distribution-logic-in-a-token). Both shapes use the same `IIncomeVault` API.
 
-Note also that the vault **never schedules snapshots**. Specification functionalities 15 to 17
-(schedule / reschedule / unschedule) belong to the Snapshot module; the vault only reads, through
-the three functions of `ISnapshotSource`. The issuer schedules the snapshot on the snapshot source,
-then deposits for the same `time`.
+Note also that the vault **never schedules snapshots**. Specification functionalities 15 to 17 (schedule / reschedule / unschedule) belong to the Snapshot module; the vault only reads, through the three functions of `ISnapshotSource`. The issuer schedules the snapshot on the snapshot source, then deposits for the same `time`.
 
 ## Changes we would propose to the standard
 
-Each of these is something the specification leaves open and an implementation is forced to decide.
-They are ordered by how much damage the ambiguity can do.
+Each of these is something the specification leaves open and an implementation is forced to decide. They are ordered by how much damage the ambiguity can do.
 
 | # | Proposal | Why — what implementing it exposed |
 | --- | --- | --- |
