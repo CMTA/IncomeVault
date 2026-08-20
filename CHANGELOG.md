@@ -145,6 +145,15 @@ forge lint
 
 ### Changed
 
+- The payout paths no longer inherit a transfer-restriction policy. `IncomeVaultValidationCore` declares
+  `_validateTransfer` and inherits nothing; `IncomeVaultValidationModule` is now one *answer* to it,
+  built on the CMTAT modules, and is inherited by the two deployment contracts rather than by
+  `IncomeVaultOpen`/`IncomeVaultRestricted`. `IncomeVaultBase` consequently knows nothing about pause,
+  freeze or the RuleEngine, and `__IncomeVaultBase_init_unchained` lost its `ruleEngine_` argument.
+  `ReentrancyGuardTransient` was also reordered to match CMTAT's convention. Together these mean a host
+  that already owns those modules — a CMTAT with a snapshot engine — can embed the dividend logic
+  instead of hitting an unresolvable `Error (5005)`. No behaviour change; all 202 tests pass unchanged.
+  Finding M-1 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

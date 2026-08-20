@@ -10,9 +10,10 @@ import {ValidationModuleRuleEngineInternal} from "CMTAT/modules/internal/Validat
 import {IRuleEngine, IRuleEngineERC1404} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "../libraries/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultValidationCore} from "./IncomeVaultValidationCore.sol";
 
 /**
-* @title Validation module of the IncomeVault
+* @title The standalone vault's answer to {IncomeVaultValidationCore}
 * @dev
 * A dividend payout is treated as a transfer from the vault to the token holder and can be
 * restricted the same way a CMTAT transfer is:
@@ -27,6 +28,7 @@ import {IncomeVaultInvariantStorage} from "../libraries/IncomeVaultInvariantStor
 * must not update the stateful rules of the engine.
 */
 abstract contract IncomeVaultValidationModule is
+    IncomeVaultValidationCore,
     PauseModule,
     EnforcementModule,
     ValidationModuleRuleEngineInternal,
@@ -141,12 +143,13 @@ abstract contract IncomeVaultValidationModule is
 
     /* ============ View functions ============ */
     /**
-    * @dev reverts if the payout of `value` from the vault to `to` is forbidden
-    * @param from the address sending the payment, always the vault itself
-    * @param to the token holder receiving the dividends
-    * @param value the amount of payment token
+    * @inheritdoc IncomeVaultValidationCore
+    * @dev The standalone vault's answer: its own pause state, the frozen status of both parties, and
+    * the RuleEngine if one is configured.
     */
-    function _validateTransfer(address from, address to, uint256 value) internal view virtual {
+    function _validateTransfer(address from, address to, uint256 value)
+        internal view virtual override(IncomeVaultValidationCore)
+    {
         if(!canTransfer(from, to, value)){
             revert IncomeVault_InvalidTransfer(from, to, value);
         }

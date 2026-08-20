@@ -78,6 +78,13 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   The deployment contract declares *who*: `IncomeVault` overrides every hook with `onlyRole(...)`,
   `IncomeVaultOwnable2Step` with `onlyOwner`. The two are chosen at deployment and are not
   interchangeable. Capability table: `doc/README.md` → Access control.
+- **The payout paths must not inherit a policy.** `IncomeVaultOpen`/`IncomeVaultRestricted` inherit
+  `IncomeVaultValidationCore` (the `_validateTransfer` question) — never `IncomeVaultValidationModule`
+  (one answer). The module is inherited by the **deployment** contracts, like the access-control base.
+  Re-coupling them makes the logic unembeddable in any CMTAT: C3 fails with `Error (5005)`, which no
+  override can repair. `test/mocks/EmbeddedDividendHostMock.sol` is the compile-time guard.
+- **`ReentrancyGuardTransient` is listed last** in the payout paths, matching CMTAT's ordering. Moving
+  it earlier reintroduces the same unresolvable linearization failure.
 - **Transfer restriction** — every payout, pull (`claimDividend`) **and** push (`distributeDividend`),
   goes through `IncomeVaultValidationModule`: pause, address freeze, and an optional `IRuleEngine`.
   Rejected payouts revert with `IncomeVault_InvalidTransfer(from, to, value)`; in a batch one blocked
@@ -105,6 +112,7 @@ src/
 ├── IncomeVault.sol                        # Deployment: AccessControlModule; 8 hooks -> onlyRole(...)
 ├── IncomeVaultOwnable2Step.sol            # Deployment: Ownable2StepUpgradeable; 8 hooks -> onlyOwner
 ├── modules/
+│   ├── IncomeVaultValidationCore.sol      # ONLY `_validateTransfer` — inherits nothing, keep it that way
 │   ├── IncomeVaultValidationModule.sol    # Pause + Enforcement + RuleEngine; canTransfer,
 │   │                                      #   setRuleEngine, detectTransferRestriction. Hooks abstract.
 │   ├── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()

@@ -9,10 +9,10 @@ import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/met
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /* ==== CMTAT === */
 import {ERC2771Module} from "CMTAT/modules/wrapper/options/ERC2771Module.sol";
-import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
 import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
+import {IncomeVaultValidationCore} from "./modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
 import {VersionModule} from "./modules/VersionModule.sol";
@@ -24,11 +24,13 @@ import {VersionModule} from "./modules/VersionModule.sol";
 * supply are read through the {ISnapshotSource} interface, which is implemented by the CMTA
 * `SnapshotEngine` as well as by any token embedding an equivalent snapshot module.
 *
-* This contract holds **what** is protected. It deliberately declares no access-control policy: the
-* eight `_authorize*` hooks are left abstract and answered by the deployment contract, so the same
-* logic can ship role-based ({IncomeVault}) or single-owner ({IncomeVaultOwnable2Step}).
+* This contract holds **what** the vault does. It deliberately declares neither an access-control
+* policy nor a transfer-restriction policy: the `_authorize*` hooks and
+* {IncomeVaultValidationCore-_validateTransfer} are left abstract and answered by the deployment
+* contract, so the same logic ships role-based ({IncomeVault}) or single-owner
+* ({IncomeVaultOwnable2Step}) — and can be embedded in a host that answers them from its own modules.
 */
-abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, VersionModule, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
+abstract contract IncomeVaultBase is IncomeVaultValidationCore, Initializable, ContextUpgradeable, VersionModule, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
@@ -43,23 +45,19 @@ abstract contract IncomeVaultBase is Initializable, ContextUpgradeable, VersionM
     * @dev calls the initialize functions of the policy-agnostic modules
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
     * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
-    * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function __IncomeVaultBase_init_unchained(
         IERC20 ERC20TokenPayment_,
         ISnapshotSource snapshotEngine_,
-        IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {
         _setERC20TokenPayment(ERC20TokenPayment_);
         _setSnapshotEngine(snapshotEngine_);
 
-        __Pausable_init_unchained();
         // EIP-712 domain for the ERC-7741 signed operator authorisations. The version stays "1"
         // across releases on purpose: bumping it would invalidate every signature already issued.
         __EIP712_init_unchained("IncomeVault", "1");
-        __IncomeVaultValidation_init_unchained(ruleEngine_);
         __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);
     }
 

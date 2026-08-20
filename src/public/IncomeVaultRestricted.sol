@@ -6,15 +6,16 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 /* ==== IncomeVault === */
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
-import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 
 /**
 * @title Restricted functions
 */
-abstract contract IncomeVaultRestricted is ReentrancyGuardTransient, IncomeVaultValidationModule, IncomeVaultInternal {
+abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpgradeable, IncomeVaultInternal, ReentrancyGuardTransient {
     // Security
     using SafeERC20 for IERC20;
 

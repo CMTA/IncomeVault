@@ -16,6 +16,7 @@ import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
+import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
@@ -32,7 +33,7 @@ import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
 * off-chain tool listing role holders will not see them. Role separation therefore constrains the
 * operators, never the admin.
 */
-contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesStorage {
+contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessControlModule, IncomeVaultRolesStorage {
 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
@@ -67,10 +68,12 @@ contract IncomeVault is IncomeVaultBase, AccessControlModule, IncomeVaultRolesSt
         }
         __AccessControl_init_unchained();
         __AccessControlModule_init_unchained(admin);
+        // the validation answer this deployment chose
+        __Pausable_init_unchained();
+        __IncomeVaultValidation_init_unchained(ruleEngine_);
         __IncomeVaultBase_init_unchained(
             ERC20TokenPayment_,
             snapshotEngine_,
-            ruleEngine_,
             timeLimitToWithdraw_
         );
     }

@@ -15,6 +15,7 @@ import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
+import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
@@ -33,7 +34,7 @@ import {IERC7741} from "./interfaces/IERC7741.sol";
 * {IncomeVault}, the role-based deployment, whenever depositing and withdrawing must be held by
 * different accounts — which is the usual requirement for an issuer paying dividends.
 */
-contract IncomeVaultOwnable2Step is IncomeVaultBase, Ownable2StepUpgradeable, Ownable2StepERC165Module {
+contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase, Ownable2StepUpgradeable, Ownable2StepERC165Module {
 
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
@@ -69,10 +70,12 @@ contract IncomeVaultOwnable2Step is IncomeVaultBase, Ownable2StepUpgradeable, Ow
         __Ownable_init_unchained(owner_);
         __Ownable2Step_init_unchained();
         __ERC165_init_unchained();
+        // the validation answer this deployment chose
+        __Pausable_init_unchained();
+        __IncomeVaultValidation_init_unchained(ruleEngine_);
         __IncomeVaultBase_init_unchained(
             ERC20TokenPayment_,
             snapshotEngine_,
-            ruleEngine_,
             timeLimitToWithdraw_
         );
     }

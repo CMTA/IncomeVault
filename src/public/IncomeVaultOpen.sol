@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 import {ERC7741Module} from "../modules/ERC7741Module.sol";
@@ -13,7 +13,7 @@ import {ERC7741Module} from "../modules/ERC7741Module.sol";
 /**
 * @title Permissionless functions
 */
-abstract contract IncomeVaultOpen is ReentrancyGuardTransient, IncomeVaultValidationModule, ERC7741Module  {
+abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, ReentrancyGuardTransient  {
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
