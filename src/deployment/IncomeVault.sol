@@ -16,7 +16,7 @@ import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultBase} from "../IncomeVaultBase.sol";
+import {IncomeVaultBaseERC2771} from "../IncomeVaultBaseERC2771.sol";
 import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRestricted} from "../public/IncomeVaultRestricted.sol";
 import {IncomeVaultSnapshotModule} from "../modules/IncomeVaultSnapshotModule.sol";
@@ -35,12 +35,12 @@ import {IncomeVaultRolesStorage} from "../storage/IncomeVaultRolesStorage.sol";
 * off-chain tool listing role holders will not see them. Role separation therefore constrains the
 * operators, never the admin.
 */
-contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessControlModule, IncomeVaultRolesStorage {
+contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBaseERC2771, AccessControlModule, IncomeVaultRolesStorage {
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
     */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address forwarderIrrevocable) IncomeVaultBase(forwarderIrrevocable) {
+    constructor(address forwarderIrrevocable) IncomeVaultBaseERC2771(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
         _disableInitializers();
     }
@@ -98,30 +98,30 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
 
     /* ============ ERC-2771 / Context disambiguation ============ */
     /**
-    * @inheritdoc IncomeVaultBase
+    * @inheritdoc IncomeVaultBaseERC2771
     */
-    function _msgSender() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (address sender) {
-        return IncomeVaultBase._msgSender();
+    function _msgSender() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (address sender) {
+        return IncomeVaultBaseERC2771._msgSender();
     }
 
     /**
-    * @inheritdoc IncomeVaultBase
+    * @inheritdoc IncomeVaultBaseERC2771
     */
-    function _msgData() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (bytes calldata) {
-        return IncomeVaultBase._msgData();
+    function _msgData() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (bytes calldata) {
+        return IncomeVaultBaseERC2771._msgData();
     }
 
     /**
-    * @inheritdoc IncomeVaultBase
+    * @inheritdoc IncomeVaultBaseERC2771
     */
     function _contextSuffixLength()
         internal
         view
         virtual
-        override(IncomeVaultBase, ContextUpgradeable)
+        override(IncomeVaultBaseERC2771, ContextUpgradeable)
         returns (uint256)
     {
-        return IncomeVaultBase._contextSuffixLength();
+        return IncomeVaultBaseERC2771._contextSuffixLength();
     }
 
     /* ============ Access Control ============ */

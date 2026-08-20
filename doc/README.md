@@ -582,7 +582,8 @@ Each directory says what its files **are**, following the convention CMTAT uses:
 
 | Path | Holds |
 | --- | --- |
-| `src/IncomeVaultBase.sol` | the composition root — the only file at the root |
+| `src/IncomeVaultBase.sol` | the composition root: the distribution logic, no meta-transaction policy |
+| `src/IncomeVaultBaseERC2771.sol` | the same plus the ERC-2771 context — what the shipped deployments inherit |
 | `src/deployment/` | the two deployable contracts, and nothing abstract |
 | `src/public/` | the external surface, split by **who may call it** |
 | `src/modules/` | the abstract capability mixins, one per capability |
@@ -837,6 +838,18 @@ The `IncomeVault` contract supports client-side gasless transactions using the [
 At deployment, the parameter  `forwarder` inside the contract constructor has to be set  with the defined address of the forwarder. Please note that the forwarder can not be changed after deployment.
 
 Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
+
+**Gasless support is a deployment decision, not a property of the distribution logic.**
+`IncomeVaultBase` states what the vault does and knows nothing about forwarders;
+`IncomeVaultBaseERC2771` adds the ERC-2771 context on top of it and resolves the
+`ERC2771ContextUpgradeable` / `ContextUpgradeable` diamond. Both shipped deployments inherit the latter,
+so they behave exactly as described above. A deployment that does not want a trusted forwarder inherits
+`IncomeVaultBase` directly and carries none of the machinery — not an immutable forwarder address, not
+the calldata-suffix handling, not the `isTrustedForwarder` entry point. Before this split the only way
+to decline was to pass the zero address and pay for it anyway.
+
+This matters beyond taste: **a trusted forwarder can name any `_msgSender()`**, so it is as privileged
+as every role behind it. A deployment with no need for meta-transactions should not carry one.
 
 ### Schema
 

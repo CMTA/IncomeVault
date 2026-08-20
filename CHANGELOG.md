@@ -193,6 +193,12 @@ forge lint
   at the root. `src/public/` is unchanged on purpose: splitting the external surface by who may call it
   is what makes the gated/ungated boundary legible. Import paths only; no contract renamed, no ABI
   change. Finding M-5 of `IMPROVEMENT_MODULARITY.md`.
+- Gasless support is now chosen at deployment. `IncomeVaultBase` no longer inherits `ERC2771Module`;
+  the new `IncomeVaultBaseERC2771` adds it along with the `_msgSender`/`_msgData`/`_contextSuffixLength`
+  overrides, and both shipped deployments inherit that instead — so their behaviour, ABI and forwarder
+  handling are unchanged. A deployment that does not want a trusted forwarder now inherits
+  `IncomeVaultBase` directly and carries none of the machinery, where previously declining meant passing
+  the zero address and paying for it anyway. Finding M-8 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

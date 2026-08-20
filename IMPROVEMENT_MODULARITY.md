@@ -30,7 +30,7 @@ headline finding; everything else is smaller.
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | ✅ **fixed** — `libraries/` removed; `public/` kept deliberately |
 | M-6 | One monolithic storage namespace covering four unrelated concerns | ✅ **fixed** — operator split out; the rest is one concern |
 | M-7 | No interface describes the vault's own API | ✅ **fixed** |
-| M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | low |
+| M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | ✅ **fixed** |
 | M-9 | Split `IncomeVaultValidationModule` so an embedded copy reuses CMTAT's RuleEngine | ❌ **already the case** — shared constant slot |
 
 ## What is already good
@@ -578,14 +578,47 @@ that rejects every other caller), and the standalone-only surface — pause, fre
 `test/IncomeVaultInterface.t.sol` drives a real proxy through the interface alone, checks the id on both
 variants, and asserts both host mocks present the same interface. 210 tests pass.
 
-## M-8. `IncomeVaultBase` bundles ERC-2771 — low
+## M-8. `IncomeVaultBase` bundles ERC-2771 — ✅ **fixed**
 
-The base inherits `ERC2771Module`, so any host embedding the vault inherits a second ERC-2771 context —
-resolvable with overrides, but it is a dependency the distribution logic does not need.
+The base inherited `ERC2771Module`, so every deployment carried a trusted-forwarder context.
 
-**Proposed change:** move `ERC2771Module` from `IncomeVaultBase` into the two deployable contracts,
-beside the access-control base they already choose. Meta-transaction support is a deployment decision,
-exactly like the access-control model.
+### The stated premise was already false
+
+The finding said "any host embedding the vault inherits a second ERC-2771 context". It does not:
+`src/public/` and `src/modules/` contain **no** ERC-2771 reference at all, and an embedding host
+inherits `IncomeVaultOpen`/`IncomeVaultRestricted`, never `IncomeVaultBase`.
+`CMTATDividendHostMock` compiles today without touching a forwarder. Like M-3, M-4 and M-9, the
+embedding scenario was fixed by M-1 before this finding was reached.
+
+### The real reason to do it anyway
+
+It is not about embedding, it is about **the third deployment**. Anyone building a variant with a
+different access-control model, or simply without meta-transactions, inherited `ERC2771Module` whether
+they wanted it or not. Declining meant passing `address(0)` and still carrying the immutable forwarder
+slot, the calldata-suffix handling on every call, and the `isTrustedForwarder` entry point.
+
+That matters more than code size: **a trusted forwarder can name any `_msgSender()`**, so it is as
+privileged as every role behind it. A deployment with no use for meta-transactions should be able to
+have none, and until now it could not.
+
+### What was implemented
+
+A second base, as proposed in review:
+
+| Contract | Holds |
+| --- | --- |
+| `IncomeVaultBase` | the distribution logic. No access-control policy, no validation policy, **no meta-transaction policy** |
+| `IncomeVaultBaseERC2771` | the above plus `ERC2771Module`, the forwarder constructor, and the three `Context` overrides |
+
+Both shipped deployments now inherit `IncomeVaultBaseERC2771`, so their ABI, forwarder handling and
+behaviour are unchanged. Gasless support joins access control and transfer restriction as something the
+deployment contract chooses, which is the pattern the rest of the codebase already follows.
+
+`test/mocks/NoForwarderVaultMock.sol` is the guard — a vault on the plain base, which could not have
+existed before — and `test/NoForwarderDeployment.t.sol` asserts it exposes **no** `isTrustedForwarder`
+entry point, that the shipped deployments still do, and that it distributes dividends normally either
+way. The absence from the ABI is the evidence that the machinery is gone rather than merely disabled
+with a zero address. 214 tests pass.
 
 ---
 
@@ -595,7 +628,8 @@ exactly like the access-control model.
 2. ~~**M-2**~~ ✅ done — `CMTATWithDividend` now compiles; see `test/mocks/CMTATDividendHostMock.sol`.
 3. ~~**M-5**~~ ✅ done — `deployment/`, `modules/`, `storage/`; `public/` kept by design.
 4. ~~**M-4**~~ ❌ closed as not-a-defect — both hooks gate one hardcoded ERC-7201 slot, so one override
-   is the correct answer; prefixing ours was implemented and reverted. **M-8** remains. M-3 is closed: the host overrides
+   is the correct answer; prefixing ours was implemented and reverted. ~~**M-8**~~ ✅ done — gasless
+   moved into `IncomeVaultBaseERC2771`. M-3 is closed: the host overrides
    `version()`, which is also how the embedded IncomeVault release stays visible in the host's source.
 5. ~~**M-6**~~ ✅ done — claim delegation has its own namespace; the distribution fields stay together.
 6. ~~**M-7**~~ ✅ done — `IIncomeVault`, inherited by `IncomeVaultInternal` so solc enforces it.

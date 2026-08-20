@@ -5,10 +5,8 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /* ==== CMTAT === */
-import {ERC2771Module} from "CMTAT/modules/wrapper/options/ERC2771Module.sol";
 /* ==== Snapshot === */
 import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
@@ -30,6 +28,11 @@ import {VersionModule} from "./modules/VersionModule.sol";
 * {IncomeVaultValidationCore-_validateTransfer} are left abstract and answered by the deployment
 * contract, so the same logic ships role-based ({IncomeVault}) or single-owner
 * ({IncomeVaultOwnable2Step}) — and can be embedded in a host that answers them from its own modules.
+*
+* It also declares **no meta-transaction policy**. Gasless support is a deployment decision, exactly
+* like the access-control model: {IncomeVaultBaseERC2771} adds the ERC-2771 context on top of this
+* contract, and the two shipped deployments inherit that. A deployment that does not want a trusted
+* forwarder inherits this contract directly and pays for none of it. Finding M-8.
 */
 abstract contract IncomeVaultBase is
     IncomeVaultValidationCore,
@@ -38,15 +41,8 @@ abstract contract IncomeVaultBase is
     VersionModule,
     IncomeVaultSnapshotModule,
     IncomeVaultRestricted,
-    IncomeVaultOpen,
-    ERC2771Module
+    IncomeVaultOpen
 {
-    /**
-    * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
-    */
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address forwarderIrrevocable) ERC2771Module(forwarderIrrevocable) {}
-
     /* ============  Initializer Function ============ */
     /**
     * @dev calls the initialize functions of the policy-agnostic modules
@@ -71,45 +67,4 @@ abstract contract IncomeVaultBase is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL/PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    /**
-    * @dev This surcharge is not necessary if you do not use the ERC2771Module
-    * @return sender The transaction sender, unwrapped from the forwarder calldata when relayed.
-    */
-    function _msgSender()
-        internal
-        view
-        virtual
-        override(ERC2771ContextUpgradeable, ContextUpgradeable)
-        returns (address sender)
-    {
-        return ERC2771ContextUpgradeable._msgSender();
-    }
-
-    /**
-    * @dev This surcharge is not necessary if you do not use the ERC2771Module
-    * @return The transaction calldata, with the appended sender stripped when relayed.
-    */
-    function _msgData()
-        internal
-        view
-        virtual
-        override(ERC2771ContextUpgradeable, ContextUpgradeable)
-        returns (bytes calldata)
-    {
-        return ERC2771ContextUpgradeable._msgData();
-    }
-
-    /**
-    * @dev This surcharge is not necessary if you do not use the ERC2771Module
-    * @return The length of the ERC-2771 calldata suffix.
-    */
-    function _contextSuffixLength()
-        internal
-        view
-        virtual
-        override(ERC2771ContextUpgradeable, ContextUpgradeable)
-        returns (uint256)
-    {
-        return ERC2771ContextUpgradeable._contextSuffixLength();
-    }
 }

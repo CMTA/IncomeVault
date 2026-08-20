@@ -117,10 +117,13 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `initialize(...)` replaces the constructor. State is held in an **ERC-7201** namespaced struct
   (`IncomeVault.storage.IncomeVaultInternal`, slot `0xe4f8b033…0c00`), as in OZ Upgradeable and
   CMTAT v3 — there is no `__gap` and no sequential storage slot.
-- **Gasless / meta-tx** — inherits CMTAT's `ERC2771Module` (ERC-2771). The forwarder address is set
-  in the constructor and is **immutable**. `_msgSender()`, `_msgData()` and
-  `_contextSuffixLength()` are overridden to resolve the
-  `ERC2771ContextUpgradeable` / `ContextUpgradeable` diamond.
+- **Gasless / meta-tx is a deployment decision** (M-8). `IncomeVaultBase` has **no** ERC-2771;
+  `IncomeVaultBaseERC2771` adds CMTAT's `ERC2771Module` plus the `_msgSender`/`_msgData`/
+  `_contextSuffixLength` overrides that resolve the `ERC2771ContextUpgradeable` / `ContextUpgradeable`
+  diamond, and both shipped deployments inherit that. The forwarder is set in the constructor and is
+  **immutable**. Do not move `ERC2771Module` back into `IncomeVaultBase`: a forwarder can name any
+  `_msgSender()`, so a deployment that does not want one must be able to not have one.
+  `test/mocks/NoForwarderVaultMock.sol` is the guard.
 - **Reentrancy** — claims use `nonReentrant` from `ReentrancyGuardTransient` (EIP-1153);
   `_transferDividend` sets `claimedDividend[holder][time] = true` *before* the ERC-20 transfer.
 
@@ -128,9 +131,12 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 
 ```
 src/
-├── IncomeVaultBase.sol                    # The composition root, and the ONLY file at src/ root:
-│                                          #   assembles the modules, __IncomeVaultBase_init_unchained,
-│                                          #   ERC-2771 _msgSender/_msgData overrides. Hooks left abstract.
+├── IncomeVaultBase.sol                    # The composition root: assembles the modules,
+│                                          #   __IncomeVaultBase_init_unchained. Hooks left abstract.
+│                                          #   NO access-control, NO validation, NO meta-tx policy.
+├── IncomeVaultBaseERC2771.sol             # The base plus ERC-2771: forwarder constructor and the
+│                                          #   _msgSender/_msgData/_contextSuffixLength overrides.
+│                                          #   Both shipped deployments inherit THIS one.
 ├── deployment/                            # What you actually deploy — nothing abstract lives here
 │   ├── IncomeVault.sol                    # AccessControlModule; every hook -> onlyRole(...)
 │   └── IncomeVaultOwnable2Step.sol        # Ownable2StepUpgradeable; every hook -> onlyOwner
@@ -192,12 +198,15 @@ test/
 ├── Deactivate.t.sol                       # deactivateContract, permanent kill
 ├── EdgeCases.t.sol                        # zero supply, zero balance, boundary times
 ├── script/Deploy.t.sol                    # C-4: both deployment scripts, config validation
+├── NoForwarderDeployment.t.sol            # M-8: a vault on the plain base has no isTrustedForwarder,
+│                                          #   the shipped ones still do, and payouts work either way
 ├── invariant/                             # handler + 7 invariants; validate any change by sabotaging
 │                                          #   the contract and checking an invariant actually fails
 └── mocks/
     ├── ERC20PaymentMock.sol               # Minimal ERC-20 used as payment token
     ├── MinimalSnapshotSourceMock.sol      # I-1: implements ISnapshotSource and nothing else
     ├── IncomeVaultOverrideMock.sol        # compile guard for the `virtual` convention
+    ├── NoForwarderVaultMock.sol           # M-8 guard: a deployment on IncomeVaultBase, no ERC-2771
     ├── EmbeddedDividendHostMock.sol       # M-1/M-2 compile guard: a non-CMTAT host paying dividends
     └── CMTATDividendHostMock.sol          # M-1/M-2 compile guard: a CMTATUpgradeableInternalSnapshot
                                            #   paying its own dividends, its own snapshots, own canTransfer
