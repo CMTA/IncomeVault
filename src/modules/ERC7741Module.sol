@@ -8,6 +8,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IncomeVaultOperatorModule} from "./IncomeVaultOperatorModule.sol";
 import {IERC7741} from "../interfaces/IERC7741.sol";
 
 /**
@@ -24,7 +25,13 @@ import {IERC7741} from "../interfaces/IERC7741.sol";
 * Nonces are `bytes32` and unordered, as the standard specifies, so a holder can prepare several
 * independent authorisations without imposing an ordering on them.
 */
-abstract contract ERC7741Module is EIP712Upgradeable, ContextUpgradeable, IncomeVaultInternal, IERC7741 {
+abstract contract ERC7741Module is
+    EIP712Upgradeable,
+    ContextUpgradeable,
+    IncomeVaultOperatorModule,
+    IncomeVaultInternal,
+    IERC7741
+{
     /* ============ State Variables ============ */
     /**
     * @notice EIP-712 type hash of the authorisation message, exactly as ERC-7741 defines it

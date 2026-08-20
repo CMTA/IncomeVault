@@ -8,7 +8,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /* ==== Snapshot === */
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
-import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**
@@ -21,7 +20,7 @@ import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 * CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
 * inherited modules; no `__gap` is needed and new fields can be appended to the struct freely.
 */
-abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Operator, IIncomeVault {
+abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVault {
     // Manage transfer failure
     using SafeERC20 for IERC20;
 
@@ -55,9 +54,6 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
         // reduced on a payout — it is the pro-rata denominator and must stay fixed for the period —
         // so this is what makes "how much of that deposit is still here" answerable.
         mapping(uint256 time => uint256 paid) _paidDividend;
-        // Holders that authorised another address to claim on their behalf. Payouts always go to the
-        // holder, never to the operator; the operator only pays the gas and chooses the moment.
-        mapping(address controller => mapping(address operator => bool)) _isOperator;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -102,20 +98,6 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     function segregatedClaim(uint256 time) public view virtual returns (bool) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._segregatedClaim[time];
-    }
-
-    /**
-    * @inheritdoc IERC7540Operator
-    */
-    function isOperator(address controller, address operator)
-        public
-        view
-        virtual
-        override(IERC7540Operator)
-        returns (bool)
-    {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        return $._isOperator[controller][operator];
     }
 
     /**
@@ -202,20 +184,6 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
             // Will revert in case of failure
             $._ERC20TokenPayment.safeTransfer(tokenHolder, tokenHolderDividend);
         }
-    }
-
-    /**
-    * @notice Grants or revokes an operator for a holder
-    * @dev The single writer of the operator mapping, shared by {IncomeVaultOpen-setOperator} (the
-    * holder transacts) and {ERC7741Module-authorizeOperator} (the holder signs).
-    * @param controller the holder granting or revoking
-    * @param operator the account being granted or revoked
-    * @param approved true to grant, false to revoke
-    */
-    function _setOperator(address controller, address operator, bool approved) internal virtual {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        $._isOperator[controller][operator] = approved;
-        emit OperatorSet(controller, operator, approved);
     }
 
     /**

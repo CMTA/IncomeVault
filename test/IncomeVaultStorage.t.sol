@@ -21,6 +21,10 @@ contract IncomeVaultStorageTest is HelperContract {
     string constant SNAPSHOT_NAMESPACE = "IncomeVault.storage.SnapshotSource";
     /// @dev the value hardcoded in IncomeVaultSnapshotModule
     bytes32 constant EXPECTED_SNAPSHOT_SLOT = 0x45a69a32b5b7efb4ae8ac48e2427653ef15920a29875121a072e6b49aaccac00;
+    /// @dev claim delegation keeps its own namespace, so a host can reason about the two separately
+    string constant OPERATOR_NAMESPACE = "IncomeVault.storage.Operator";
+    /// @dev the value hardcoded in IncomeVaultOperatorModule
+    bytes32 constant EXPECTED_OPERATOR_SLOT = 0x70af7571496f61583375b861df45fee91dcc3edadeaff09b686f7920599a5500;
 
     function setUp() public {
         _deployContracts();
@@ -32,6 +36,7 @@ contract IncomeVaultStorageTest is HelperContract {
     function testStorageLocationMatchesTheErc7201Derivation() public pure {
         assertEq(NAMESPACE.erc7201Slot(), EXPECTED_SLOT);
         assertEq(SNAPSHOT_NAMESPACE.erc7201Slot(), EXPECTED_SNAPSHOT_SLOT);
+        assertEq(OPERATOR_NAMESPACE.erc7201Slot(), EXPECTED_OPERATOR_SLOT);
     }
 
     /**
@@ -40,13 +45,38 @@ contract IncomeVaultStorageTest is HelperContract {
     function testStorageLocationIsAligned() public pure {
         assertEq(uint256(EXPECTED_SLOT) & 0xff, 0);
         assertEq(uint256(EXPECTED_SNAPSHOT_SLOT) & 0xff, 0);
+        assertEq(uint256(EXPECTED_OPERATOR_SLOT) & 0xff, 0);
     }
 
     /**
     * @notice The two namespaces are disjoint, so neither module can corrupt the other
     */
-    function testTheTwoNamespacesDoNotOverlap() public pure {
+    function testTheNamespacesDoNotOverlap() public pure {
         assertTrue(EXPECTED_SLOT != EXPECTED_SNAPSHOT_SLOT);
+        assertTrue(EXPECTED_SLOT != EXPECTED_OPERATOR_SLOT);
+        assertTrue(EXPECTED_SNAPSHOT_SLOT != EXPECTED_OPERATOR_SLOT);
+    }
+
+    /**
+    * @notice Claim delegation is stored in the operator namespace, not the distribution one
+    * @dev Finding M-6. The mapping used to be the last field of `IncomeVaultInternalStorage`; a host
+    * embedding only the distribution would have carried it. Reading the derived mapping slot proves
+    * where it actually lives rather than trusting the declaration.
+    */
+    function testOperatorAuthorisationsLiveInTheOperatorNamespace() public {
+        vm.prank(ADDRESS1);
+        incomeVault.setOperator(ADDRESS2, true);
+        assertTrue(incomeVault.isOperator(ADDRESS1, ADDRESS2));
+
+        // mapping(controller => mapping(operator => bool)) at field 0 of the operator namespace
+        bytes32 outer = keccak256(abi.encode(ADDRESS1, uint256(OPERATOR_NAMESPACE.erc7201Slot())));
+        bytes32 inner = keccak256(abi.encode(ADDRESS2, uint256(outer)));
+        assertEq(uint256(vm.load(address(incomeVault), inner)), 1);
+
+        // and the same derivation against the distribution namespace holds nothing
+        bytes32 strayOuter = keccak256(abi.encode(ADDRESS1, uint256(NAMESPACE.erc7201Slot()) + 7));
+        bytes32 strayInner = keccak256(abi.encode(ADDRESS2, uint256(strayOuter)));
+        assertEq(uint256(vm.load(address(incomeVault), strayInner)), 0);
     }
 
     /**

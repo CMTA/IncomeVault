@@ -49,6 +49,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   owns the `TIME_ERROR_CODE` enum, because `validateTimeCode` returns it. Keep it inheriting **nothing**:
   `type(...).interfaceId` covers only directly-declared selectors, and both deployment variants
   advertise that id.
+- **One capability, one module, one ERC-7201 namespace.** The project runs four namespaces:
+  `IncomeVaultInternal` (distribution), `SnapshotSource`, `Operator` and `ERC7741Module`. Claim
+  delegation is `IncomeVaultOperatorModule`, not a mapping in the distribution struct (M-6). A new
+  capability with state gets its own namespace — never a field appended to someone else's.
 - **Claim delegation reuses ERC-7540's operator signatures exactly.** `IERC7540Operator` must keep
   `type(...).interfaceId == 0xe3bc4e65`; a test asserts it. Do **not** add that id to
   `supportsInterface` — the vault is not an asynchronous vault and must not advertise as one.
@@ -129,6 +133,8 @@ src/
 │   ├── IncomeVaultSnapshotCore.sol        # ONLY the 3 snapshot hooks — inherits nothing, keep it that way
 │   ├── IncomeVaultSnapshotModule.sol      # One answer: a stored ISnapshotSource in its OWN ERC-7201
 │   │                                      #   namespace; dividendSnapshotSource, setDividendSnapshotSource
+│   ├── IncomeVaultOperatorModule.sol      # ERC-7540 claim delegation in its OWN ERC-7201 namespace;
+│   │                                      #   setOperator, isOperator, _requireHolderOrOperator
 │   ├── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
 │   └── ERC7741Module.sol                  # EIP-712 signed operator authorisation, own ERC-7201 namespace
 ├── public/

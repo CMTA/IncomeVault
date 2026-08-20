@@ -28,7 +28,7 @@ headline finding; everything else is smaller.
 | M-3b | SnapshotEngine vendors its **own** CMTAT at a different version than `lib/CMTAT` | medium — **proven to block**, see below |
 | M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | ❌ **not a defect** — one slot, one capability |
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | medium (legibility) |
-| M-6 | One monolithic storage namespace covering four unrelated concerns | medium |
+| M-6 | One monolithic storage namespace covering four unrelated concerns | ✅ **fixed** — operator split out; the rest is one concern |
 | M-7 | No interface describes the vault's own API | ✅ **fixed** |
 | M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | low |
 | M-9 | Split `IncomeVaultValidationModule` so an embedded copy reuses CMTAT's RuleEngine | ❌ **already the case** — shared constant slot |
@@ -480,16 +480,52 @@ Nothing about this is cosmetic: the current `public/` split is what makes "can I
 logic?" hard to answer, because claiming and its restricted counterpart are separated by *who may call
 them* rather than by what they do.
 
-## M-6. One storage namespace for four concerns — medium
+## M-6. One storage namespace for four concerns — ✅ **fixed, partially and deliberately**
 
-`IncomeVaultInternalStorage` holds the snapshot source, the payment token, the claim bookkeeping, the
-withdraw limit, the open-period counter, the paid-per-period totals **and** the operator mapping. A host
-that wants only the distribution still inherits the operator state, and vice versa.
+`IncomeVaultInternalStorage` held the snapshot source, the payment token, the claim bookkeeping, the
+withdraw limit, the open-period counter, the paid-per-period totals **and** the operator mapping.
 
-**Proposed change:** one namespace per capability, as `ERC7741Module` already does —
-`IncomeVault.storage.Distribution` and `IncomeVault.storage.Operator`. ERC-7201 makes this free: the
-namespaces are hash-derived and cannot collide, so splitting costs nothing but is impossible to do
-later without breaking deployed storage.
+### What was implemented, and what was declined
+
+The finding proposed splitting into `Distribution` and `Operator`. Re-read against the current code, it
+was two-thirds already done and one-third not worth doing:
+
+| Concern | Outcome |
+| --- | --- |
+| Snapshot source | Already moved to `IncomeVault.storage.SnapshotSource` by **M-2** |
+| Signature nonces | Already in `ERC7741Module`'s own namespace before this review |
+| Claim delegation | **Moved** to `IncomeVault.storage.Operator`, in a new `IncomeVaultOperatorModule` |
+| Payment token, deposits, claim flags, paid totals, open count, claim window | **Left together** — see below |
+
+**The remaining struct was not split further, on purpose.** Those six fields are not four concerns;
+they are one. `_paidDividend` is meaningless without `_segregatedDividend`, `_openClaimCount` is
+bookkeeping derived from `_segregatedClaim`, and `_ERC20TokenPayment` and `_timeLimitToWithdraw` are the
+configuration of that same distribution. Splitting them would be a namespace per variable — more
+constants, more accessors, more indirection, and no capability boundary to show for it. That is worse
+code, not better modularity, so the finding is closed with the split it justified rather than the split
+it named.
+
+### Why the operator half was worth doing
+
+Not for the reason the finding gave. Claim delegation is **not** separable in practice —
+`claimDividendFor` needs it, so a host embedding the payout paths gets it regardless. The real
+justifications are different and stronger:
+
+- **It was the codebase's only incoherence of its kind.** Every other capability already owned one
+  module and one namespace (`IncomeVaultSnapshotModule`, `IncomeVaultValidationModule`,
+  `ERC7741Module`). Claim delegation had its behaviour spread across three files — the mapping and
+  `isOperator`/`_setOperator` in `IncomeVaultInternal`, the public `setOperator` and
+  `_requireHolderOrOperator` in `IncomeVaultOpen`, the signed variant in `ERC7741Module` — and its state
+  in **two** namespaces, one of them the catch-all.
+- **It is the last chance.** ERC-7201 slots are fixed at deployment; this is impossible afterwards.
+
+`IncomeVaultOperatorModule` now holds the mapping, `setOperator`, `isOperator`, `_setOperator` and
+`_requireHolderOrOperator`. `ERC7741Module` builds the signed variant on top of it. The external ABI is
+unchanged, and `_isOperator` was the **last** struct field, so no other field's offset moved.
+
+`test/IncomeVaultStorage.t.sol` re-derives all three hardcoded slots from their namespace strings,
+asserts they are pairwise disjoint, and reads the mapping's derived slot to prove the authorisation
+really lands in the operator namespace and **not** at the offset it used to occupy. 211 tests pass.
 
 ## M-7. No interface for the vault's own API — ✅ **fixed**
 
@@ -547,7 +583,7 @@ exactly like the access-control model.
 4. ~~**M-4**~~ ❌ closed as not-a-defect — both hooks gate one hardcoded ERC-7201 slot, so one override
    is the correct answer; prefixing ours was implemented and reverted. **M-8** remains. M-3 is closed: the host overrides
    `version()`, which is also how the embedded IncomeVault release stays visible in the host's source.
-5. **M-6** — do it before the first deployment carrying real value; it cannot be done afterwards.
+5. ~~**M-6**~~ ✅ done — claim delegation has its own namespace; the distribution fields stay together.
 6. ~~**M-7**~~ ✅ done — `IIncomeVault`, inherited by `IncomeVaultInternal` so solc enforces it.
 
 ## What "done" looks like — ✅ reached

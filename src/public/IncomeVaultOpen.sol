@@ -8,7 +8,6 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
-import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 import {ERC7741Module} from "../modules/ERC7741Module.sol";
 
 /**
@@ -64,17 +63,6 @@ abstract contract IncomeVaultOpen is
     */
     function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant {
         _claimDividendBatch(_msgSender(), times);
-    }
-
-    /**
-    * @notice Authorise or revoke an address to claim on your behalf
-    * @dev Same signature, semantics and event as ERC-7540's `setOperator`, so tooling written for
-    * that standard works here. The operator can never receive the dividends, only trigger the claim.
-    * @inheritdoc IERC7540Operator
-    */
-    function setOperator(address operator, bool approved) public virtual override(IERC7540Operator) returns (bool) {
-        _setOperator(_msgSender(), operator, approved);
-        return true;
     }
 
     /* ============ View functions ============ */
@@ -167,14 +155,4 @@ abstract contract IncomeVaultOpen is
     }
 
     /* ============ View functions ============ */
-    /**
-    * @dev reverts unless the caller is `holder` or an operator `holder` authorised
-    * @param holder the token holder being claimed for
-    */
-    function _requireHolderOrOperator(address holder) internal view virtual {
-        address caller = _msgSender();
-        if (caller != holder && !isOperator(holder, caller)) {
-            revert IncomeVault_UnauthorizedOperator(holder, caller);
-        }
-    }
 }

@@ -178,6 +178,14 @@ forge lint
   `validateTimeCode` and therefore part of the stated API. Its ABI encoding (`uint8`) is unchanged; only
   the qualified Solidity name moves. ERC-7540's operator id is still deliberately not advertised.
   Finding M-7 of `IMPROVEMENT_MODULARITY.md`.
+- Claim delegation moved out of the distribution storage into `IncomeVaultOperatorModule`
+  (`src/modules/IncomeVaultOperatorModule.sol`), with its own ERC-7201 namespace
+  `IncomeVault.storage.Operator` (slot `0x70af7571...5500`). `setOperator`, `isOperator`, `_setOperator`
+  and `_requireHolderOrOperator` were gathered there from `IncomeVaultOpen` and `IncomeVaultInternal`,
+  so one capability now lives in one module with one namespace, as `ERC7741Module` already did. The
+  external ABI is unchanged. `_isOperator` was the **last** field of `IncomeVaultInternalStorage`, so
+  removing it shifts no other field — but the mapping's slot does move, which is why this had to happen
+  before a deployment. Finding M-6 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

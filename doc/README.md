@@ -774,12 +774,21 @@ CMTAT and OpenZeppelin modules, which use their own namespaces. Consequences:
 - the fields are read through the public getters `ERC20TokenPayment()`, `claimedDividend()`,
   `segregatedDividend()`, `segregatedClaim()` and `timeLimitToWithdraw()`, so the external interface
   is the same as if they were public state variables;
-- the snapshot source is **not** in this namespace. `IncomeVaultSnapshotModule` keeps it in
-  `IncomeVault.storage.SnapshotSource` instead, so a host that answers the snapshot hooks from its own
-  records never allocates the slot at all.
+- **it is not the only namespace.** One capability owns one module and one namespace:
 
-The hardcoded slot is re-derived from the namespace and compared against what the proxy really
-stores in `test/IncomeVaultStorage.t.sol`.
+| Namespace | Owned by | Holds |
+| --- | --- | --- |
+| `IncomeVault.storage.IncomeVaultInternal` | `IncomeVaultInternal` | the distribution state: payment token, per-period deposits, claim flags, paid totals, open-period count, claim window |
+| `IncomeVault.storage.SnapshotSource` | `IncomeVaultSnapshotModule` | the external `ISnapshotSource` |
+| `IncomeVault.storage.Operator` | `IncomeVaultOperatorModule` | the claim-delegation authorisations |
+| `IncomeVault.storage.ERC7741Module` | `ERC7741Module` | the consumed signature nonces |
+
+  A host embedding only part of the logic allocates only the namespaces it inherits — a token that is
+  its own snapshot source never allocates the second one at all. A new capability with state gets a new
+  namespace, never a field appended to an existing struct.
+
+The hardcoded slots are re-derived from their namespaces, checked to be disjoint, and compared against
+what the proxy really stores in `test/IncomeVaultStorage.t.sol`.
 
 #### Urgency mechanism
 
