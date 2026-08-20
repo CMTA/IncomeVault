@@ -33,7 +33,7 @@ Beyond the specification, the vault adds a **claim window**, **issuer recovery**
 
 Functionalities 31 and 32 would need **no new state** if specified: the record dates already exist as `uint256[]` in the Snapshot module (`getNextSnapshots()`), and the terms already exist in the Debt module (`couponPaymentFrequency`, `interestScheduleFormat`, `currencyContract`) — though as strings, so a contract cannot act on them.
 
-> **The full comparison lives in [`doc/cmtat-standard/CMTAT-Distribution-impl.md`](./cmtat-standard/CMTAT-Distribution-impl.md)**: the functionality-by-functionality table, what the vault adds and why, the analysis of 31/32, and **ten changes we would propose to the specification** — the first of which concerns a record date that references no snapshot, where a balance lookup silently falls back to the *live* balance.
+> **The full comparison lives in [`doc/cmtat-standard/CMTAT-Distribution-impl.md`](./cmtat-standard/CMTAT-Distribution-impl.md)**: the functionality-by-functionality table, what the vault adds and why, the analysis of 31/32, and **twelve changes we would propose to the specification**, split into nine amendments to functionalities that already exist and three additions the specification does not describe at all. It also argues that the specification should stay snapshot-*oriented* without being snapshot-*only* — balances pinned off-chain at a block height fix a record date just as well — and asks what the specification should say about holding a deposit as ERC-4626 shares.
 
 ## Snapshot source
 

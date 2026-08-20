@@ -58,7 +58,7 @@ Two consequences follow.
 
 **The Snapshot module already holds the dates, and in the right type.** `getNextSnapshots()` returns the scheduled record dates as sorted `uint256` timestamps. That *is* the executable half of a distribution schedule, and it already exists on-chain. Functionality **32 (unschedule)** maps almost exactly onto `unscheduleSnapshotNotOptimized(time)`: cancelling the record date cancels the distribution, as long as nothing has been deposited for it.
 
-So the proposal is not "add a scheduler" — see item 9 of *Changes we would propose to the standard*. It is: **specify 31 and 32 as derived rather than stored** — the dates are the scheduled snapshots, the terms are the debt attributes, and a distribution schedule is the join of the two plus an amount per date. That keeps one source of truth for record dates, which matters because a second list could disagree with the snapshots the balances are actually read from.
+So the proposal is not "add a scheduler" — see amendment C-7 in *Changes we would propose to the standard*. It is: **specify 31 and 32 as derived rather than stored** — the dates are the scheduled snapshots, the terms are the debt attributes, and a distribution schedule is the join of the two plus an amount per date. That keeps one source of truth for record dates, which matters because a second list could disagree with the snapshots the balances are actually read from.
 
 `IncomeVault` implements neither, and does not read the schedule at all: `ISnapshotSource` is deliberately the three balance-reading functions and nothing else.
 
@@ -68,22 +68,63 @@ The specification presents Distribution as an **optional module of a CMTAT**. Th
 
 Note also that the vault **never schedules snapshots**. Specification functionalities 15 to 17 (schedule / reschedule / unschedule) belong to the Snapshot module; the vault only reads, through the three functions of `ISnapshotSource`. The issuer schedules the snapshot on the snapshot source, then deposits for the same `time`.
 
+## Eligibility without a snapshot
+
+Section 3.2.4 ties distribution to the Snapshot module: functionality 27 identifies "a (past or future) block time/height for distribution snapshot", and 30 pays "according to the token balance at the snapshot created at the defined time/height". Snapshots are the right default — they are on-chain, verifiable by anyone, and need no trusted party. They should not be the only permitted mechanism.
+
+A record date fixes *which balances count*. Taking an on-chain snapshot is one way to answer that; it is not the only one, and for some issuers it is the wrong one:
+
+- **Balances pinned off-chain at a block height.** The register is read at a block, the entitlement computed off-chain, and the result published — as a list written into a contract, or as a merkle root claimed against. Nothing is snapshotted on-chain, yet the record date is exactly as well defined, because a block height is immutable.
+- **Registers that are not fully on-chain.** Where part of the holder base is held through a custodian or a book-entry register, the eligible set is not the token balance and no on-chain snapshot can produce it.
+- **Entitlements that are not proportional to balance.** Different share classes, a cap per holder, or a withholding rate that varies by jurisdiction. The pro-rata assumption is the Snapshot module's, not the issuer's.
+
+**What the specification should say.** Keep the snapshot as the recommended binding, and restate 27 and 30 in terms of a *record-date balance source* that a snapshot satisfies — rather than naming the Snapshot module as the mechanism. The obligation that matters is not "a snapshot exists" but "the balances used are fixed at the record date and cannot change afterwards". That is what makes the payout reproducible, and an off-chain pinning at a block height satisfies it as completely as a snapshot does. This is why amendment **C-1** is phrased against a resolved balance source rather than against a snapshot.
+
+**Where `IncomeVault` sits.** It is already source-agnostic in principle: it never calls the token, only `ISnapshotSource`, and the guide is explicit that any contract implementing those three functions works. The limit is in the shape rather than the coupling. `snapshotInfo(time, holder)` must answer **on-chain, from stored state**, and `claimDividend(uint256 time)` carries no proof argument. So:
+
+- balances **computed** off-chain and then **written** into a contract implementing `ISnapshotSource` work today, unchanged;
+- a **merkle root** claimed against does not, because the proof would have to travel with the claim — that needs `claimDividend(time, amount, proof)`, a different entry point, not a different source.
+
+A specification that permits both should say which of the two it means, since they imply different claim signatures.
+
+## Holding the deposit in an ERC-4626 vault
+
+Functionality 29 has the issuer send the deposit, and 30 has holders claim it later. Between those two the settlement tokens sit idle in the contract — for a coupon with a long claim period, potentially months. An implementation could hold that float as shares of an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault and redeem on each payout, so undistributed funds earn yield instead of nothing.
+
+The specification says nothing about this, and it should, because the naive version is unsafe.
+
+**The obligation is a fixed nominal amount; 4626 shares are not.** At `deposit` the issuer records an amount owed per holder. Shares carry share-price risk, so a loss in the underlying vault leaves the contract unable to pay what it recorded. A bookkeeping contract becomes one that can be short, and the holders who claim last absorb it. Doing this safely needs a buffer policy and an explicit rule for who covers a shortfall — a materially larger design than section 3.2.4 describes. `IncomeVault` deliberately does not implement it; the reasoning is in [`doc/README.md`](../README.md#comparison-with-erc-4626--erc-7540-vaults).
+
+**A separate case: the settlement token *is* a vault share.** Nothing stops an issuer distributing a yield-bearing token — `DebtInstrument.currencyContract` can point at an ERC-4626 vault, and functionality 27's settlement token has no constraint. Then "amount to be distributed" is ambiguous: shares or assets? A share-denominated obligation is fixed in shares and floats in value; an asset-denominated one is the reverse, and requires converting at some moment the specification would have to name. Rounding direction matters here too, since 4626 rounds in the vault's favour by design and a claim rounds in the issuer's. This is amendment **C-9**.
+
+**What is worth stating either way:** whether the deposit for a distribution must be held as the settlement token itself, or may be held in another form and converted at payout. The answer decides whether a shortfall is possible at all, and it is invisible to a holder reading the contract.
+
 ## Changes we would propose to the standard
 
-Each of these is something the specification leaves open and an implementation is forced to decide. They are ordered by how much damage the ambiguity can do.
+Twelve proposals, of two kinds, kept apart because they carry different weight. An **amendment** constrains or clarifies a functionality the specification already defines, and a conforming implementation may already satisfy it — the specification just does not say so. An **addition** describes behaviour with no counterpart in section 3.2.4 at all, so no implementation can be conforming or non-conforming today; each one is a gap every implementer has had to fill privately.
 
-| # | Proposal | Why — what implementing it exposed |
+Old proposal 2 is split across the two tables: capping the claim period amends functionality 30, but recovering what is left afterwards is a new operation.
+
+### Amendments to functionalities already in the specification
+
+| id | Amends | Proposal | Why — what implementing it exposed |
+| --- | --- | --- | --- |
+| C-1 | **27, 30** | **Require a distribution's record date to resolve against a balance source that has already fixed those balances**, and require implementations to reject one that has not | A snapshot lookup for a time that was never scheduled does not fail — `SnapshotEngine` returns the holder's **live balance** (`_snapshotBalanceOf` ends `return snapshotted ? value : ownerBalance`). A distribution funded against a mistyped date therefore pays out pro-rata to balances *at claim time*, which anyone can change by acquiring tokens before claiming. The requirement is that the balances are **fixed at the record date and cannot change afterwards**, not that a snapshot exists — an off-chain pinning at a block height satisfies it equally. Phrasing it against a snapshot would forbid the alternatives in *Eligibility without a snapshot*; phrasing it against a free timestamp permits the failure above. |
+| C-2 | **30** | **Cap the claim period** — a deadline after which a claim is refused | Functionality 30 says holders may claim; it never says until when. Without a deadline a distribution is an open liability forever, and the issuer can never close its books on a period. `IncomeVault` adds `timeLimitToWithdraw`. |
+| C-3 | **30** | **State the rounding direction** for a holder's share | Pro-rata division always leaves dust. The specification is silent, so two conforming implementations can disagree on who gets it. State that shares round **down**, which makes the residue a known quantity rather than an accident. |
+| C-4 | **28** | **Say whether eligibility is per distribution or per address, and when it is evaluated** | A flag set in advance and a check performed at payout behave differently: an address frozen between the record date and the claim is eligible under one reading and not the other. `IncomeVault` evaluates at payout, through the same pause / freeze / RuleEngine path a transfer takes. |
+| C-5 | **29** | **Forbid, or define, topping up a distribution whose claiming is already open** | Nothing in 29 prevents a second deposit after holders have begun claiming. Those who already claimed took their share of the smaller amount; those who had not take a share of the larger. The specification should either forbid it or define the accounting. |
+| C-6 | **27** + debt attributes | **Reconcile the settlement token: per distribution, or per instrument?** | Functionality 27 puts it per distribution; `DebtInstrument.currencyContract` puts it per instrument, and is already an `address` rather than a string. These are two different data models for the same thing, in one framework. |
+| C-7 | **31, 32** | **Specify them as derived from the Snapshot and Debt modules**, not as a store of their own | The dates already exist as `uint256[]` in the Snapshot module and the terms as strings in the Debt module. Saying so keeps one source of truth for record dates; implying a third store invites a schedule that disagrees with the snapshots the balances are actually read from. |
+| C-8 | Debt attributes | **Give the schedule fields a machine-readable form**, alongside the descriptive strings | `couponPaymentFrequency`, `interestScheduleFormat` and `interestPaymentDate` are prose. Any automation — a keeper funding coupons, a contract asserting the next payment date — must parse them off-chain and be trusted. An optional structured form would make 31 executable without removing the human-readable one. |
+| C-9 | **27, 29** | **Say whether the deposit must be held as the settlement token**, and what `amount` means when that token is itself a vault share | Nothing constrains an implementation to hold the deposit idle, or the settlement token to be a plain ERC-20. Holding the float as ERC-4626 shares turns a fixed nominal obligation into one that can fall short; distributing a vault share leaves "amount" ambiguous between shares and assets, with opposite rounding conventions on the two sides. See *Holding the deposit in an ERC-4626 vault*. |
+
+### Additions — behaviour the specification does not describe at all
+
+| id | Proposal | Why — what implementing it exposed |
 | --- | --- | --- |
-| 1 | **Require a distribution's record date to reference an existing snapshot**, and require implementations to reject one that does not | A snapshot lookup for a time that was never scheduled does not fail — `SnapshotEngine` returns the holder's **live balance** (`_snapshotBalanceOf` ends `return snapshotted ? value : ownerBalance`). A distribution funded against a mistyped date therefore pays out pro-rata to balances *at claim time*, which anyone can change by acquiring tokens before claiming. The specification should make the record date a reference to a snapshot, not a free timestamp. |
-| 2 | **Define the claim period, and what happens to what is not claimed** | Functionality 30 says holders may claim; it never says until when, or where unclaimed funds end up. Without a deadline a distribution is an open liability forever. `IncomeVault` adds `timeLimitToWithdraw` plus issuer recovery bounded per period. |
-| 3 | **State the rounding rule and the destination of the residue** | Pro-rata division always leaves dust. The specification is silent, so two conforming implementations can disagree on who gets it. State that shares round **down** and that the remainder is recoverable by the issuer. |
-| 4 | **Say whether eligibility (28) is per distribution or per address, and when it is evaluated** | A flag set in advance and a check performed at payout behave differently: an address frozen between the record date and the claim is eligible under one reading and not the other. `IncomeVault` evaluates at payout, through the same pause / freeze / RuleEngine path a transfer takes. |
-| 5 | **Forbid, or define, topping up a distribution whose claiming is already open** | Nothing in 29 prevents a second deposit after holders have begun claiming. Those who already claimed took their share of the smaller amount; those who had not take a share of the larger. The specification should either forbid it or define the accounting. |
-| 6 | **Add a push counterpart to the pull claim of 30** | Functionality 30 is pull-only, which strands holders who never transact — custodied positions, dormant addresses, holders without gas. A distribution mechanism that requires every beneficiary to act is not one an issuer can rely on to discharge an obligation. |
-| 7 | **Define delegation: who may claim on a holder's behalf** | Follows from 6. `IncomeVault` uses ERC-7540's `setOperator` and ERC-7741's signed authorisation, with the payout always going to the holder. The specification names no mechanism, so every implementation invents one. |
-| 8 | **Say whether the settlement token is per distribution or per instrument** | Functionality 27 puts it per distribution; `DebtInstrument.currencyContract` puts it per instrument, and is already an `address` rather than a string. These are two different data models for the same thing and should be reconciled. |
-| 9 | **Specify 31 and 32 as derived from the Snapshot and Debt modules** | See above. The dates exist as `uint256[]`, the terms exist as strings; the specification should say so rather than implying a third store. |
-| 10 | **Give the schedule fields a machine-readable form**, alongside the descriptive strings | `couponPaymentFrequency`, `interestScheduleFormat` and `interestPaymentDate` are prose. Any automation — a keeper funding coupons, a contract asserting the next payment date — must parse them off-chain and be trusted. An optional structured form would make 31 executable without removing the human-readable one. |
+| A-1 | **Recovery of what is not claimed**, once the claim period has closed | The specification never says where unclaimed funds end up. Rounding residue and the shares of holders who never claim would otherwise stay locked in the contract permanently. Pairs with C-2, which is what makes "closed" meaningful, and with C-3, which makes the residue a known quantity. `IncomeVault` bounds recovery per period by `unclaimedDividend(time)`. |
+| A-2 | **A push counterpart to the pull claim of 30** | Functionality 30 is pull-only, which strands holders who never transact — custodied positions, dormant addresses, holders without gas. A distribution mechanism that requires every beneficiary to act is not one an issuer can rely on to discharge an obligation. |
+| A-3 | **Delegated claiming: who may claim on a holder's behalf** | Follows from A-2. A holder who cannot pay gas, or cannot transact at all, still has to be paid. `IncomeVault` uses ERC-7540's `setOperator` and ERC-7741's signed authorisation, with the payout always going to the holder rather than the operator. The specification names no mechanism, so every implementation invents one and none of them interoperate. |
 
-Proposals 1 and 5 can cause value to move incorrectly. The rest leave a question open.
-
+**C-1 and C-5 can cause value to move incorrectly**; the other amendments leave a question open. The three additions are not defects in an implementation — they are places where the specification stops short of what an issuer needs to discharge a real obligation.
