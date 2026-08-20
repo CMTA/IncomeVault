@@ -1,6 +1,52 @@
 # IncomeVault — Specification and technical choice
 
-[TOC]
+<!-- toc -->
+
+- [Introduction](#introduction)
+- [Coverage of the CMTAT Distribution module](#coverage-of-the-cmtat-distribution-module)
+- [Snapshot source](#snapshot-source)
+  - [Replacing the snapshot source](#replacing-the-snapshot-source)
+- [Access control](#access-control)
+  - [Deployment variants](#deployment-variants)
+  - [Capability table](#capability-table)
+  - [Depositing for several periods](#depositing-for-several-periods)
+- [Segregated Deposit](#segregated-deposit)
+- [ValidationModule](#validationmodule)
+  - [Freezing the vault itself](#freezing-the-vault-itself)
+  - [RuleEngine](#ruleengine)
+- [Operation](#operation)
+  - [Claim dividends](#claim-dividends)
+  - [Claim restriction](#claim-restriction)
+  - [Schema](#schema)
+- [Claiming on behalf of a holder](#claiming-on-behalf-of-a-holder)
+  - [Authorising by signature (ERC-7741)](#authorising-by-signature-erc-7741)
+- [Per-period residue](#per-period-residue)
+- [Withdraw funds](#withdraw-funds)
+- [Distribute dividend](#distribute-dividend)
+  - [Best-effort distribution](#best-effort-distribution)
+- [Comparison with ERC-4626 / ERC-7540 vaults](#comparison-with-erc-4626--erc-7540-vaults)
+  - [Why ERC-4626 does not fit a dividend](#why-erc-4626-does-not-fit-a-dividend)
+  - [What ERC-7540 changes, and what it does not](#what-erc-7540-changes-and-what-it-does-not)
+  - [When a 4626 vault is the right tool](#when-a-4626-vault-is-the-right-tool)
+  - [A place the two could meet](#a-place-the-two-could-meet)
+- [Source layout](#source-layout)
+- [The stated API: IIncomeVault](#the-stated-api-iincomevault)
+- [Embedding the distribution logic in a token](#embedding-the-distribution-logic-in-a-token)
+- [Improvement](#improvement)
+- [Deployment](#deployment)
+  - [Deployment scripts](#deployment-scripts)
+- [Threat model & FAQ](#threat-model--faq)
+  - [Claim dividend several times](#claim-dividend-several-times)
+  - [New dividend after claim](#new-dividend-after-claim)
+  - [Transfer fails](#transfer-fails)
+- [Technical choice](#technical-choice)
+  - [Functionality](#functionality)
+  - [Schema](#schema-2)
+  - [Inheritance](#inheritance)
+  - [Graph](#graph)
+  - [Report](#report)
+
+<!-- /toc -->
 
 ## Introduction
 

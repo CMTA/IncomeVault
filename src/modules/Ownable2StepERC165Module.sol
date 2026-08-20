@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 
 /* ==== OpenZeppelin === */
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
 * @title ERC-165 advertisement of the ERC-173 / Ownable2Step access control

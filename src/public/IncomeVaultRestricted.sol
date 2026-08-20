@@ -8,7 +8,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 /* ==== IncomeVault === */
-import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
 import {IncomeVaultInternal} from "../modules/IncomeVaultInternal.sol";

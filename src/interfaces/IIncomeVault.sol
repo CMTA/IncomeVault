@@ -19,7 +19,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 * - **`transferDividendSelf` is absent.** It is `public` only because `try`/`catch` needs an external
 *   call, and it rejects every caller but the contract itself. It is not part of anyone's API.
 * - **Access control is absent.** Who may call {deposit} or {withdraw} is chosen by the deployment
-*   contract, not by this interface. See the capability table in `doc/README.md`.
+*   contract, not by this interface.
 *
 * This interface is inherited by {IncomeVaultInternal}, the common base of both payout paths, so the
 * compiler — not a convention — keeps it in step with the implementation.

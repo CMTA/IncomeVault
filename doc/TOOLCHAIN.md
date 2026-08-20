@@ -1,11 +1,23 @@
 # TOOLCHAIN
 
-[TOC]
+<!-- toc -->
+
+- [Dependencies](#dependencies)
+- [Node.JS  package](#nodejs--package)
+  - [Dev](#dev)
+- [Submodule](#submodule)
+- [Generate documentation](#generate-documentation)
+  - [docgen](#docgen)
+  - [sol2uml](#sol2uml)
+  - [Surya](#surya)
+  - [Slither](#slither)
+- [Code style guidelines](#code-style-guidelines)
+
+<!-- /toc -->
 
 ## Dependencies
 
-The toolchain includes the following components, where the versions
-are the latest ones that we tested: 
+The toolchain includes the following components, where the versions are the latest ones that we tested:
 
 - Solidity 0.8.36, EVM target `prague`
 - OpenZeppelin Contracts (submodule) [v5.7.0](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.7.0)
@@ -16,9 +28,7 @@ are the latest ones that we tested:
 - SnapshotEngine [v0.5.0](https://github.com/CMTA/SnapshotEngine/releases/tag/v0.5.0)
 - forge-std [v1.16.1](https://github.com/foundry-rs/forge-std/releases/tag/v1.16.1)
 
-> CMTAT v3.3.0 and RuleEngine v3.0.0 are still release candidates. They are the versions the CMTA
-> ecosystem is aligned on: RuleEngine v3.0.0-rc5 pins CMTAT v3.3.0-rc3, and SnapshotEngine v0.5.0
-> pins CMTAT v3.3.0-rc1. Pin them to a stable release as soon as one is published.
+> CMTAT v3.3.0 and RuleEngine v3.0.0 are still release candidates. They are the versions the CMTA ecosystem is aligned on: RuleEngine v3.0.0-rc5 pins CMTAT v3.3.0-rc3, and SnapshotEngine v0.5.0 pins CMTAT v3.3.0-rc1. Pin them to a stable release as soon as one is published.
 
 ## Node.JS  package
 
@@ -32,8 +42,7 @@ This section concerns the packages installed in the section `devDependencies` of
 
 [Hardhat](https://hardhat.org/) plugin for integration with Foundry
 
-**[Ethlint](https://github.com/duaraghav8/Ethlint)**
-Solidity static analyzer.
+**[Ethlint](https://github.com/duaraghav8/Ethlint)** Solidity static analyzer.
 
 **[prettier-plugin-solidity](https://github.com/prettier-solidity/prettier-plugin-solidity)**
 
@@ -57,12 +66,10 @@ Utility tool for smart contract systems.
 
 ## Submodule
 
-**[OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)**
-OpenZeppelin Contracts
-The version of the library used is available in the [READEME](../README.md)
+**[OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)** OpenZeppelin Contracts The version of the library used is available in the [READEME](../README.md)
 
-Warning: 
-- Submodules are not automatically updated when the host repository is updated.  
+Warning:
+- Submodules are not automatically updated when the host repository is updated.
 - Only update the module to a specific version, not an intermediary commit.
 
 
@@ -96,12 +103,11 @@ npx sol2uml class -i -c src/deployment/IncomeVault.sol
 
 
 
-The related component can be installed with `npm install` (see [package.json](./package.json)). 
+The related component can be installed with `npm install` (see [package.json](./package.json)).
 
 ### [Surya](https://github.com/ConsenSys/surya)
 
-Three bash scripts in [doc/script](./script) regenerate the whole documentation set — one call graph,
-one inheritance graph and one markdown report per `.sol` file under `src/`:
+Three bash scripts in [doc/script](./script) regenerate the whole documentation set — one call graph, one inheritance graph and one markdown report per `.sol` file under `src/`:
 
 ```bash
 npm run-script surya:graph          # doc/script/script_surya_graph.sh
@@ -109,12 +115,9 @@ npm run-script surya:inheritance    # doc/script/script_surya_inheritance.sh
 npm run-script surya:report         # doc/script/script_surya_report.sh
 ```
 
-Run `surya:graph` **first**: it creates the scratch directory `docOut/` with `mkdir -p`, which the two
-other scripts expect to already exist.
+Run `surya:graph` **first**: it creates the scratch directory `docOut/` with `mkdir -p`, which the two other scripts expect to already exist.
 
-The output lands in `docOut/{surya_graph,surya_inheritance,surya_report}` at the repository root. Replace
-the committed directories under [doc/surya](./surya) with it, deleting the old ones first so the diagrams
-of a renamed or removed contract do not survive:
+The output lands in `docOut/{surya_graph,surya_inheritance,surya_report}` at the repository root. Replace the committed directories under [doc/surya](./surya) with it, deleting the old ones first so the diagrams of a renamed or removed contract do not survive:
 
 ```bash
 rm -rf doc/surya/surya_graph doc/surya/surya_inheritance doc/surya/surya_report
@@ -125,16 +128,13 @@ mv docOut/surya_report/*      doc/surya/surya_report/
 rm -rf docOut
 ```
 
-Graphviz (`dot`) is required — without it the scripts silently produce 0-byte PNGs. To generate a single
-graph by hand:
+Graphviz (`dot`) is required — without it the scripts silently produce 0-byte PNGs. To generate a single graph by hand:
 
 ```bash
 npx surya graph src/deployment/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
 ```
 
-> Known `surya graph` bug: it crashes on a contract calling `super.<fn>()` when the base is declared in
-> another file, and because the scripts pipe into `dot` the crash shows up as an empty PNG rather than an
-> error. Check for `find doc/surya -name '*.png' -size 0` after regenerating.
+> Known `surya graph` bug: it crashes on a contract calling `super.<fn>()` when the base is declared in another file, and because the scripts pipe into `dot` the crash shows up as an empty PNG rather than an error. Check for `find doc/surya -name '*.png' -size 0` after regenerating.
 
 ### [Slither](https://github.com/crytic/slither)
 
@@ -165,4 +165,4 @@ npm run-script lint:sol:test
 npm run-script lint:sol:test:fix
 ```
 
-The related components can be installed with `npm install` (see [package.json](./package.json)). 
+The related components can be installed with `npm install` (see [package.json](./package.json)).

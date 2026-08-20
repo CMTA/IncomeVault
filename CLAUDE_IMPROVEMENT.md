@@ -331,11 +331,21 @@ While there: `hardhat.config.js` declared `settings` at the **top level**, where
 docgen compiled without the optimizer and reported a spurious 28,246-byte size warning for
 `IncomeVaultOwnable2Step`. `settings` now sits inside `solidity`, as `CLAUDE.md` always claimed it did.
 
-### D-3. `doc/audits/tools/slither-report.md` is stale — **verified**
+### D-3. `doc/audits/tools/slither-report.md` is stale — ✅ **fixed**
 
 Predates every refactor in this branch, and the README links it under "Audits". Re-run Slither, or mark
 the file with the commit it describes. Neither is expensive; leaving it as is implies a clean run
 against the current code.
+
+Superseded by the v1.1.0 run: `doc/audits/tools/v1.1.0/slither-report.md` (Slither 0.11.5) plus a first
+Aderyn report, each with a summary table and a feedback file triaging every finding, and a new
+`doc/audits/AUDIT_OVERVIEW.md`. The stale top-level copy is gone.
+
+Worth carrying forward: the old invocation filtered by dependency **name**
+(`openzeppelin-contracts|test|CMTAT|forge-std`). It matches the same paths today, but fails open — add a
+dependency whose directory is not listed and the whole vendored tree enters scope, silently. The v1.1.0
+command filters on `lib`, and the report is checked with `grep -c 'lib/\|node_modules/'` returning 0
+before any count is believed.
 
 ### D-4. `doc/schema/drawio/` is now entirely unreferenced — **verified**
 

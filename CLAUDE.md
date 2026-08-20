@@ -227,12 +227,15 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `CHANGELOG.md` | changelog.md conventions; current release `2.0.0` |
 | `doc/README.md` | The reference doc: snapshot source, roles table, claim restrictions, formula, threat model & FAQ, plus the technical choices (upgradeability, pause, token agnosticism, reentrancy, gasless GSN/ERC-2771) and the schema/graphs |
 | `doc/cmtat-standard/` | The CMTA framework functional specifications PDF, plus `CMTAT-Distribution-impl.md`: the full comparison of section 3.2.4 (functionalities 27-32) against this implementation, what the vault adds, why 31/32 need no new state, and ten proposed changes to the specification. `doc/README.md` keeps only a summary table and links here |
+| `doc/script/gen_toc.py` | Regenerates the tables of contents in `doc/README.md` and `doc/TOOLCHAIN.md`: `python3 doc/script/gen_toc.py doc/README.md 3`. They are **generated markdown lists between `<!-- toc -->` markers**, not `[TOC]` — GitHub does not render `[TOC]`. Re-run it after adding or renaming a heading |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
 | `doc/solidityAPI/index.md` | Generated Solidity API. Refresh with `npx hardhat docgen`; it writes in place. **`solidity-docgen` must be patched first** — it matches tag names with `\w`, which excludes `$`, so `@return $` aborts the run and `@param $` silently drops the description. `npm install` reverts the patch; re-apply with the `solidity-docgen-doc` skill's `patch_docgen.sh` (D-2) |
 | `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram, PlantUML sources and the remaining drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |
 | `doc/schema/plantuml/` | PlantUML sources (`.puml`) and their rendered `.png`. `incomevault-architecture` is the overview embedded in **both** READMEs — keep it low-detail; `incomevault-global`, `-claimdividend`, `-ruleengine` and `-segregated-deposit` are the detailed ones in `doc/README.md`. The `.puml` is the source of truth — edit it, then re-render with `plantuml -tpng doc/schema/plantuml/<name>.puml` and **look at the PNG**: PlantUML exits 0 on warnings and draws them into the image as a yellow banner. Embed the image in the docs, never the source text |
-| `doc/audits/tools/slither-report.md` | Slither static-analysis report — stale |
-| `doc/audits/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and code comments, and read the Outstanding table before re-opening anything |
+| `doc/audits/tools/v1.1.0/CLAUDE_ANALYSIS_SECOND.md` | Second-pass code-quality review. Ids restart at `A-1`; read it **with** `CLAUDE_ANALYSIS.md`, which it does not repeat. Includes two explicit do-not-change verdicts (I-1, G-2) recorded so they are not re-opened |
+| `doc/audits/AUDIT_OVERVIEW.md` | The security overview: scope, both analyzers' results, the two real findings, and the substantive defects the reviews caught that static analysis did not |
+| `doc/audits/tools/vX.Y.Z/` | Per-release tool output: `slither-report.md`, `aderyn-report.md` and a `*-feedback.md` triaging every finding. Filter Slither on `lib`, not on dependency names, and check the report cites no `lib/` before trusting a count |
+| `doc/audits/tools/v1.1.0/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and code comments, and read the Outstanding table before re-opening anything |
 | `script/` | Deployment scripts, one per variant. Excluded from the style check and from coverage; their `require` messages are deliberate. Tested by `test/script/Deploy.t.sol` |
 | `Makefile` | The task definitions — `make help` lists them. npm scripts and CI both delegate here, so there is one definition. Every compiling target does a **full** build because the Upgrades plugin rejects an incremental one |
 | `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
@@ -322,6 +325,15 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
 - **Style:** 4-space indent, NatSpec (`@notice` / `@param` / `@dev`) on public and
   internal functions, custom errors prefixed `IncomeVault_`, named imports
   (`import {X} from "..."`), `SPDX-License-Identifier: MPL-2.0` header on every Solidity file.
+- **Never point at a documentation *path* from a contract comment.** Documentation moves — this repo has
+  already reorganised `doc/` twice — but a comment is frozen in the verified source of a deployed
+  contract and can never be corrected. Worse, someone reading that source on a block explorer has no
+  `doc/` to open. Put the substance in the comment and drop the pointer; if the derivation is genuinely
+  too long, state the conclusion and let the doc carry the derivation with no cross-reference either way.
+  Two exceptions: a **bare filename** that survives any reorganisation and is actionable on its own
+  (`CHANGELOG.md` in `VersionModule` is the one in-tree example), and an audit finding cited by id
+  (`CLAUDE_ANALYSIS.md` plus `H-2`), which is an immutable record rather than living documentation.
+  Mocks and tests are exempt — they are never deployed.
 - **Documentation:** the README and `doc/` must state that the contracts are not
   audited; keep that disclaimer intact.
 

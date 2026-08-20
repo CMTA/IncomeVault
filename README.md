@@ -1,15 +1,13 @@
 # IncomeVault
 
-> This project is not audited !
->
-> If you want to use this project, perform your own verification or send an email to [admin@cmta.ch](mailto:admin@cmta.ch).
-
 The `IncomeVault` is a prototype to perform coupon-payment dividend with a token supporting on-chain snapshots, typically a [CMTAT](https://github.com/CMTA/CMTAT) bound to a [SnapshotEngine](https://github.com/CMTA/SnapshotEngine).
 
 ![IncomeVault architecture](./doc/schema/plantuml/incomevault-architecture.png)
 
 _Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schema/plantuml/incomevault-architecture.puml).
 The detailed step-by-step flow is in [doc/README.md](./doc/README.md)._
+
+> This project has not undergone an audit and is provided as-is without any warranties.
 
 ## Introduction
 
@@ -43,9 +41,27 @@ snapshots can answer them from itself instead of pointing at a separate contract
 
 ## Audits
 
-The contracts are NOT audited, do not use them for production without auditing them !!!!
+The contracts are NOT audited, do not use them for production without auditing them !
 
-A report performed with [Slither](https://github.com/crytic/slither) is available in [doc/audits/tools](./doc/audits/tools/slither-report.md)
+Static analysis is run with [Slither](https://github.com/crytic/slither) and [Aderyn](https://github.com/Cyfrin/aderyn). 
+
+Every finding is triaged in a feedback file rather than left as a raw count, and the whole picture is summarised in [doc/audits/AUDIT_OVERVIEW.md](./doc/audits/AUDIT_OVERVIEW.md).
+
+| Version | Tool | Result | Report | Triage |
+| --- | --- | --- | --- | --- |
+| v1.1.0 | Slither 0.11.5 | 0 High · 5 Med · 6 Low · 23 Info — nothing to fix | [report](./doc/audits/tools/v1.1.0/slither-report.md) | [feedback](./doc/audits/tools/v1.1.0/slither-report-feedback.md) |
+| v1.1.0 | Aderyn 0.6.5 | 0 High · 10 Low — nothing to fix | [report](./doc/audits/tools/v1.1.0/aderyn-report.md) | [feedback](./doc/audits/tools/v1.1.0/aderyn-report-feedback.md) |
+| v1.0.0 | Slither | superseded — predates the CMTAT v3 migration | [report](./doc/audits/tools/v1.0.0/slither-report.md) | — |
+
+```bash
+slither . --checklist --filter-paths "node_modules,lib,test" \
+  > doc/audits/tools/v1.1.0/slither-report.md
+aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
+```
+
+Both runs exclude mocks and tests. Filter on `lib` rather than on dependency names: this is a Foundry project, and a name-based filter silently puts the whole vendored tree in scope when a dependency it does not list is added. 
+
+Check `grep -c 'lib/\|node_modules/' <report>` returns 0 before trusting any count.
 
 ## Documentation
 
@@ -106,12 +122,10 @@ make test
 
 `make help` lists every target. Use `make test` rather than `forge test` directly:
 
-> The OpenZeppelin Foundry Upgrades plugin validates upgrade safety from Foundry's build-info and
-> **rejects the output of an incremental compile**. Running `forge test --ffi` straight after editing a
-> contract therefore fails *every* test with
-> `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`, which
-> names neither the cause nor the fix. `make test` does the full build first. (`--ffi` is required for
-> the same reason: the plugin shells out to `@openzeppelin/upgrades-core`.)
+> The OpenZeppelin Foundry Upgrades plugin validates upgrade safety from Foundry's build-info and **rejects the output of an incremental compile**. 
+>
+> Running `forge test --ffi` straight after editing a contract therefore fails *every* test with
+> `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`, which names neither the cause nor the fix. `make test` does the full build first. (`--ffi` is required for the same reason: the plugin shells out to `@openzeppelin/upgrades-core`.)
 
 Other useful targets:
 
@@ -124,8 +138,7 @@ make fmt-check lint   # formatting and lint
 make doc              # regenerate the UML and Surya diagrams
 ```
 
-`npm run test`, `npm run build`, `npm run coverage` and `npm run lint` delegate to the same targets, so
-there is one definition rather than two.
+`npm run test`, `npm run build`, `npm run coverage` and `npm run lint` delegate to the same targets, so there is one definition rather than two.
 
 To run a specific test, use
 

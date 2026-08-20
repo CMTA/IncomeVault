@@ -6,10 +6,10 @@ pragma solidity ^0.8.24;
 * @title IERC7540Operator
 * @notice The operator subset of [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540), verbatim.
 * @dev
-* ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — see
-* "Comparison with ERC-4626 / ERC-7540 vaults" in `doc/README.md` — but its claim delegation is
-* exactly the operator mechanism that standard specifies, so the signatures are reused rather than
-* invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
+* ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — a 4626 share
+* entitles whoever holds it now, while a dividend is allocated by record date — but its claim
+* delegation is exactly the operator mechanism that standard specifies, so the signatures are reused
+* rather than invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
 *
 * ERC-7540 assigns this subset the ERC-165 identifier **`0xe3bc4e65`**, described there as
 * "the operator methods that all ERC-7540 Vaults implement". Because this interface inherits nothing,

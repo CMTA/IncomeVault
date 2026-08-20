@@ -207,6 +207,10 @@ forge lint
   declared `settings` at the top level where Hardhat ignores it, so docgen compiled without the
   optimizer and reported a spurious contract-size warning. Documentation and tooling only, no contract
   behaviour change. Finding D-2 of `CLAUDE_IMPROVEMENT.md`.
+- Two unused imports removed: `IERC165` in `Ownable2StepERC165Module` and `ISnapshotSource` in
+  `IncomeVaultRestricted`, the latter left over from finding M-2. Found by Aderyn; re-running it took
+  L-9 from 6 instances to 4, the remaining four being `@inheritdoc` false positives. No bytecode change
+  — an unused import contributes no code.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.
