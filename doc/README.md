@@ -576,6 +576,25 @@ would leave the contract unable to pay the amount it recorded at `deposit`, turn
 contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who
 absorbs a shortfall — a materially larger design than the one this prototype implements.
 
+## Source layout
+
+Each directory says what its files **are**, following the convention CMTAT uses:
+
+| Path | Holds |
+| --- | --- |
+| `src/IncomeVaultBase.sol` | the composition root — the only file at the root |
+| `src/deployment/` | the two deployable contracts, and nothing abstract |
+| `src/public/` | the external surface, split by **who may call it** |
+| `src/modules/` | the abstract capability mixins, one per capability |
+| `src/interfaces/` | interfaces |
+| `src/storage/` | declaration-only contracts: errors, events, role constants |
+
+**`src/public/` is split by authorization, on purpose.** Every function in `IncomeVaultOpen` is
+permissionless; every function in `IncomeVaultRestricted` is gated by an authorization hook. The first
+question anyone asks of a contract holding other people's dividends is *what can an arbitrary address
+do to it?* — and here that is answered by opening one file, not by auditing which modifier each function
+carries. The two are not to be merged into a single "distribution module".
+
 ## The stated API: `IIncomeVault`
 
 `src/interfaces/IIncomeVault.sol` declares everything an integrator calls — claiming, funding, pushing

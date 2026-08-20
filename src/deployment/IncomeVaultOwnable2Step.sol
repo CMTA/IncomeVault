@@ -12,16 +12,16 @@ import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
 import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.sol";
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
-import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
+import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultBase} from "./IncomeVaultBase.sol";
-import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
-import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
-import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol";
-import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
-import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
-import {IERC7741} from "./interfaces/IERC7741.sol";
-import {IIncomeVault} from "./interfaces/IIncomeVault.sol";
+import {IncomeVaultBase} from "../IncomeVaultBase.sol";
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultRestricted} from "../public/IncomeVaultRestricted.sol";
+import {IncomeVaultSnapshotModule} from "../modules/IncomeVaultSnapshotModule.sol";
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {Ownable2StepERC165Module} from "../modules/Ownable2StepERC165Module.sol";
+import {IERC7741} from "../interfaces/IERC7741.sol";
+import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**
 * @title Income Vault to distribute dividends — single-owner deployment

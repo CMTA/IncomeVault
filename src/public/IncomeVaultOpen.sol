@@ -7,7 +7,7 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /* ==== IncomeVault === */
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
-import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IncomeVaultInternal} from "../modules/IncomeVaultInternal.sol";
 import {ERC7741Module} from "../modules/ERC7741Module.sol";
 
 /**

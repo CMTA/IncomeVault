@@ -7,7 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /* ==== Snapshot === */
 /* ==== IncomeVault === */
-import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
+import {IncomeVaultInvariantStorage} from "../storage/IncomeVaultInvariantStorage.sol";
 import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**

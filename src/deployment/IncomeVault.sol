@@ -6,22 +6,22 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {IERC7741} from "./interfaces/IERC7741.sol";
-import {IIncomeVault} from "./interfaces/IIncomeVault.sol";
+import {IERC7741} from "../interfaces/IERC7741.sol";
+import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 /* ==== CMTAT === */
 import {AccessControlModule} from "CMTAT/modules/wrapper/security/AccessControlModule.sol";
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
 import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.sol";
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== Snapshot === */
-import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
+import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultBase} from "./IncomeVaultBase.sol";
-import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
-import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
-import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol";
-import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
-import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
+import {IncomeVaultBase} from "../IncomeVaultBase.sol";
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultRestricted} from "../public/IncomeVaultRestricted.sol";
+import {IncomeVaultSnapshotModule} from "../modules/IncomeVaultSnapshotModule.sol";
+import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModule.sol";
+import {IncomeVaultRolesStorage} from "../storage/IncomeVaultRolesStorage.sol";
 
 /**
 * @title Income Vault to distribute dividends — role-based deployment

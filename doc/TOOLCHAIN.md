@@ -91,7 +91,7 @@ npm run-script uml:test
 Or only specified contracts
 
 ```
-npx sol2uml class -i -c src/IncomeVault.sol
+npx sol2uml class -i -c src/deployment/IncomeVault.sol
 ```
 
 
@@ -129,7 +129,7 @@ Graphviz (`dot`) is required — without it the scripts silently produce 0-byte 
 graph by hand:
 
 ```bash
-npx surya graph src/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
+npx surya graph src/deployment/IncomeVault.sol | dot -Tpng > surya_graph_IncomeVault.png
 ```
 
 > Known `surya graph` bug: it crashes on a contract calling `super.<fn>()` when the base is declared in

@@ -11,7 +11,7 @@ import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /* ==== CMTAT === */
 import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
+import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step.sol";
 import {ISnapshotSource} from "../src/interfaces/ISnapshotSource.sol";
 
 /**

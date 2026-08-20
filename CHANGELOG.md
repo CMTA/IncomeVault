@@ -186,6 +186,13 @@ forge lint
   external ABI is unchanged. `_isOperator` was the **last** field of `IncomeVaultInternalStorage`, so
   removing it shifts no other field — but the mapping's slot does move, which is why this had to happen
   before a deployment. Finding M-6 of `IMPROVEMENT_MODULARITY.md`.
+- The `src/` layout now says what each file **is**, following CMTAT's own convention. `src/deployment/`
+  holds the two deployable contracts; `src/libraries/` is gone — it contained four abstract contracts
+  and no `library` — with `IncomeVaultInternal` and `Ownable2StepERC165Module` moving to `src/modules/`
+  and the two declaration-only contracts to `src/storage/`. `IncomeVaultBase.sol` is the only file left
+  at the root. `src/public/` is unchanged on purpose: splitting the external surface by who may call it
+  is what makes the gated/ungated boundary legible. Import paths only; no contract renamed, no ABI
+  change. Finding M-5 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

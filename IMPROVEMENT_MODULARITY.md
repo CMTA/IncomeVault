@@ -27,7 +27,7 @@ headline finding; everything else is smaller.
 | M-3 | `version()` collides with CMTAT's `VersionModule` | ✅ **resolved by design** — host overrides |
 | M-3b | SnapshotEngine vendors its **own** CMTAT at a different version than `lib/CMTAT` | medium — **proven to block**, see below |
 | M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | ❌ **not a defect** — one slot, one capability |
-| M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | medium (legibility) |
+| M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | ✅ **fixed** — `libraries/` removed; `public/` kept deliberately |
 | M-6 | One monolithic storage namespace covering four unrelated concerns | ✅ **fixed** — operator split out; the rest is one concern |
 | M-7 | No interface describes the vault's own API | ✅ **fixed** |
 | M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | low |
@@ -449,36 +449,50 @@ rules. Not reachable today: only `IncomeVault` and `IncomeVaultOwnable2Step` cal
 CMTAT. Documented at the initializer in `src/modules/IncomeVaultValidationModule.sol` so it stays that
 way, with the instruction that such a host must pass the zero address.
 
-## M-5. The directory names misdescribe the contents — medium
+## M-5. The directory names misdescribe the contents — ✅ **fixed, except `public/`**
 
-| Path | Contains | Problem |
-| --- | --- | --- |
-| `libraries/` | 4 **abstract contracts**, no `library` | The name promises stateless helpers; it holds the storage layout, the role constants and an ERC-165 module |
-| `public/` | 2 abstract contracts | Groups by *visibility*, not capability. "Where is the claiming logic?" is not answered by "public" |
-| `modules/` | 3 abstract contracts | Correct, but `Ownable2StepERC165Module` — a module by name — sits in `libraries/` instead |
-| root | 3 contracts, one abstract and two deployable | The deployable and the abstract sit side by side |
+### What was implemented
 
-A reader opening `libraries/IncomeVaultInternal.sol` expecting a helper library finds the ERC-7201
-storage struct and the core payout routine.
-
-**Proposed change**, following the convention CMTAT itself uses (`contracts/deployment`,
-`contracts/modules`, `contracts/interfaces`, `contracts/library`):
+Following CMTAT's own convention (`deployment/`, `modules/`, `interfaces/`, `library/`):
 
 ```
 src/
-├── deployment/        IncomeVault.sol, IncomeVaultOwnable2Step.sol      (deployable)
-├── modules/           the abstract mixins, one per capability
-│   ├── IncomeVaultDistributionModule.sol    deposit / claim / distribute
-│   ├── IncomeVaultValidationModule.sol      the CMTAT-based validation answer
-│   ├── ERC7741Module.sol
-│   └── Ownable2StepERC165Module.sol         (moved from libraries/)
-├── interfaces/        unchanged
-└── libraries/         actual libraries only — or removed if none
+├── IncomeVaultBase.sol   the composition root — the only file at the root
+├── deployment/           IncomeVault.sol, IncomeVaultOwnable2Step.sol      (nothing abstract)
+├── public/               IncomeVaultOpen.sol, IncomeVaultRestricted.sol    (UNCHANGED — see below)
+├── modules/              the 9 abstract capability mixins
+├── interfaces/           unchanged
+└── storage/              declaration-only: errors/events, role constants
 ```
 
-Nothing about this is cosmetic: the current `public/` split is what makes "can I take just the claiming
-logic?" hard to answer, because claiming and its restricted counterpart are separated by *who may call
-them* rather than by what they do.
+`libraries/` is **gone**. It held four abstract contracts and zero `library` declarations, which is the
+part of the finding that clearly stood: CMTAT's `library/` holds actual libraries, so the name promised
+something the directory never delivered. `IncomeVaultInternal` (distribution state and the core payout
+routines) and `Ownable2StepERC165Module` — a module by name, filed under libraries — moved to
+`modules/`. The two declaration-only contracts moved to `storage/`, matching their own names.
+
+Import paths only. No contract renamed, no ABI change, 211 tests pass.
+
+### `public/` was kept, and the finding was wrong about it
+
+The finding argued that `public/` "groups by *visibility*, not capability" and proposed merging the two
+files into one `IncomeVaultDistributionModule`. That would have destroyed the property the split exists
+for.
+
+**The split is by who may call, and on a compliance contract that is a first-class concern.** Every
+function in `IncomeVaultOpen` is permissionless; every function in `IncomeVaultRestricted` is gated by
+an authorization hook. A reviewer asking *"what can an arbitrary address do to this contract?"* — the
+first question anyone asks of a contract holding other people's dividends — reads one file and is done.
+Merging them replaces that with a per-function audit of which modifier each carries.
+
+The finding's own counter-question, *"can I take just the claiming logic?"*, is answered by the
+filenames rather than by the directory, and in practice it is answered by neither: an embedding host
+inherits **both**, because `distributeDividend` and `claimDividend` share `_transferDividend`, the claim
+window and the validation hook. There is no smaller unit to take.
+
+So the directory is a **capability** grouping after all — the capability being *the external surface* —
+subdivided by the one axis that matters for review. It is recorded in `CLAUDE.md` and in `doc/README.md`
+so it is not "tidied" into a merge later.
 
 ## M-6. One storage namespace for four concerns — ✅ **fixed, partially and deliberately**
 
@@ -579,7 +593,7 @@ exactly like the access-control model.
 
 1. ~~**M-1**~~ ✅ done — and it also cleared a second, unreported 5005 on `ReentrancyGuardTransient`.
 2. ~~**M-2**~~ ✅ done — `CMTATWithDividend` now compiles; see `test/mocks/CMTATDividendHostMock.sol`.
-3. **M-5** — the directory move. No behaviour change.
+3. ~~**M-5**~~ ✅ done — `deployment/`, `modules/`, `storage/`; `public/` kept by design.
 4. ~~**M-4**~~ ❌ closed as not-a-defect — both hooks gate one hardcoded ERC-7201 slot, so one override
    is the correct answer; prefixing ours was implemented and reverted. **M-8** remains. M-3 is closed: the host overrides
    `version()`, which is also how the embedded IncomeVault release stays visible in the host's source.

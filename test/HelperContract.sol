@@ -17,10 +17,10 @@ import {ISnapshotSource} from "../src/interfaces/ISnapshotSource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /* ==== IncomeVault === */
-import {IncomeVault} from "../src/IncomeVault.sol";
-import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
-import {IncomeVaultInvariantStorage} from "../src/libraries/IncomeVaultInvariantStorage.sol";
-import {IncomeVaultRolesStorage} from "../src/libraries/IncomeVaultRolesStorage.sol";
+import {IncomeVault} from "../src/deployment/IncomeVault.sol";
+import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step.sol";
+import {IncomeVaultInvariantStorage} from "../src/storage/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultRolesStorage} from "../src/storage/IncomeVaultRolesStorage.sol";
 import {ERC20PaymentMock} from "./mocks/ERC20PaymentMock.sol";
 
 /**

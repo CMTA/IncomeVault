@@ -93,7 +93,7 @@ See also the command's [documentation](https://book.getfoundry.sh/reference/forg
 The official documentation is available in the Foundry [website](https://book.getfoundry.sh/reference/forge/build-commands) 
 
 ```
- forge build --contracts src/IncomeVault.sol
+ forge build --contracts src/deployment/IncomeVault.sol
 ```
 
 ### Testing

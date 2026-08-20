@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
-import {IncomeVaultInvariantStorage} from "../libraries/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultInvariantStorage} from "../storage/IncomeVaultInvariantStorage.sol";
 
 /**
 * @title Claim delegation — one capability, one namespace

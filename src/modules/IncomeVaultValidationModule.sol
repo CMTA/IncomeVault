@@ -9,7 +9,7 @@ import {ValidationModuleRuleEngineInternal} from "CMTAT/modules/internal/Validat
 /* ==== CMTAT engine === */
 import {IRuleEngine, IRuleEngineERC1404} from "CMTAT/interfaces/engine/IRuleEngine.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultInvariantStorage} from "../libraries/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultInvariantStorage} from "../storage/IncomeVaultInvariantStorage.sol";
 import {IncomeVaultValidationCore} from "./IncomeVaultValidationCore.sol";
 
 /**

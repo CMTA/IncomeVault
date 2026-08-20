@@ -7,7 +7,7 @@ import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/crypt
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 /* ==== IncomeVault === */
-import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IncomeVaultInternal} from "./IncomeVaultInternal.sol";
 import {IncomeVaultOperatorModule} from "./IncomeVaultOperatorModule.sol";
 import {IERC7741} from "../interfaces/IERC7741.sol";
 

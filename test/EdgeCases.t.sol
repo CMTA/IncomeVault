@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
-import {IncomeVaultOwnable2Step} from "../src/IncomeVaultOwnable2Step.sol";
+import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**

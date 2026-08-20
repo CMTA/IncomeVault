@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 /* ==== IncomeVault === */
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
-import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IncomeVaultInternal} from "./IncomeVaultInternal.sol";
 import {IncomeVaultSnapshotCore} from "./IncomeVaultSnapshotCore.sol";
 
 /**

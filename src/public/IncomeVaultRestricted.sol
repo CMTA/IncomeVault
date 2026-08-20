@@ -11,7 +11,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
-import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
+import {IncomeVaultInternal} from "../modules/IncomeVaultInternal.sol";
 
 /**
 * @title Restricted functions

@@ -49,6 +49,12 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   owns the `TIME_ERROR_CODE` enum, because `validateTimeCode` returns it. Keep it inheriting **nothing**:
   `type(...).interfaceId` covers only directly-declared selectors, and both deployment variants
   advertise that id.
+- **Directory layout says what a file *is*.** `deployment/` holds only deployable contracts,
+  `modules/` only abstract capability mixins, `storage/` only declarations, `interfaces/` only
+  interfaces, and `IncomeVaultBase.sol` is the single composition root at the root. **`public/` is the
+  exception and is deliberate** (M-5): it groups the external surface by *who may call*, because on a
+  compliance contract the gated/ungated boundary is the first thing a reviewer checks. Do not merge
+  `IncomeVaultOpen` and `IncomeVaultRestricted` into one "distribution module".
 - **One capability, one module, one ERC-7201 namespace.** The project runs four namespaces:
   `IncomeVaultInternal` (distribution), `SnapshotSource`, `Operator` and `ERC7741Module`. Claim
   delegation is `IncomeVaultOperatorModule`, not a mapping in the distribution struct (M-6). A new
@@ -122,11 +128,21 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 
 ```
 src/
-├── IncomeVaultBase.sol                    # Policy-agnostic logic: modules, __IncomeVaultBase_init_unchained,
+├── IncomeVaultBase.sol                    # The composition root, and the ONLY file at src/ root:
+│                                          #   assembles the modules, __IncomeVaultBase_init_unchained,
 │                                          #   ERC-2771 _msgSender/_msgData overrides. Hooks left abstract.
-├── IncomeVault.sol                        # Deployment: AccessControlModule; 8 hooks -> onlyRole(...)
-├── IncomeVaultOwnable2Step.sol            # Deployment: Ownable2StepUpgradeable; 8 hooks -> onlyOwner
-├── modules/
+├── deployment/                            # What you actually deploy — nothing abstract lives here
+│   ├── IncomeVault.sol                    # AccessControlModule; every hook -> onlyRole(...)
+│   └── IncomeVaultOwnable2Step.sol        # Ownable2StepUpgradeable; every hook -> onlyOwner
+├── public/                                # The external surface, split by WHO MAY CALL. Deliberate:
+│   │                                      #   the gated/ungated boundary is the thing a reviewer of a
+│   │                                      #   compliance contract checks first. Do not merge these two.
+│   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
+│   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
+│                                          #   setStatusClaim, setTimeLimitToWithdraw
+├── modules/                               # Abstract capability mixins, one per capability
+│   ├── IncomeVaultInternal.sol            # Distribution state: the ERC-7201 struct + getters,
+│   │                                      #   _computeDividend(Batch), _transferDividend, _setStatusClaim
 │   ├── IncomeVaultValidationCore.sol      # ONLY `_validateTransfer` — inherits nothing, keep it that way
 │   ├── IncomeVaultValidationModule.sol    # Pause + Enforcement + RuleEngine; canTransfer,
 │   │                                      #   setRuleEngine, detectTransferRestriction. Hooks abstract.
@@ -135,24 +151,18 @@ src/
 │   │                                      #   namespace; dividendSnapshotSource, setDividendSnapshotSource
 │   ├── IncomeVaultOperatorModule.sol      # ERC-7540 claim delegation in its OWN ERC-7201 namespace;
 │   │                                      #   setOperator, isOperator, _requireHolderOrOperator
+│   ├── ERC7741Module.sol                  # EIP-712 signed operator authorisation, own ERC-7201 namespace
 │   ├── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
-│   └── ERC7741Module.sol                  # EIP-712 signed operator authorisation, own ERC-7201 namespace
-├── public/
-│   ├── IncomeVaultOpen.sol                # Permissionless: claimDividend, claimDividendBatch, validateTime(Code|Batch)
-│   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
-│                                          #   setStatusClaim, setTimeLimitToWithdraw
+│   └── Ownable2StepERC165Module.sol       # ERC-165 advertisement of ERC-173 / Ownable2Step
 ├── interfaces/
 │   ├── IIncomeVault.sol                   # The stated distribution API + the TIME_ERROR_CODE enum;
 │   │                                      #   inherited by IncomeVaultInternal so solc enforces it
 │   ├── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
 │   ├── IERC7540Operator.sol               # The ERC-7540 operator subset, verbatim; id MUST stay 0xe3bc4e65
 │   └── IERC7741.sol                       # Signed operator authorisation; id MUST stay 0xa9e50872
-└── libraries/
-    ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
-    │                                      #   _transferDividend, _set{ERC20TokenPayment,TimeLimitToWithdraw}
+└── storage/                               # Declaration-only: nothing here has behaviour
     ├── IncomeVaultInvariantStorage.sol    # Custom errors and events shared by every variant
-    ├── IncomeVaultRolesStorage.sol        # The four INCOME_VAULT_*_ROLE constants — inherited ONLY by IncomeVault
-    └── Ownable2StepERC165Module.sol       # ERC-165 advertisement of ERC-173 / Ownable2Step
+    └── IncomeVaultRolesStorage.sol        # The four INCOME_VAULT_*_ROLE constants — inherited ONLY by IncomeVault
 
 script/
 ├── DeployIncomeVault.s.sol                # role-based variant; `deploy(config)` split from `run()`

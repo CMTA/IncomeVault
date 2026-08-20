@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IIncomeVault} from "../../src/interfaces/IIncomeVault.sol";
-import {IncomeVault} from "../../src/IncomeVault.sol";
+import {IncomeVault} from "../../src/deployment/IncomeVault.sol";
 import {IncomeVaultOpen} from "../../src/public/IncomeVaultOpen.sol";
 
 /**

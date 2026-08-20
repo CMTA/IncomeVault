@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {CommonBase} from "forge-std/Base.sol";
 import {StdUtils} from "forge-std/StdUtils.sol";
-import {IncomeVault} from "../../src/IncomeVault.sol";
+import {IncomeVault} from "../../src/deployment/IncomeVault.sol";
 import {ERC20PaymentMock} from "../mocks/ERC20PaymentMock.sol";
 
 /**
