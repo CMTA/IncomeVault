@@ -115,6 +115,14 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 | Permanent kill | `deactivateContract` | `_authorizeDeactivate` | `DEFAULT_ADMIN_ROLE` | owner |
 | Address freeze | `setAddressFrozen`, `batchSetAddressFrozen` | `_authorizeFreeze` | `ENFORCER_ROLE` | owner |
 
+> **The hook shares its name with CMTAT's, deliberately.** CMTAT declares
+> `_authorizeRuleEngineManagement()` in `ValidationModuleRuleEngine`. A contract inheriting both that
+> and this module has exactly **one** RuleEngine — both sit on the same
+> `ValidationModuleRuleEngineInternal`, whose ERC-7201 slot is a hardcoded constant. One capability, one
+> hook: a single override answering both declarations is the correct resolution. Renaming ours would
+> create two hooks over one slot, each able to carry a different policy, and the weaker would win.
+> Finding M-4.
+
 Role management itself (`grantRole` / `revokeRole`) is held by `DEFAULT_ADMIN_ROLE` in the
 role-based variant; in the single-owner variant, ownership moves through the two-step
 `transferOwnership` / `acceptOwnership` handover.

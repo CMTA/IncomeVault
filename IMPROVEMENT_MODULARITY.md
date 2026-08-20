@@ -24,12 +24,14 @@ headline finding; everything else is smaller.
 | --- | --- | --- |
 | M-1 | The distribution core hard-inherits CMTAT's `PauseModule` and `EnforcementModule` — C3 linearization becomes impossible against any CMTAT | ✅ **fixed** |
 | M-2 | `snapshotEngine()` collides with CMTAT's, with a *different return type* — irreconcilable | ✅ **fixed** |
-| M-3 | `version()` collides with CMTAT's `VersionModule` | high |
-| M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | medium |
+| M-3 | `version()` collides with CMTAT's `VersionModule` | ✅ **resolved by design** — host overrides |
+| M-3b | SnapshotEngine vendors its **own** CMTAT at a different version than `lib/CMTAT` | medium — **proven to block**, see below |
+| M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | ❌ **not a defect** — one slot, one capability |
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | medium (legibility) |
 | M-6 | One monolithic storage namespace covering four unrelated concerns | medium |
 | M-7 | No interface describes the vault's own API | low |
 | M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | low |
+| M-9 | Split `IncomeVaultValidationModule` so an embedded copy reuses CMTAT's RuleEngine | ❌ **already the case** — shared constant slot |
 
 ## What is already good
 
@@ -236,25 +238,216 @@ is the scenario this whole document was written against, and it now works: befor
 
 204 tests pass.
 
-## M-3. `version()` collides with CMTAT's — high
+## M-3. `version()` collides with CMTAT's — low, **resolved by design**
 
 `src/modules/VersionModule.sol` and CMTAT's `VersionModule` both declare
 `version() returns (string memory)` behind `IERC3643Version`. Any host that is a CMTAT already has one.
 
-**Proposed change:** move `VersionModule` out of the reusable core and into the two deployable
-contracts. A mixin whose only job is to report *this project's* release number does not belong in a
-layer meant to be embedded in someone else's contract — the host reports its own version.
+The original grade of *high* was wrong on two counts, both established by probe rather than by reading.
 
-## M-4. `_authorizeRuleEngineManagement()` is declared twice — medium
+**It is not a wall, unlike M-2.** Forcing the collision gives:
+
+```
+Error (6480): Derived contract must override function "version".
+              Two or more base classes define function with same name and parameter types.
+```
+
+The two declarations are byte-identical — same name, same (empty) parameters, **same return type** —
+so an override is legal and resolves it. That is the whole difference from M-2, where the return types
+differed and no override could reconcile them. `6480` is the ordinary integrator's chore; `5005` and a
+return-type conflict are walls.
+
+**It is not reachable today.** `VersionModule` is inherited only by `IncomeVaultBase`, which an embedded
+host never inherits — `IncomeVaultOpen` and `IncomeVaultRestricted` do not mention it.
+`test/mocks/CMTATDividendHostMock.sol` compiles with no `version()` work at all. The finding assumed the
+module travelled with the payout paths; it does not.
+
+### Decision: keep it, and let the host override
+
+`VersionModule` stays where it is. A host that is already a CMTAT overrides `version()` and decides what
+to report.
+
+**The rationale is positive, not merely tolerant.** Keeping the module inherited means the *IncomeVault
+library version is recorded in the host's own source*. A reader of a deployed
+`CMTATWithDividend` can see which release of this library was embedded, which is exactly what they need
+when a finding is filed against a particular version. Moving the module into the deployable contracts —
+the original proposal — would erase that: an embedded host would carry the distribution logic with no
+statement anywhere of which version of it.
+
+A host wanting to report both can do so explicitly:
+
+```solidity
+function version() public view virtual override(...) returns (string memory) {
+    return string.concat(CMTATVersionModule.version(), "+incomevault-", IVVersionModule.version());
+}
+```
+
+### The one wart: both contracts are named `VersionModule`
+
+The override list cannot name them, because the name is ambiguous in the host's scope:
+
+```solidity
+override(VersionModule, VersionModule)   // impossible
+```
+
+The host must alias **both** imports:
+
+```solidity
+import {VersionModule as CMTATVersionModule} from ".../CMTAT/.../wrapper/core/VersionModule.sol";
+import {VersionModule as IVVersionModule}    from ".../src/modules/VersionModule.sol";
+
+contract CMTATWithDividend is CMTATUpgradeableInternalSnapshot, IVVersionModule {
+    function version()
+        public view virtual override(CMTATVersionModule, IVVersionModule) returns (string memory)
+    {
+        return IVVersionModule.version();
+    }
+}
+```
+
+Verified: this compiles.
+
+The footgun is the **diagnostic**, not the fix. Solc prints `Definition in "VersionModule":` twice and
+names no path, so a host author has nothing to tell them what to alias. **Document this recipe in
+`doc/README.md`** — that is the whole remaining cost of the decision. Renaming ours to
+`IncomeVaultVersionModule` would also remove it, and remains available if the alias dance proves to
+annoy integrators in practice.
+
+### M-3b. SnapshotEngine vendors its own CMTAT, at a different version
+
+Turned up while probing the above, and it matters more than M-3 itself.
+
+| Path | Version |
+| --- | --- |
+| `lib/CMTAT` — used by this project's modules | `v3.3.0-rc3` |
+| `lib/SnapshotEngine/CMTAT` — used by `CMTATUpgradeableInternalSnapshot` | `v3.3.0-**rc1**` |
+
+SnapshotEngine's contracts import their CMTAT by **relative path** into a nested submodule, so a host
+built on `CMTATUpgradeableInternalSnapshot` links a *different* CMTAT than the vault's own modules do.
+The first alias attempt above failed for exactly this reason: `CMTAT/modules/wrapper/core/VersionModule.sol`
+resolves to a contract that is not in the host's linearization at all.
+
+It does not bite today **only because M-1 removed every CMTAT module from the payout paths**, so the two
+copies never meet in one C3 linearization. Anything that re-couples them would produce duplicate-base
+conflicts that look like M-3 but are not fixable by an override — the two `VersionModule`s would be
+genuinely distinct contracts, not two names for one.
+
+**It is not theoretical — upgraded to medium after probing M-4.** Composing
+`CMTATUpgradeableInternalSnapshot` (SnapshotEngine's CMTAT) with `IncomeVaultValidationModule` (our
+CMTAT) fails immediately with nine `Error (9097): Identifier already declared` plus a duplicate-event
+error, every one of them pointing at a `lib/SnapshotEngine/CMTAT/...` path shadowing its `lib/CMTAT/...`
+twin — `PauseModule`, `EnforcementModule`, `EnforcementModuleInternal`,
+`ValidationModuleRuleEngineInternal`. No override resolves a duplicate *base contract*.
+
+The practical blast radius stays small **only** because `IncomeVaultValidationModule` is the project's
+sole CMTAT-derived module and M-1 removed it from the embeddable path. Any future module built on CMTAT
+inherits this problem.
+
+**Action:** before embedding for real, either align SnapshotEngine's nested CMTAT with `lib/CMTAT`, or
+remap `SnapshotEngine/`'s CMTAT imports onto the top-level submodule so the build has exactly one CMTAT.
+Until then, treat "our CMTAT-derived modules" and "SnapshotEngine's CMTAT contracts" as mutually
+exclusive in one linearization.
+
+## M-4. `_authorizeRuleEngineManagement()` is declared twice — ❌ **not a defect, closed**
 
 This project declares it in `IncomeVaultValidationModule`; CMTAT declares it in
-`ValidationModuleRuleEngine` and implements it in `3_CMTATBaseRuleEngine`. Mixing produces two hooks
-with one name, and an integrator overriding "the" hook has no way to tell which they satisfied.
+`ValidationModuleRuleEngine`. The original write-up called this a collision and proposed prefixing ours
+to `_authorizeIncomeVaultRuleEngine()`.
 
-**Proposed change:** prefix this project's hooks so they cannot collide with a host's —
-`_authorizeIncomeVaultRuleEngine()` — or, if M-1 is done, drop the RuleEngine handling from the core
-entirely and let the host's validation answer through `_validateTransfer`. The second is better: it
-removes the hook rather than renaming it.
+**That was implemented, then reverted, because the premise is wrong.**
+
+### The premise, checked
+
+The finding assumed two hooks meant two capabilities. They do not. Both
+`ValidationModuleRuleEngine` (CMTAT's wrapper) and `IncomeVaultValidationModule` (ours) inherit the
+**same** `ValidationModuleRuleEngineInternal`, and that base holds the RuleEngine at a **hardcoded
+ERC-7201 slot**:
+
+```solidity
+bytes32 private constant ValidationModuleRuleEngineStorageLocation =
+    0x77c8cc897d160e7bf5b10921804e357da17ae27460d4a6b5d9b27ffddf159d00;
+```
+
+Our module declares no RuleEngine storage of its own and reads through the inherited `ruleEngine()`.
+Because the slot is a constant rather than a derived offset, a contract inheriting both has exactly
+**one** RuleEngine — this holds regardless of how C3 linearizes the bases.
+
+So: **one piece of state, one capability, one hook.** The two declarations are two names for the same
+question, and the single override the compiler demands is the *correct* answer, not a silent accident.
+
+### Why the prefix was actively worse
+
+Renaming ours produced two hooks over one slot. A composed contract would then have to answer both, and
+could answer them **differently** — CMTAT's gated by one role, ours by another. Since either path writes
+the same slot, that is two doors to one door's worth of state, and the weaker policy wins. The rename
+converted a non-problem into a real one.
+
+The earlier claim that "one `onlyRole(...)` gates two distinct capabilities" was the error: the
+capabilities are not distinct. The mutability difference is likewise harmless — CMTAT declares the hook
+non-`view` and ours `view`, so a single `view` override tightens CMTAT's, which is legal and safe.
+
+### What actually remains, and why it is fine
+
+Composing the two still reports:
+
+```
+Error (6480): ... "setRuleEngine".
+Error (6480): ... "canTransfer".
+```
+
+Both are ordinary and correct. `IncomeVaultValidationModule` deliberately does **not** inherit CMTAT's
+wrapper, because that wrapper also brings `ValidationModuleAllowance` and the stateful
+`transferred` / `_callRuleEngineTransferred` path — and the vault must never call `transferred()`: it is
+not a bound token, so the call would revert, and a payout must not mutate stateful rules. Ours is a
+deliberately narrower, read-only wrapper over the shared base. Two wrappers over one slot means the
+integrator picks one implementation with a **visible body**, which is exactly the decision they should
+be making.
+
+### Outcome
+
+No code change. The reasoning is recorded at the hook's declaration in
+`src/modules/IncomeVaultValidationModule.sol`, in `doc/README.md` under the capability table, and in
+`CLAUDE.md`/`AGENTS.md`, in each case stating that the shared name is deliberate and must not be
+"tidied" into a prefix. This entry exists so the proposal is not re-opened.
+
+## M-9. Should `IncomeVaultValidationModule` be split so a CMTAT reuses its own RuleEngine? — ❌ **no, already the case**
+
+Proposed during review: separate the module so that, when embedded in a CMTAT, it uses the RuleEngine
+the token already has rather than configuring its own.
+
+**The goal is already met, by construction.** `IncomeVaultValidationModule` declares no RuleEngine
+storage; it inherits CMTAT's `ValidationModuleRuleEngineInternal`, whose slot is a hardcoded constant
+(see M-4). An embedded copy therefore reads and writes *the token's* `_ruleEngine`. There is nothing to
+wire.
+
+**A split would not reduce the host's work.** A CMTAT inheriting the module needs four ceremonial
+overrides — `_authorizeRuleEngineManagement`, `onlyRuleEngineManager`, `setRuleEngine`, `canTransfer` —
+each resolving to CMTAT's own version. The supported route, established by M-1, is instead to answer
+{IncomeVaultValidationCore} directly:
+
+```solidity
+function _validateTransfer(address from, address to, uint256 value) internal view override {
+    require(canTransfer(from, to, value), ...);   // CMTATDividendHostMock, in full
+}
+```
+
+One function, using the token's own pause, freeze and RuleEngine. Any extracted module would still leave
+the host implementing one function, so the split adds a file and removes nothing.
+
+### What the proposal did surface: an initializer hazard
+
+`__IncomeVaultValidation_init_unchained` writes that shared slot via CMTAT's
+`__ValidationRuleEngine_init_unchained`, which guards **only** the zero address:
+
+```solidity
+if (address(ruleEngine_) != address(0)) { _setRuleEngine(ruleEngine_); }
+```
+
+So a host that inherited the module and passed a non-zero engine would silently replace the *token's*
+compliance engine from the *dividend* initializer — a payout-configuration call reaching into transfer
+rules. Not reachable today: only `IncomeVault` and `IncomeVaultOwnable2Step` call it, and neither is a
+CMTAT. Documented at the initializer in `src/modules/IncomeVaultValidationModule.sol` so it stays that
+way, with the instruction that such a host must pass the zero address.
 
 ## M-5. The directory names misdescribe the contents — medium
 
@@ -321,30 +514,44 @@ exactly like the access-control model.
 ## Suggested order
 
 1. ~~**M-1**~~ ✅ done — and it also cleared a second, unreported 5005 on `ReentrancyGuardTransient`.
-2. **M-2** — the remaining blocker, and now the only thing between the codebase and a compiling
-   `CMTATWithDividend`.
+2. ~~**M-2**~~ ✅ done — `CMTATWithDividend` now compiles; see `test/mocks/CMTATDividendHostMock.sol`.
 3. **M-5** — the directory move. No behaviour change.
-4. **M-3, M-4, M-8** — M-1 already moved the RuleEngine hook out of the shared layer, so M-4 is
-   largely defused; M-3 and M-8 remain.
+4. ~~**M-4**~~ ❌ closed as not-a-defect — both hooks gate one hardcoded ERC-7201 slot, so one override
+   is the correct answer; prefixing ours was implemented and reverted. **M-8** remains. M-3 is closed: the host overrides
+   `version()`, which is also how the embedded IncomeVault release stays visible in the host's source.
 5. **M-6** — do it before the first deployment carrying real value; it cannot be done afterwards.
 6. **M-7** — any time.
 
-## What "done" looks like
+## What "done" looks like — ✅ reached
 
-The test at the top compiles:
+The test at the top compiles. It is now a committed fixture,
+`test/mocks/CMTATDividendHostMock.sol`, so the property cannot silently regress:
 
 ```solidity
-contract CMTATWithDividend is CMTATStandaloneSnapshot, IncomeVaultDistributionModule {
-    function _snapshotInfo(uint256 time, address holder) internal view override returns (uint256, uint256) {
+contract CMTATDividendHostMock is
+    CMTATUpgradeableInternalSnapshot, IncomeVaultOpen, IncomeVaultRestricted
+{
+    function _snapshotInfo(uint256 time, address holder)
+        internal view override returns (uint256, uint256)
+    {
         return snapshotInfo(time, holder);          // the token is its own snapshot source
     }
+
     function _validateTransfer(address from, address to, uint256 value) internal view override {
-        require(canTransfer(from, to, value), ...); // the token's own ValidationModule
+        require(canTransfer(from, to, value), ...); // the token's own validation stack
     }
-    function _authorizeDeposit() internal view override onlyRole(DEBT_ROLE) {}
+
+    function _authorizeDeposit() internal view override {}
     // ... the other authorization hooks
 }
 ```
 
-Three overrides and the existing hooks — no forking, no linearization fight. Worth adding as a
-compiling test fixture once M-1 and M-2 land, so the property cannot silently regress.
+Four hook groups and no forking, no linearization fight. `test/mocks/EmbeddedDividendHostMock.sol` is
+the same guard for a host that is *not* a CMTAT.
+
+What made it possible, in order: M-1 removed the inherited validation policy (and a second, unreported
+`5005` on `ReentrancyGuardTransient`); M-2 removed the `snapshotEngine()` return-type collision and
+moved the source into its own namespace. What remains is cosmetic or organisational — M-4 through M-8,
+plus the two records M-3/M-3b — none of which blocks a host.
+
+Both mocks exist only to **compile**. Re-couple either dependency and they stop, which is the point.

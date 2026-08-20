@@ -44,6 +44,13 @@ abstract contract IncomeVaultValidationModule is
     /* ============  Initializer Function ============ */
     /**
     * @notice Initializes the validation module
+    * @dev Writes the RuleEngine slot that CMTAT's {ValidationModuleRuleEngineInternal} owns, at its
+    * hardcoded ERC-7201 location. In the standalone vault that slot belongs to this contract alone. In
+    * a host that also inherits a CMTAT validation stack it is **shared**, so a non-zero `ruleEngine_`
+    * here would replace the *token's* compliance engine from the dividend initializer. Such a host must
+    * pass the zero address, which CMTAT's initializer treats as a no-op, and keep the engine the token
+    * already configured. Embedding the payout logic via {IncomeVaultValidationCore} instead avoids the
+    * question entirely, and is the supported route. Finding M-4.
     * @param ruleEngine_ the RuleEngine applied to the payouts, or the zero address for none
     */
     function __IncomeVaultValidation_init_unchained(
@@ -138,6 +145,14 @@ abstract contract IncomeVaultValidationModule is
     /**
     * @dev Authorization hook invoked before {setRuleEngine}.
     * Implemented by the deployment contract with the desired access-control policy.
+    *
+    * @dev CMTAT's {ValidationModuleRuleEngine} declares a hook with this same name and parameters.
+    * That is **not** a collision to be renamed away: both this module and CMTAT's wrapper sit on the
+    * same {ValidationModuleRuleEngineInternal}, whose ERC-7201 slot is a hardcoded constant, so a
+    * contract inheriting both has exactly **one** RuleEngine. One capability, therefore one hook — and
+    * a single override answering both declarations is the correct resolution, not an accident. Giving
+    * the two hooks different names would create two doors to one slot, each able to carry a different
+    * policy, and the weaker one would win. See finding M-4.
     */
     function _authorizeRuleEngineManagement() internal view virtual;
 

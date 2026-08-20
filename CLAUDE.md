@@ -262,6 +262,12 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
   tighten mutability) and is what this project does. Override bodies stay **empty**, with the check
   riding on the modifier (`onlyRole(...)` / `onlyOwner`), never a bare `_checkRole` call. A new
   guarded capability means a new hook plus an override in **every** deployment variant.
+- **`_authorizeRuleEngineManagement` shares its name with CMTAT's on purpose.** Both this project's
+  `IncomeVaultValidationModule` and CMTAT's `ValidationModuleRuleEngine` sit on the same
+  `ValidationModuleRuleEngineInternal`, whose ERC-7201 slot is a hardcoded constant — so a contract
+  inheriting both has exactly **one** RuleEngine. One capability, one hook; a single override answering
+  both declarations is correct. **Do not prefix or rename it** (M-4): two names over one slot means two
+  policies for one door, and the weaker wins.
 - **Role constants live with the layer that enforces them.** They belong in
   `IncomeVaultRolesStorage`, inherited only by `IncomeVault` — never in `IncomeVaultInvariantStorage`,
   or the Ownable variant would publish a role it never checks.
