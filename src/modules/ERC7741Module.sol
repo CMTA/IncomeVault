@@ -129,6 +129,7 @@ abstract contract ERC7741Module is
     /* ============ ERC-7201 ============ */
     /**
     * @dev Returns the ERC-7201 namespaced storage of this module
+    * @return $ the storage struct
     */
     function _getERC7741ModuleStorage() internal pure returns (ERC7741ModuleStorage storage $) {
         assembly {

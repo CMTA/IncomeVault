@@ -1195,6 +1195,12 @@ function _getERC7741ModuleStorage() internal pure returns (struct ERC7741Module.
 
 _Returns the ERC-7201 namespaced storage of this module_
 
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| $ | struct ERC7741Module.ERC7741ModuleStorage | the storage struct |
+
 ## IncomeVaultInternal
 
 ### IncomeVaultInternalStorage
@@ -1502,7 +1508,7 @@ so a batch can read the limit once instead of once per element._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| $ | struct IncomeVaultInternal.IncomeVaultInternalStorage |  |
+| $ | struct IncomeVaultInternal.IncomeVaultInternalStorage | the ERC-7201 storage of the vault |
 | time | uint256 | the dividend time to check |
 | timeLimit | uint256 | the value of `timeLimitToWithdraw` |
 
@@ -1519,6 +1525,12 @@ function _getIncomeVaultInternalStorage() internal pure returns (struct IncomeVa
 ```
 
 _Returns the ERC-7201 namespaced storage of the IncomeVault_
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| $ | struct IncomeVaultInternal.IncomeVaultInternalStorage | the storage struct |
 
 ## IncomeVaultOperatorModule
 
@@ -1614,6 +1626,12 @@ function _getOperatorStorage() internal pure returns (struct IncomeVaultOperator
 ```
 
 _Returns the ERC-7201 namespaced storage of this module_
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| $ | struct IncomeVaultOperatorModule.OperatorStorage | the storage struct |
 
 ## IncomeVaultSnapshotCore
 
@@ -1831,6 +1849,12 @@ function _getSnapshotSourceStorage() internal pure returns (struct IncomeVaultSn
 ```
 
 _Returns the ERC-7201 namespaced storage of this module_
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| $ | struct IncomeVaultSnapshotModule.SnapshotSourceStorage | the storage struct |
 
 ## IncomeVaultValidationCore
 
