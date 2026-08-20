@@ -226,6 +226,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `.soliumrc.json`, `.soliumignore` | Ethlint/Solium configuration |
 | `CHANGELOG.md` | changelog.md conventions; current release `2.0.0` |
 | `doc/README.md` | The reference doc: snapshot source, roles table, claim restrictions, formula, threat model & FAQ, plus the technical choices (upgradeability, pause, token agnosticism, reentrancy, gasless GSN/ERC-2771) and the schema/graphs |
+| `doc/cmtat-standard/` | The CMTA framework functional specifications PDF, plus `CMTAT-Distribution-impl.md`: the full comparison of section 3.2.4 (functionalities 27-32) against this implementation, what the vault adds, why 31/32 need no new state, and ten proposed changes to the specification. `doc/README.md` keeps only a summary table and links here |
 | `doc/TOOLCHAIN.md` | Tested dependency versions, doc-generation and lint commands |
 | `doc/solidityAPI/index.md` | Generated Solidity API (docgen) — stale since the CMTAT v3 migration, refresh with `npx hardhat docgen` |
 | `doc/surya/`, `doc/schema/` | Surya call graphs, inheritance graphs and markdown reports (one per `src/**/*.sol`), UML class diagram, PlantUML sources and the remaining drawio diagrams. Regenerate with `npm run surya:graph` + `surya:inheritance` + `surya:report` (output goes to the scratch `docOut/`, then replaces `doc/surya/`) and `npm run uml` |

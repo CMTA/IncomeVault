@@ -6,20 +6,54 @@
 
 ![IncomeVault architecture](./schema/plantuml/incomevault-architecture.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./schema/plantuml/incomevault-architecture.puml).
+_Diagram source:
+[doc/schema/plantuml/incomevault-architecture.puml](./schema/plantuml/incomevault-architecture.puml).
 This is the overview; the detailed flow of the same process is [further down](#snapshot-source)._
 
- \0. On the snapshot source (e.g. a `SnapshotEngine` bound to a CMTAT), the admin registers the dividend `time` to perform a snapshot and store the holder’s balance at this specified time.
+ \0. On the snapshot source (e.g. a `SnapshotEngine` bound to a CMTAT), the admin registers the
+ dividend `time` to perform a snapshot and store the holder’s balance at this specified time.
 
 1. An authorized address perform a deposit in the `IncomeVault` for a specific `time`
 2. An authorized address open the claim for this specific `time`
 3. Holder claims his dividends by calling the function `claimDividend`
 
+## Coverage of the CMTAT Distribution module
+
+`IncomeVault` implements the optional **Distribution module** of the CMTA framework functional
+specifications (June 2026), section 3.2.4, functionalities 27 to 32.
+
+| # | Specification | Status |
+| --- | --- | --- |
+| 27 | Distribution create parameters | ◑ partial — the settlement token is fixed per vault, not per distribution |
+| 28 | Distribution set eligibility | ◑ different mechanism — evaluated at payout time, not a stored flag |
+| 29 | Distribution set deposit | ● `deposit`, `depositBatch` |
+| 30 | Distribution claim deposit | ● `claimDividend`, `claimDividendBatch` |
+| 31 | Distribution schedule *(debt)* | ○ not implemented |
+| 32 | Distribution unschedule *(debt)* | ○ not implemented |
+
+Legend: ● implemented, ◑ partial or answered differently, ○ not implemented.
+
+Beyond the specification, the vault adds a **claim window**, **issuer recovery** of what is left
+unclaimed, a **push** counterpart to the pull claim, **claim delegation** (ERC-7540 / ERC-7741) and
+per-period accounting — each answering a question the specification leaves open, such as how long a
+holder may claim for and where the rounding residue goes.
+
+Functionalities 31 and 32 would need **no new state** if specified: the record dates already exist
+as `uint256[]` in the Snapshot module (`getNextSnapshots()`), and the terms already exist in the
+Debt module (`couponPaymentFrequency`, `interestScheduleFormat`, `currencyContract`) — though as
+strings, so a contract cannot act on them.
+
+> **The full comparison lives in
+> [`doc/cmtat-standard/CMTAT-Distribution-impl.md`](./cmtat-standard/CMTAT-Distribution-impl.md)**:
+> the functionality-by-functionality table, what the vault adds and why, the analysis of 31/32, and
+> **ten changes we would propose to the specification** — the first of which concerns a record date
+> that references no snapshot, where a balance lookup silently falls back to the *live* balance.
+
 ## Snapshot source
 
-The vault never talks to the token directly. It holds a single reference, `snapshotEngine`, typed with
-**`ISnapshotSource`** (`src/interfaces/ISnapshotSource.sol`) — the three functions it actually calls,
-and nothing else:
+The vault never talks to the token directly. It holds a single reference, `snapshotEngine`, typed
+with **`ISnapshotSource`** (`src/interfaces/ISnapshotSource.sol`) — the three functions it actually
+calls, and nothing else:
 
 | Function | Used by |
 | --- | --- |
@@ -30,49 +64,50 @@ and nothing else:
 `ISnapshotSource` is a strict subset of `ISnapshotState`, defined by the
 [SnapshotEngine](https://github.com/CMTA/SnapshotEngine), which declares eight functions. The
 signatures are copied verbatim, so **every `ISnapshotState` implementation already satisfies it** —
-the external `SnapshotEngine`, a token embedding the snapshot modules, or a custom provider — while a
-new implementation only has to write the three the vault calls, not five it would never see used.
+the external `SnapshotEngine`, a token embedding the snapshot modules, or a custom provider — while
+a new implementation only has to write the three the vault calls, not five it would never see used.
 Solidity has no implicit conversion between unrelated interfaces, so pass one with an explicit cast:
 `ISnapshotSource(address(engine))`.
 
 The address is set at initialization and cannot be the zero address.
 
-The vault does not call it directly. `IncomeVaultSnapshotCore` declares the three questions the payout
-paths actually ask — one holder's balance at a `time`, many holders' balances at a `time`, and one
-holder's balances across many `time`s — and inherits nothing. `IncomeVaultSnapshotModule` is one
-*answer* to them: an `ISnapshotSource` held in its own namespace, reachable through
+The vault does not call it directly. `IncomeVaultSnapshotCore` declares the three questions the
+payout paths actually ask — one holder's balance at a `time`, many holders' balances at a `time`,
+and one holder's balances across many `time`s — and inherits nothing. `IncomeVaultSnapshotModule` is
+one *answer* to them: an `ISnapshotSource` held in its own namespace, reachable through
 `dividendSnapshotSource()`. A token that already records snapshots answers the same three hooks from
-itself, with no second contract and nothing stored. See *Embedding the distribution logic in a token*.
+itself, with no second contract and nothing stored. See *Embedding the distribution logic in a
+token*.
 
 ### Replacing the snapshot source
 
-`setDividendSnapshotSource` allows a migration — a redeployed `SnapshotEngine`, or a token moving to embedded
-snapshot modules — but **only while no claim period is open**. The vault tracks how many dividend times
-currently have their claims open in `openClaimCount()`, and the setter reverts with
+`setDividendSnapshotSource` allows a migration — a redeployed `SnapshotEngine`, or a token moving to
+embedded snapshot modules — but **only while no claim period is open**. The vault tracks how many
+dividend times currently have their claims open in `openClaimCount()`, and the setter reverts with
 `IncomeVault_ClaimPeriodOpen(openClaimCount)` while that is non-zero.
 
-The reason for the gate: dividend amounts are computed from the snapshot source **at claim time**, not
-fixed at deposit. Swapping the source under an open period would silently re-price every unclaimed
-dividend of that period.
+The reason for the gate: dividend amounts are computed from the snapshot source **at claim time**,
+not fixed at deposit. Swapping the source under an open period would silently re-price every
+unclaimed dividend of that period.
 
 > **The gate narrows the hazard, it does not remove it.** Entitlements are always resolved against
 > whichever source is configured *when the claim happens*. Re-opening a past `time` after a swap
 > resolves that period against the **new** source. Holders who already claimed are protected —
 > `claimedDividend` persists across the change — but holders who had not are not.
->
-> Treat a swap as a migration that requires every period to be settled and closed, not as a routine
-> configuration change. If historical periods must keep resolving against the source they were created
-> with, that needs per-`time` pinning at deposit, which this prototype does not implement.
+>Treat a swap as a migration that requires every period to be settled and closed, not as a routine
+>configuration change. If historical periods must keep resolving against the source they were
+>created with, that needs per-`time` pinning at deposit, which this prototype does not implement.
 
 > The vault does **not** verify the interface through ERC-165. The canonical `SnapshotEngine`
 > advertises no id for it, so a guard would reject the implementation the vault is built for. And
-> ERC-165 expresses shape, never semantics: a source returning attacker-chosen balances satisfies this
-> interface exactly as an honest one does. Trusting the snapshot source stays a configuration
+> ERC-165 expresses shape, never semantics: a source returning attacker-chosen balances satisfies
+> this interface exactly as an honest one does. Trusting the snapshot source stays a configuration
 > decision.
 
 ![IncomeVault global flow](./schema/plantuml/incomevault-global.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-global.puml](./schema/plantuml/incomevault-global.puml)._
+_Diagram source:
+[doc/schema/plantuml/incomevault-global.puml](./schema/plantuml/incomevault-global.puml)._
 
 ## Access control
 
@@ -94,7 +129,8 @@ function _authorizeWithdraw() internal view virtual override onlyRole(INCOME_VAU
 ### Deployment variants
 
 Two deployments ship. **The choice is made at deployment and cannot be changed afterwards** — they
-are different contracts, not a setting, and a deployed proxy cannot be swapped from one to the other.
+are different contracts, not a setting, and a deployed proxy cannot be swapped from one to the
+other.
 
 | Contract | Access control | `initialize` first argument |
 | --- | --- | --- |
@@ -116,12 +152,12 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 | Address freeze | `setAddressFrozen`, `batchSetAddressFrozen` | `_authorizeFreeze` | `ENFORCER_ROLE` | owner |
 
 > **The hook shares its name with CMTAT's, deliberately.** CMTAT declares
-> `_authorizeRuleEngineManagement()` in `ValidationModuleRuleEngine`. A contract inheriting both that
-> and this module has exactly **one** RuleEngine — both sit on the same
-> `ValidationModuleRuleEngineInternal`, whose ERC-7201 slot is a hardcoded constant. One capability, one
-> hook: a single override answering both declarations is the correct resolution. Renaming ours would
-> create two hooks over one slot, each able to carry a different policy, and the weaker would win.
-> Finding M-4.
+> `_authorizeRuleEngineManagement()` in `ValidationModuleRuleEngine`. A contract inheriting both
+> that and this module has exactly **one** RuleEngine — both sit on the same
+> `ValidationModuleRuleEngineInternal`, whose ERC-7201 slot is a hardcoded constant. One capability,
+> one hook: a single override answering both declarations is the correct resolution. Renaming ours
+> would create two hooks over one slot, each able to carry a different policy, and the weaker would
+> win. Finding M-4.
 
 Role management itself (`grantRole` / `revokeRole`) is held by `DEFAULT_ADMIN_ROLE` in the
 role-based variant; in the single-owner variant, ownership moves through the two-step
@@ -150,8 +186,8 @@ accounting, one `newDeposit` event per entry — and pulls the payment token **o
 Repeating a `time` accumulates, as separate calls would. The arrays must be the same non-zero length
 and every amount must be non-zero; otherwise the whole batch reverts and nothing is credited.
 
-**Where the saving actually is, measured:** *inside* a transaction the batch is the more expensive of
-the two — decoding two dynamic `calldata` arrays outweighs the single token transfer. For three
+**Where the saving actually is, measured:** *inside* a transaction the batch is the more expensive
+of the two — decoding two dynamic `calldata` arrays outweighs the single token transfer. For three
 periods: **136,546 gas batched against 116,812 for three separate calls.** The win is the intrinsic
 per-transaction cost, paid once instead of N times:
 
@@ -165,17 +201,19 @@ transaction-count optimisation, not a cheaper deposit.
 
 ## Segregated Deposit
 
-Each deposit is segregated in its time value. A `time` is the dividends distribution date (Unix Timestamp) to the token holders. 
+Each deposit is segregated in its time value. A `time` is the dividends distribution date (Unix
+Timestamp) to the token holders.
 
 ![IncomeVault segregated deposit](./schema/plantuml/incomevault-segregated-deposit.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-segregated-deposit.puml](./schema/plantuml/incomevault-segregated-deposit.puml)._
+_Diagram source:
+[doc/schema/plantuml/incomevault-segregated-deposit.puml](./schema/plantuml/incomevault-segregated-deposit.puml)._
 
 ## ValidationModule
 
-A claim is considered as a transfer from the contract to the sender (token holder).
-This transfer can be restricted with the `IncomeVaultValidationModule`, which composes three CMTAT
-modules and an optional RuleEngine:
+A claim is considered as a transfer from the contract to the sender (token holder). This transfer
+can be restricted with the `IncomeVaultValidationModule`, which composes three CMTAT modules and an
+optional RuleEngine:
 
 - `EnforcementModule` — freeze/unfreeze an address (`ENFORCER_ROLE`)
 - `PauseModule` — put the contract in the pause state (`PAUSER_ROLE`), or deactivate it
@@ -190,30 +228,31 @@ the RuleEngine.
 
 ### Freezing the vault itself
 
-`canTransfer` is always called with the vault as `from`, and `setAddressFrozen` accepts any address —
-so `ENFORCER_ROLE` can freeze **the vault**, which stops every payout: both `claimDividend` and
+`canTransfer` is always called with the vault as `from`, and `setAddressFrozen` accepts any address
+— so `ENFORCER_ROLE` can freeze **the vault**, which stops every payout: both `claimDividend` and
 `distributeDividend` revert. It is a second kill-switch alongside `pause`, reachable without holding
 `PAUSER_ROLE`.
 
 Know its limits before reaching for it:
 
-- **It is not visible through `paused()`**, which stays `false`. A monitor watching the pause flag sees
-  a healthy vault.
-- **The revert is the ordinary `IncomeVault_InvalidTransfer`**, the same error a blocked holder gets.
-  Distinguish the two by checking the `AddressFrozen` logs for the vault's own address.
-- **It does not protect the funds.** Deposits still succeed, and `INCOME_VAULT_WITHDRAW_ROLE` can still
-  drain the contract with `withdrawAll`. It stops holders being paid; it is not a safe mode.
+- **It is not visible through `paused()`**, which stays `false`. A monitor watching the pause flag
+  sees a healthy vault.
+- **The revert is the ordinary `IncomeVault_InvalidTransfer`**, the same error a blocked holder
+  gets. Distinguish the two by checking the `AddressFrozen` logs for the vault's own address.
+- **It does not protect the funds.** Deposits still succeed, and `INCOME_VAULT_WITHDRAW_ROLE` can
+  still drain the contract with `withdrawAll`. It stops holders being paid; it is not a safe mode.
 
 Use `pause` for an emergency stop. Freezing the vault is the compliance-officer lever, and the pause
 state is the one an operator should monitor.
 
 ### RuleEngine 
 
-As for the CMTAT, there is the possibility to configure a ruleEngine with rules to perform transfer rectriction/verification. As relevant rules, we have:
+As for the CMTAT, there is the possibility to configure a ruleEngine with rules to perform transfer
+rectriction/verification. As relevant rules, we have:
 
-- Whitelist 
-- Blacklist 
-- Sanctionlist 
+- Whitelist
+- Blacklist
+- Sanctionlist
 - ConditionalTransfer
 
 The vault is **not** a token bound to the RuleEngine. It only uses the *view* entry point
@@ -234,7 +273,9 @@ the zero address to disable the rule checks.
 
 ### Claim dividends
 
-The distribution of dividends is not automatic. A token holder has to claim his dividends by calling the function `claimDividend`, similar to the Lido protocol. When he claims his dividends, he precises the defined `time`.
+The distribution of dividends is not automatic. A token holder has to claim his dividends by calling
+the function `claimDividend`, similar to the Lido protocol. When he claims his dividends, he
+precises the defined `time`.
 
 Therefore, a token holder has to know the different `time` when a deposit has been performed.
 
@@ -248,7 +289,8 @@ An holder can not claim its dividends if:
 
 a. The claim time is in the future (`IncomeVault_TooEarlyToWithdraw`)
 
-b. The claim time is too far in the past, specified by `timeLimitToWithdraw` (`IncomeVault_TooLateToWithdraw`)
+b. The claim time is too far in the past, specified by `timeLimitToWithdraw`
+(`IncomeVault_TooLateToWithdraw`)
 
    `timeLimitToWithdraw` must be **greater than zero**: a limit of zero would collapse the window
    `[time, time + limit]` to the single instant `block.timestamp == time`, making the period
@@ -262,7 +304,8 @@ d. Holder has already claim its dividends (`IncomeVault_DividendAlreadyClaimed`)
 
 e. There is no dividend to claim (`IncomeVault_NoDividendToClaim`)
 
-For the batch function, `claimDividendBatch`, `d` and `e` don't generate an error but instead, there is just no dividends distributed for this specific time.
+For the batch function, `claimDividendBatch`, `d` and `e` don't generate an error but instead, there
+is just no dividends distributed for this specific time.
 
 ### Schema
 
@@ -270,7 +313,8 @@ This schema describes the different smart contracts called when a token holder c
 
 ![Contracts called on a claim](./schema/plantuml/incomevault-ruleengine.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-ruleengine.puml](./schema/plantuml/incomevault-ruleengine.puml)._
+_Diagram source:
+[doc/schema/plantuml/incomevault-ruleengine.puml](./schema/plantuml/incomevault-ruleengine.puml)._
 
 #### Formula
 
@@ -280,7 +324,9 @@ The computation of dividends is performing according to the following formula
 senderDividend = (senderCMTATBalance * dividendTotalSupply) / TokenTotalSupply;
 ```
 
-The sender dividend will be rounded to the inferior integer.  Thus, the issuer should put a “limit” date to claim his dividend in order to withdraw the staying funds (due to rounding) from the smart contract.
+The sender dividend will be rounded to the inferior integer. Thus, the issuer should put a “limit”
+date to claim his dividend in order to withdraw the staying funds (due to rounding) from the smart
+contract.
 
 Example with USDC (6 decimal) and a CMTAT (0 decimal)
 
@@ -288,11 +334,13 @@ tokenSupply CMTAT = 12’351
 
 The sender has 4221 tokens.
 
-21’555.50 $ in USDC are deposited corresponding to a value of 21555500000 tokens since USDC has 6 decimals.
+21’555.50 $ in USDC are deposited corresponding to a value of 21555500000 tokens since USDC has 6
+decimals.
 
- We have: 
+ We have:
 
-senderDividend = 4221 * 21555500000 /  12351 = 7366671969.880981297 = 7366671969 which correspond to **7366.671969**$
+senderDividend = 4221 * 21555500000 / 12351 = 7366671969.880981297 = 7366671969 which correspond to
+**7366.671969**$
 
 #### Schema
 
@@ -300,7 +348,8 @@ Schema without the `ValidationModule` (see next paragraph)
 
 ![claimDividend flow](./schema/plantuml/incomevault-claimdividend.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-claimdividend.puml](./schema/plantuml/incomevault-claimdividend.puml)._
+_Diagram source:
+[doc/schema/plantuml/incomevault-claimdividend.puml](./schema/plantuml/incomevault-claimdividend.puml)._
 
 
 
@@ -315,15 +364,15 @@ vault.claimDividendBatchFor(holder, times);
 vault.isOperator(holder, custodian);                 // -> true
 ```
 
-**The operator can never receive the dividends.** They always go to the holder; the operator pays the
-gas and chooses the moment. Authorisation is per holder, revocable at any time with
+**The operator can never receive the dividends.** They always go to the holder; the operator pays
+the gas and chooses the moment. Authorisation is per holder, revocable at any time with
 `setOperator(operator, false)`, and every other rule is unchanged — the claim window, the
 already-claimed check, the pause, the freeze and the RuleEngine all apply exactly as for
 `claimDividend`. `OperatorSet(controller, operator, approved)` matches ERC-7540, so tooling written
 for that standard can index it.
 
-This closes the gap noted in the ERC-7540 comparison below: a custodian can now claim for the holders
-it serves, and a holder without gas can have someone claim for them.
+This closes the gap noted in the ERC-7540 comparison below: a custodian can now claim for the
+holders it serves, and a holder without gas can have someone claim for them.
 
 The three members whose signatures are the standard's are declared in their own interface,
 `src/interfaces/IERC7540Operator.sol`, so the compatibility is stated in the type system rather than
@@ -342,17 +391,17 @@ and equals **`0xe3bc4e65`** — the value ERC-7540 assigns to "the operator meth
 Vaults implement". `testOperatorInterfaceIdMatchesTheStandard` asserts that equality, so changing
 either signature breaks the build rather than silently breaking a custodian's integration.
 
-> **The vault does not answer `true` for `0xe3bc4e65` from `supportsInterface`, on purpose.** Sharing
-> the operator methods does not make it an asynchronous vault: a caller discovering that id would
-> reasonably expect the ERC-7540 request lifecycle and ERC-7575's `share()`, none of which exists here.
-> `testDoesNotClaimToBeAnErc7540Vault` pins the under-claim so it stays a decision rather than
-> becoming an oversight.
+> **The vault does not answer `true` for `0xe3bc4e65` from `supportsInterface`, on purpose.**
+> Sharing the operator methods does not make it an asynchronous vault: a caller discovering that id
+> would reasonably expect the ERC-7540 request lifecycle and ERC-7575's `share()`, none of which
+> exists here. `testDoesNotClaimToBeAnErc7540Vault` pins the under-claim so it stays a decision
+> rather than becoming an oversight.
 
 ### Authorising by signature (ERC-7741)
 
-`setOperator` needs the holder to send a transaction. [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741)
-removes that: the holder **signs** an EIP-712 message and anyone — a custodian, a relayer — submits it
-and pays the gas.
+`setOperator` needs the holder to send a transaction.
+[ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) removes that: the holder **signs** an EIP-712
+message and anyone — a custodian, a relayer — submits it and pays the gas.
 
 ```solidity
 vault.authorizeOperator(controller, operator, approved, nonce, deadline, signature);
@@ -370,25 +419,26 @@ AuthorizeOperator(address controller,address operator,bool approved,bytes32 nonc
 Four details worth knowing:
 
 - **Smart-contract wallets work.** Signatures go through OpenZeppelin's `SignatureChecker`, so an
-  [ERC-1271](https://eips.ethereum.org/EIPS/eip-1271) wallet authorises exactly as an EOA does — which
-  matters, because institutional holders of a security token are usually contracts.
+  [ERC-1271](https://eips.ethereum.org/EIPS/eip-1271) wallet authorises exactly as an EOA does —
+  which matters, because institutional holders of a security token are usually contracts.
 - **Nonces are `bytes32` and unordered**, as the standard specifies, so a holder can prepare several
   independent authorisations without imposing an order on them.
 - **The nonce is spent before the signature is checked**, so no path can replay it.
 - **The EIP-712 domain version stays `"1"` across releases.** Bumping it would silently invalidate
   every signature already issued.
 
-Unlike the ERC-7540 operator id, the vault **does** advertise `0xa9e50872` through `supportsInterface`
-in both variants: ERC-7741 requires it, and unlike ERC-7540 this interface is implemented in full.
+Unlike the ERC-7540 operator id, the vault **does** advertise `0xa9e50872` through
+`supportsInterface` in both variants: ERC-7741 requires it, and unlike ERC-7540 this interface is
+implemented in full.
 
 > ERC-7741 warns that "operators have significant control over users and the signed message can lead
-> to undesired outcomes". Keep `deadline` short: a signature that leaks later remains usable until it
-> expires or its nonce is burned with `invalidateNonce`.
+> to undesired outcomes". Keep `deadline` short: a signature that leaks later remains usable until
+> it expires or its nonce is burned with `invalidateNonce`.
 
 ## Per-period residue
 
-Dividends round down, so a period keeps a residue: the rounding dust plus whatever was never claimed.
-Two views report it without any off-chain reconstruction:
+Dividends round down, so a period keeps a residue: the rounding dust plus whatever was never
+claimed. Two views report it without any off-chain reconstruction:
 
 | View | Meaning |
 | --- | --- |
@@ -399,19 +449,18 @@ Two views report it without any off-chain reconstruction:
 deposit for the whole period, otherwise each claim would shrink the share of the next claimant. Only
 `unclaimedDividend` tells you what remains.
 
-`withdraw` is bounded by `unclaimedDividend`, so a sweep can never reach another period's funds. Before
-this bound existed, a period whose holders had all claimed still reported its full deposit in
-`segregatedDividend`, and sweeping it drained the money deposited for a different period — leaving that
-period's holders unpayable with no error raised.
+`withdraw` is bounded by `unclaimedDividend`, so a sweep can never reach another period's funds.
+Before this bound existed, a period whose holders had all claimed still reported its full deposit in
+`segregatedDividend`, and sweeping it drained the money deposited for a different period — leaving
+that period's holders unpayable with no error raised.
 
 > The bound stops the damage spreading between periods. It does **not** make an early sweep safe:
 > withdrawing before the claim window closes takes money the remaining holders of *that* period are
 > entitled to, and lowers `segregatedDividend`, re-pricing every claim that has not happened yet.
->
-> A claim that the period can no longer fund now **reverts** with `IncomeVault_NotEnoughAmount` rather
-> than being paid out of another period's deposit. The holder is not silently short-changed and the
-> other periods stay whole, but the swept period is genuinely unable to pay — the sweep, not the
-> revert, is the mistake.
+>A claim that the period can no longer fund now **reverts** with `IncomeVault_NotEnoughAmount`
+>rather than being paid out of another period's deposit. The holder is not silently short-changed
+>and the other periods stay whole, but the swept period is genuinely unable to pay — the sweep, not
+>the revert, is the mistake.
 
 ## Withdraw funds
 
@@ -429,35 +478,40 @@ and
 
 With the function 1, the funds are withdrawn only from the specific time.
 
-The second function allows to withdraw funds without a specific time, which can lead to an “unstable” state with the different pool of dividend. To be used only in case of emergency or if the vault is closed.
+The second function allows to withdraw funds without a specific time, which can lead to an
+“unstable” state with the different pool of dividend. To be used only in case of emergency or if the
+vault is closed.
 
  
 
 ## Distribute dividend
 
-An authorized user can also decide to distribute the dividend for a given time and a given list of addresses.
+An authorized user can also decide to distribute the dividend for a given time and a given list of
+addresses.
 
-In this situation, the token holder can not decide if he wants to receive his dividends (he is forced to accept) and can not choose the address where he wants to receive his dividends.
+In this situation, the token holder can not decide if he wants to receive his dividends (he is
+forced to accept) and can not choose the address where he wants to receive his dividends.
 
 
 
-Since the function is restricted by access control (`INCOME_VAULT_DISTRIBUTE_ROLE`), it is not possible to use Chainlink Automation to perform an automatic call and distribute the dividends.
+Since the function is restricted by access control (`INCOME_VAULT_DISTRIBUTE_ROLE`), it is not
+possible to use Chainlink Automation to perform an automatic call and distribute the dividends.
 Moreover, the list of token holders has to be provided by the transaction’s sender.
 
-`distributeDividend` is subject to the **same claim window** as a holder-driven claim: the claims must
-be open for that `time`, `time` must have passed, and the withdraw limit must not have expired. Without
-the "too early" bound the distribution would read the *live* balances — `ISnapshotState` falls back to
-them when no snapshot has been recorded yet — and would consume each holder's claim for that period at
-the wrong amount.
+`distributeDividend` is subject to the **same claim window** as a holder-driven claim: the claims
+must be open for that `time`, `time` must have passed, and the withdraw limit must not have expired.
+Without the "too early" bound the distribution would read the *live* balances — `ISnapshotState`
+falls back to them when no snapshot has been recorded yet — and would consume each holder's claim
+for that period at the wrong amount.
 
 It also goes through the **ValidationModule**, exactly like a claim: the vault must not be paused,
-neither the vault nor the holder may be frozen, and the RuleEngine must allow the payout. A holder the
-RuleEngine refuses cannot be paid by the issuer either.
+neither the vault nor the holder may be frozen, and the RuleEngine must allow the payout. A holder
+the RuleEngine refuses cannot be paid by the issuer either.
 
 One blocked holder **reverts the whole distribution** rather than being skipped, so a compliance
-failure can never be silently dropped from a payout the operator believes succeeded. The revert carries
-`IncomeVault_InvalidTransfer(from, to, value)`, which names the offending address: remove it from the
-list and retry.
+failure can never be silently dropped from a payout the operator believes succeeded. The revert
+carries `IncomeVault_InvalidTransfer(from, to, value)`, which names the offending address: remove it
+from the list and retry.
 
 ### Best-effort distribution
 
@@ -484,22 +538,23 @@ Choose between the two by what a partial payout means for you:
 
 **A skipped holder is left completely untouched.** The payout is attempted through an external
 self-call wrapped in `try`/`catch`, which gives per-holder atomicity: either the holder is marked
-claimed *and* paid, or neither. A holder who was skipped is not marked as claimed and can still claim
-themselves, or be included in a later distribution.
+claimed *and* paid, or neither. A holder who was skipped is not marked as claimed and can still
+claim themselves, or be included in a later distribution.
 
 > The helper that call targets, `transferDividendSelf`, carries no access control of its own — it
-> reverts `IncomeVault_OnlySelfCall` for every caller other than the vault. That check is what stands
-> between it and an unauthorized payout, and it deliberately reads `msg.sender` rather than
+> reverts `IncomeVault_OnlySelfCall` for every caller other than the vault. That check is what
+> stands between it and an unauthorized payout, and it deliberately reads `msg.sender` rather than
 > `_msgSender()` so an ERC-2771 forwarder can never present itself as the vault.
->
-> `catch` also cannot distinguish a refused payout from an out-of-gas failure. The only contracts that
-> can consume gas there — the payment token and the RuleEngine — are admin-set and already trusted.
+>`catch` also cannot distinguish a refused payout from an out-of-gas failure. The only contracts
+>that can consume gas there — the payment token and the RuleEngine — are admin-set and already
+>trusted.
 
 ## Comparison with ERC-4626 / ERC-7540 vaults
 
-The `IncomeVault` is called a vault, but it is **not** an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626)
-tokenized vault and deliberately does not implement that standard. The two solve different problems, and
-the difference comes down to one question: **where does the entitlement come from?**
+The `IncomeVault` is called a vault, but it is **not** an
+[ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vault and deliberately does not
+implement that standard. The two solve different problems, and the difference comes down to one
+question: **where does the entitlement come from?**
 
 | | `IncomeVault` | ERC-4626 vault |
 | --- | --- | --- |
@@ -520,61 +575,64 @@ Four of those rows are not preferences, they are blockers:
    sold after the record date would lose it. That inverts the corporate-action semantics a coupon or
    dividend is meant to have — which is precisely what the snapshot exists to pin down.
 2. **The security token would have to *be* the share.** ERC-4626's share is the vault contract's own
-   ERC-20. A CMTAT is already issued, with its own register, transfer restrictions and identifier; its
-   supply is set by the issuer, not by deposits. Making it 4626-compliant is not possible, and the
-   alternative — holders depositing the CMTAT to receive vault shares — puts a *different* token into
-   circulation and splits the register.
-3. **A dividend is not a redemption.** ERC-4626 offers exactly one way to extract value, and it burns
-   shares. Paying a coupon must not reduce the holder's stake in the instrument. The standard has no
-   operation for "pay out without reducing the claim".
-4. **Two different tokens.** `asset()` is the single token shares are redeemed for. The vault pays USDC
-   to holders of a CMTAT — shares of X, paid in Y — which is outside the standard's model.
+   ERC-20. A CMTAT is already issued, with its own register, transfer restrictions and identifier;
+   its supply is set by the issuer, not by deposits. Making it 4626-compliant is not possible, and
+   the alternative — holders depositing the CMTAT to receive vault shares — puts a *different* token
+   into circulation and splits the register.
+3. **A dividend is not a redemption.** ERC-4626 offers exactly one way to extract value, and it
+   burns shares. Paying a coupon must not reduce the holder's stake in the instrument. The standard
+   has no operation for "pay out without reducing the claim".
+4. **Two different tokens.** `asset()` is the single token shares are redeemed for. The vault pays
+   USDC to holders of a CMTAT — shares of X, paid in Y — which is outside the standard's model.
 
 ### What ERC-7540 changes, and what it does not
 
 [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) extends ERC-4626 with **asynchronous** flows:
 `requestDeposit` / `requestRedeem` queue an intent, an operator fulfils it at a price decided at
-fulfilment, and the controller then claims. It exists because real-world-asset and cross-chain vaults
-cannot settle atomically.
+fulfilment, and the controller then claims. It exists because real-world-asset and cross-chain
+vaults cannot settle atomically.
 
 That solves a **settlement-timing** problem, not an **entitlement** problem. The claim is still
-share-price based and still continuous, so none of the four blockers above is removed by adopting it.
+share-price based and still continuous, so none of the four blockers above is removed by adopting
+it.
 
 It does bring things this vault does not have, and they are worth knowing about:
 
-- a standard **request lifecycle** any 7540-aware interface can drive, instead of this project's bespoke
-  `deposit` → `setStatusClaim` → `claimDividend` sequence;
-- `setOperator` delegation (extended by [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) for signed
-  authorisation), where the vault has none — a holder cannot appoint someone to claim on their behalf;
-- specified **cancellation** of a pending request ([ERC-7887](https://eips.ethereum.org/EIPS/eip-7887));
+- a standard **request lifecycle** any 7540-aware interface can drive, instead of this project's
+  bespoke `deposit` → `setStatusClaim` → `claimDividend` sequence;
+- `setOperator` delegation (extended by [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) for
+  signed authorisation), where the vault has none — a holder cannot appoint someone to claim on
+  their behalf;
+- specified **cancellation** of a pending request
+  ([ERC-7887](https://eips.ethereum.org/EIPS/eip-7887));
 - multi-asset share tokens ([ERC-7575](https://eips.ethereum.org/EIPS/eip-7575)).
 
-Two ERC-7540 rules are worth noting because they show how different the model is: `preview*` functions
-**must revert** in an async flow, since no honest quote exists before fulfilment — whereas this vault
-can always compute a claim exactly from the snapshot; and `requestId = 0` has a defined meaning rather
-than signalling "no request".
+Two ERC-7540 rules show how different the model is: `preview*` functions **must revert** in an async
+flow, since no honest quote exists before fulfilment — whereas this vault can always compute a claim
+exactly from the snapshot; and `requestId = 0` has a defined meaning rather than signalling "no
+request".
 
 ### When a 4626 vault *is* the right tool
 
-If the instrument is **accumulating** rather than distributing — the holder's claim grows continuously
-and they realise it by redeeming — then ERC-4626 is the correct standard and reimplementing it here
-would be a mistake. A money-market fund share, a staking wrapper, or a fund whose NAV simply rises all
-fit that shape. Use ERC-7540 on top when settlement cannot be atomic.
+If the instrument is **accumulating** rather than distributing — the holder's claim grows
+continuously and they realise it by redeeming — then ERC-4626 is the correct standard and
+reimplementing it here would be a mistake. A money-market fund share, a staking wrapper, or a fund
+whose NAV simply rises all fit that shape. Use ERC-7540 on top when settlement cannot be atomic.
 
 The dividing line is whether the payout is **discrete and dated** (this vault) or **continuous and
 embedded in the price** (ERC-4626).
 
 ### A place the two could meet
 
-Payment tokens deposited for a `time` sit idle in this contract from `deposit` until each holder claims
-— potentially months. A future version could hold that float as shares of a 4626 vault and redeem on
-each payout, so the undistributed dividend earns yield instead of nothing.
+Payment tokens deposited for a `time` sit idle in this contract from `deposit` until each holder
+claims — potentially months. A future version could hold that float as shares of a 4626 vault and
+redeem on each payout, so the undistributed dividend earns yield instead of nothing.
 
-It is deliberately **not** implemented, and the reason is worth stating: the vault owes a *fixed
-nominal amount* per period, while 4626 shares carry share-price risk. A loss in the underlying vault
-would leave the contract unable to pay the amount it recorded at `deposit`, turning a bookkeeping
-contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who
-absorbs a shortfall — a materially larger design than the one this prototype implements.
+It is deliberately **not** implemented: the vault owes a *fixed nominal amount* per period, while
+4626 shares carry share-price risk. A loss in the underlying vault would leave the contract unable
+to pay the amount it recorded at `deposit`, turning a bookkeeping contract into one that can be
+short. Doing it safely needs a buffer policy and an explicit rule for who absorbs a shortfall — a
+materially larger design than the one this prototype implements.
 
 ## Source layout
 
@@ -591,20 +649,22 @@ Each directory says what its files **are**, following the convention CMTAT uses:
 | `src/storage/` | declaration-only contracts: errors, events, role constants |
 
 **`src/public/` is split by authorization, on purpose.** Every function in `IncomeVaultOpen` is
-permissionless; every function in `IncomeVaultRestricted` is gated by an authorization hook. The first
-question anyone asks of a contract holding other people's dividends is *what can an arbitrary address
-do to it?* — and here that is answered by opening one file, not by auditing which modifier each function
-carries. The two are not to be merged into a single "distribution module".
+permissionless; every function in `IncomeVaultRestricted` is gated by an authorization hook. The
+first question anyone asks of a contract holding other people's dividends is *what can an arbitrary
+address do to it?* — and here that is answered by opening one file, not by auditing which modifier
+each function carries. The two are not to be merged into a single "distribution module".
 
 ## The stated API: `IIncomeVault`
 
-`src/interfaces/IIncomeVault.sol` declares everything an integrator calls — claiming, funding, pushing
-payouts, claim administration, and the state getters — so a caller imports one interface rather than a
-concrete contract and the whole graph behind it (CMTAT, the RuleEngine, the upgrade plumbing).
+`src/interfaces/IIncomeVault.sol` declares everything an integrator calls — claiming, funding,
+pushing payouts, claim administration, and the state getters — so a caller imports one interface
+rather than a concrete contract and the whole graph behind it (CMTAT, the RuleEngine, the upgrade
+plumbing).
 
 It is inherited by `IncomeVaultInternal`, the common base of both payout paths, so **the compiler**
-keeps it in step with the implementation rather than a convention doing it. That also means an embedded
-host presents the same API as the standalone vault — the two deployments are one interface, not two.
+keeps it in step with the implementation rather than a convention doing it. That also means an
+embedded host presents the same API as the standalone vault — the two deployments are one interface,
+not two.
 
 Both deployment variants advertise `type(IIncomeVault).interfaceId` through `supportsInterface`.
 
@@ -621,35 +681,36 @@ holding only the interface must be able to interpret the answer.
 
 ## Embedding the distribution logic in a token
 
-`IncomeVault` is the standalone answer: a separate contract holding the payment token, reading balances
-from an external snapshot source, and running its own pause/freeze/RuleEngine stack. It is not the only
-one. A token that **already** has a validation stack and **already** records snapshots — a
-`CMTATUpgradeableInternalSnapshot`, for instance — can inherit `IncomeVaultOpen` and
-`IncomeVaultRestricted` directly and pay its own dividends, with no second contract, no second copy of
-the compliance rules and no snapshot address to keep in sync.
+`IncomeVault` is the standalone answer: a separate contract holding the payment token, reading
+balances from an external snapshot source, and running its own pause/freeze/RuleEngine stack. It is
+not the only one. A token that **already** has a validation stack and **already** records snapshots
+— a `CMTATUpgradeableInternalSnapshot`, for instance — can inherit `IncomeVaultOpen` and
+`IncomeVaultRestricted` directly and pay its own dividends, with no second contract, no second copy
+of the compliance rules and no snapshot address to keep in sync.
 
-Two abstract contracts make that possible. Both **inherit nothing**, which is the whole point: a host
-answering them adds no bases of its own and so cannot fail to linearize.
+Two abstract contracts make that possible. Both **inherit nothing**, so a host answering them adds
+no bases of its own and cannot fail to linearize.
 
 | Contract | Declares | The standalone answer | A CMTAT host's answer |
 | --- | --- | --- | --- |
 | `IncomeVaultValidationCore` | `_validateTransfer` | `IncomeVaultValidationModule`, built on the CMTAT `PauseModule`, `EnforcementModule` and RuleEngine | its own `canTransfer` |
 | `IncomeVaultSnapshotCore` | `_snapshotInfo`, `_snapshotInfoBatch` (x2) | `IncomeVaultSnapshotModule`, an `ISnapshotSource` in storage | its own snapshot records |
 
-The host then supplies the four `_authorize*` hooks with whatever access-control policy it already uses.
+The host then supplies the four `_authorize*` hooks with whatever access-control policy it already
+uses.
 
 Neither split is cosmetic — each removed a hard compile failure:
 
-- **Inheriting the policy** meant `IncomeVaultOpen` and `IncomeVaultRestricted` dragged `PauseModule`
-  and `EnforcementModule` in transitively. A host that already had them could not linearize at all:
-  `Error (5005)`, which no `override` list can repair.
-- **Storing the source** meant a public `snapshotEngine()` getter. CMTAT declares a function with that
-  exact name and the same parameters but a **different return type**, and Solidity cannot reconcile two
-  functions that differ only in return type — again unresolvable by any override.
+- **Inheriting the policy** meant `IncomeVaultOpen` and `IncomeVaultRestricted` dragged
+  `PauseModule` and `EnforcementModule` in transitively. A host that already had them could not
+  linearize at all: `Error (5005)`, which no `override` list can repair.
+- **Storing the source** meant a public `snapshotEngine()` getter. CMTAT declares a function with
+  that exact name and the same parameters but a **different return type**, and Solidity cannot
+  reconcile two functions that differ only in return type — again unresolvable by any override.
 
-Renaming the getter to `dividendSnapshotSource()` and moving the source into its own ERC-7201 namespace
-removes both the collision and the storage slot, so a host that answers the hooks from itself never
-allocates one.
+Renaming the getter to `dividendSnapshotSource()` and moving the source into its own ERC-7201
+namespace removes both the collision and the storage slot, so a host that answers the hooks from
+itself never allocates one.
 
 `test/mocks/CMTATDividendHostMock.sol` is a `CMTATUpgradeableInternalSnapshot` with the distribution
 logic embedded, and `test/mocks/EmbeddedDividendHostMock.sol` is the same without any CMTAT at all.
@@ -657,12 +718,15 @@ Both exist only to **compile**: re-couple either dependency and they stop compil
 
 ## Improvement
 
-- An automatic distribution of dividend could be performed through [Chainlink Automation](https://docs.chain.link/chainlink-automation) but it requires several changes to allow that.
+- An automatic distribution of dividend could be performed through
+  [Chainlink Automation](https://docs.chain.link/chainlink-automation) but it requires several
+  changes to allow that.
 - Only ERC20 tokens are supported. We could extends this to support direct native (e.g ether) too.
 
 ## Deployment
 
-The contract has to be deployed with a transparent proxy and the contract is compatible with the standard [ERC-2771](https://eips.ethereum.org/EIPS/eip-2771) for meta transactions.
+The contract has to be deployed with a transparent proxy and the contract is compatible with the
+standard [ERC-2771](https://eips.ethereum.org/EIPS/eip-2771) for meta transactions.
 
 ```
 initialize(
@@ -701,13 +765,14 @@ forge script script/DeployIncomeVault.s.sol --rpc-url <RPC> --broadcast --ffi
 
 `--ffi` is required, as it is for the tests.
 
-Before spending gas the script rejects a configuration the **contract cannot check for itself**: that
-`PAYMENT_TOKEN`, `SNAPSHOT_ENGINE` and any `RULE_ENGINE` are actually contracts. A mistyped address, or
-one copied from another chain, otherwise initializes cleanly and only reverts on the first claim.
+Before spending gas the script rejects a configuration the **contract cannot check for itself**:
+that `PAYMENT_TOKEN`, `SNAPSHOT_ENGINE` and any `RULE_ENGINE` are actually contracts. A mistyped
+address, or one copied from another chain, otherwise initializes cleanly and only reverts on the
+first claim.
 
 `deploy(config)` is separated from the environment reading in `run()`, so `test/script/Deploy.t.sol`
-drives the same code an operator runs — including an end-to-end check that a vault the script produced
-actually pays a dividend.
+drives the same code an operator runs — including an end-to-end check that a vault the script
+produced actually pays a dividend.
 
  
 
@@ -717,7 +782,8 @@ actually pays a dividend.
 
 > What if a holder tries to claim the same dividend several times?
 
-When a holder claims his dividends for a specific time, a boolean is set to true to indicate the claiming dividend.
+When a holder claims his dividends for a specific time, a boolean is set to true to indicate the
+claiming dividend.
 
 ```
  claimedDividend[tokenHolder][time] = true;
@@ -725,25 +791,32 @@ When a holder claims his dividends for a specific time, a boolean is set to true
 
 This boolean is set inside the internal function `_transferDividend`
 
-Moreover, the functions to claim are protected against reentrancy attacks with the modifier `nonReentrant` from OpenZeppelin.
+Moreover, the functions to claim are protected against reentrancy attacks with the modifier
+`nonReentrant` from OpenZeppelin.
 
 ### New dividend after claim
 
-> What happens if the authorized address deposit dividend after that a token holder has already claimed his dividends ?
+> What happens if the authorized address deposit dividend after that a token holder has already
+> claimed his dividends ?
 
-A token holder can not claim his dividends if the claim status is not opened. Moreover, you can not deposit new dividends if the status is on open (=true).
+A token holder can not claim his dividends if the claim status is not opened. Moreover, you can not
+deposit new dividends if the status is on open (=true).
 
 The function `setStatusClaim` allows to open (true) or close(false) the claims for a specific time.
 
-If you close the claim (claim status = false) and deposit new dividends, the previous token holders will be penalized since the dividends total supply for this specific time has improved for all token holders which have not already claimed their dividends,
+If you close the claim (claim status = false) and deposit new dividends, the previous token holders
+will be penalized since the dividends total supply for this specific time has improved for all token
+holders which have not already claimed their dividends,
 
-In summary, when you have opened the claim, you should not deposit new dividends in the vault for a specific time.
+In summary, when you have opened the claim, you should not deposit new dividends in the vault for a
+specific time.
 
 ### Transfer fails
 
 > What happens if the token transfer fails?
 
-In this case, the whole transaction is reverted, and the smart contract still considers that dividends have not been claimed by the token holder (sender).
+In this case, the whole transaction is reverted, and the smart contract still considers that
+dividends have not been claimed by the token holder (sender).
 
 ## Technical choice
 
@@ -762,8 +835,9 @@ CMTAT, the RuleEngine and the SnapshotEngine do:
 IERC3643Version(address(vault)).version()   // "1.1.0"
 ```
 
-The value is the compile-time constant `VERSION` in `src/modules/VersionModule.sol`. Bump it together
-with the `CHANGELOG.md` heading of the release — the changelog checklist lists it as the first task.
+The value is the compile-time constant `VERSION` in `src/modules/VersionModule.sol`. Bump it
+together with the `CHANGELOG.md` heading of the release — the changelog checklist lists it as the
+first task.
 
 #### Storage (ERC-7201)
 
@@ -803,12 +877,12 @@ CMTAT and OpenZeppelin modules, which use their own namespaces. Consequences:
 | `IncomeVault.storage.Operator` | `IncomeVaultOperatorModule` | the claim-delegation authorisations |
 | `IncomeVault.storage.ERC7741Module` | `ERC7741Module` | the consumed signature nonces |
 
-  A host embedding only part of the logic allocates only the namespaces it inherits — a token that is
-  its own snapshot source never allocates the second one at all. A new capability with state gets a new
-  namespace, never a field appended to an existing struct.
+  A host embedding only part of the logic allocates only the namespaces it inherits — a token that
+  is its own snapshot source never allocates the second one at all. A new capability with state gets
+  a new namespace, never a field appended to an existing struct.
 
-The hardcoded slots are re-derived from their namespaces, checked to be disjoint, and compared against
-what the proxy really stores in `test/IncomeVaultStorage.t.sol`.
+The hardcoded slots are re-derived from their namespaces, checked to be disjoint, and compared
+against what the proxy really stores in `test/IncomeVaultStorage.t.sol`.
 
 #### Urgency mechanism
 
@@ -824,32 +898,42 @@ implementing it and not only with the CMTAT. See [Snapshot source](#snapshot-sou
 
 #### Reentrancy
 
-`claimDividend` and `claimDividendBatch` are protected with `ReentrancyGuardTransient`
-(EIP-1153 transient storage). `ReentrancyGuardUpgradeable` was removed from OpenZeppelin Contracts
-Upgradeable v5.7.0; the transient variant is storage-free and therefore proxy safe.
+`claimDividend` and `claimDividendBatch` are protected with `ReentrancyGuardTransient` (EIP-1153
+transient storage). `ReentrancyGuardUpgradeable` was removed from OpenZeppelin Contracts Upgradeable
+v5.7.0; the transient variant is storage-free and therefore proxy safe.
 
 
 #### Gasless support
 
-> The gasless integration was not part of the audit performed by ABDK on the version [1.0.1](https://github.com/CMTA/RuleEngine/releases/tag/1.0.1)
+> The gasless integration was not part of the audit performed by ABDK on the version
+> [1.0.1](https://github.com/CMTA/RuleEngine/releases/tag/1.0.1)
 
-The `IncomeVault` contract supports client-side gasless transactions using the [Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard for transfering fee payment to another account than that of the transaction issuer. The contract uses the CMTAT `ERC2771Module`, a thin wrapper around the OpenZeppelin contract `ERC2771ContextUpgradeable`, which allows a contract to get the original client with `_msgSender()` instead of the fee payer given by `msg.sender` .
+The `IncomeVault` contract supports client-side gasless transactions using the
+[Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard
+for transfering fee payment to another account than that of the transaction issuer. The contract
+uses the CMTAT `ERC2771Module`, a thin wrapper around the OpenZeppelin contract
+`ERC2771ContextUpgradeable`, which allows a contract to get the original client with `_msgSender()`
+instead of the fee payer given by `msg.sender` .
 
-At deployment, the parameter  `forwarder` inside the contract constructor has to be set  with the defined address of the forwarder. Please note that the forwarder can not be changed after deployment.
+At deployment, the parameter `forwarder` inside the contract constructor has to be set with the
+defined address of the forwarder. Please note that the forwarder can not be changed after
+deployment.
 
-Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
+Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call)
+for more details on what is done to support GSN in the contract.
 
 **Gasless support is a deployment decision, not a property of the distribution logic.**
 `IncomeVaultBase` states what the vault does and knows nothing about forwarders;
 `IncomeVaultBaseERC2771` adds the ERC-2771 context on top of it and resolves the
-`ERC2771ContextUpgradeable` / `ContextUpgradeable` diamond. Both shipped deployments inherit the latter,
-so they behave exactly as described above. A deployment that does not want a trusted forwarder inherits
-`IncomeVaultBase` directly and carries none of the machinery — not an immutable forwarder address, not
-the calldata-suffix handling, not the `isTrustedForwarder` entry point. Before this split the only way
-to decline was to pass the zero address and pay for it anyway.
+`ERC2771ContextUpgradeable` / `ContextUpgradeable` diamond. Both shipped deployments inherit the
+latter, so they behave exactly as described above. A deployment that does not want a trusted
+forwarder inherits `IncomeVaultBase` directly and carries none of the machinery — not an immutable
+forwarder address, not the calldata-suffix handling, not the `isTrustedForwarder` entry point.
+Before this split the only way to decline was to pass the zero address and pay for it anyway.
 
-This matters beyond taste: **a trusted forwarder can name any `_msgSender()`**, so it is as privileged
-as every role behind it. A deployment with no need for meta-transactions should not carry one.
+This matters beyond taste: **a trusted forwarder can name any `_msgSender()`**, so it is as
+privileged as every role behind it. A deployment with no need for meta-transactions should not carry
+one.
 
 ### Schema
 
