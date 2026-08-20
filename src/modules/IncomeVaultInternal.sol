@@ -340,7 +340,6 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     /* ============ ERC-7201 ============ */
     /**
     * @dev Returns the ERC-7201 namespaced storage of the IncomeVault
-    * @return $ the storage struct
     */
     function _getIncomeVaultInternalStorage() internal pure returns (IncomeVaultInternalStorage storage $) {
         assembly {

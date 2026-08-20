@@ -199,6 +199,14 @@ forge lint
   handling are unchanged. A deployment that does not want a trusted forwarder now inherits
   `IncomeVaultBase` directly and carries none of the machinery, where previously declining meant passing
   the zero address and paying for it anyway. Finding M-8 of `IMPROVEMENT_MODULARITY.md`.
+- `doc/solidityAPI/index.md` is regenerated from the current contracts (8,737 -> 76,812 bytes); it had
+  described the pre-CMTAT-v3 architecture. `npx hardhat docgen` now writes straight to
+  `doc/solidityAPI` via `docgen.outputDir`, instead of into `docs/` for a manual move. Two blockers had
+  to go first: `solidity-docgen` aborts on a `@return` naming the `$` ERC-7201 storage accessor, so
+  those four tags are removed (OpenZeppelin leaves the accessors undocumented); and `hardhat.config.js`
+  declared `settings` at the top level where Hardhat ignores it, so docgen compiled without the
+  optimizer and reported a spurious contract-size warning. Documentation and tooling only, no contract
+  behaviour change. Finding D-2 of `CLAUDE_IMPROVEMENT.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

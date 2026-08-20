@@ -99,7 +99,6 @@ abstract contract IncomeVaultOperatorModule is ContextUpgradeable, IncomeVaultIn
     /* ============ ERC-7201 ============ */
     /**
     * @dev Returns the ERC-7201 namespaced storage of this module
-    * @return $ the storage struct
     */
     function _getOperatorStorage() internal pure returns (OperatorStorage storage $) {
         assembly {

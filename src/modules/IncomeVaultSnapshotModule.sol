@@ -145,7 +145,6 @@ abstract contract IncomeVaultSnapshotModule is IncomeVaultSnapshotCore, IncomeVa
     /* ============ ERC-7201 ============ */
     /**
     * @dev Returns the ERC-7201 namespaced storage of this module
-    * @return $ the storage struct
     */
     function _getSnapshotSourceStorage() internal pure returns (SnapshotSourceStorage storage $) {
         assembly {
