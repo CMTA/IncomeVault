@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
+import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**
 * @title Internal functions and ERC-7201 storage of the IncomeVault
@@ -20,23 +21,11 @@ import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 * CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
 * inherited modules; no `__gap` is needed and new fields can be appended to the struct freely.
 */
-abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Operator {
+abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Operator, IIncomeVault {
     // Manage transfer failure
     using SafeERC20 for IERC20;
 
     /* ============ Type declarations ============ */
-    /**
-    * @notice Why a dividend time is not claimable, or `OK`
-    * @dev Shared by the holder-driven claims ({IncomeVaultOpen}) and the issuer-driven distribution
-    * ({IncomeVaultRestricted}) so both apply the same window.
-    */
-    enum TIME_ERROR_CODE {
-        OK,
-        CLAIM_NOT_ACTIVATED,
-        TOO_LATE_TO_WITHDRAW,
-        TOO_EARLY_TO_WITHDRAW
-    }
-
     /* ============ ERC-7201 ============ */
     /**
     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as

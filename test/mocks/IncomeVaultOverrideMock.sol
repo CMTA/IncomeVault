@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.24;
 
+import {IIncomeVault} from "../../src/interfaces/IIncomeVault.sol";
 import {IncomeVault} from "../../src/IncomeVault.sol";
+import {IncomeVaultOpen} from "../../src/public/IncomeVaultOpen.sol";
 
 /**
 * @title Compile-time guard for the `virtual` convention on the claim entrypoints
@@ -16,12 +18,12 @@ contract IncomeVaultOverrideMock is IncomeVault {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address forwarderIrrevocable) IncomeVault(forwarderIrrevocable) {}
 
-    function claimDividend(uint256 time) public virtual override {
+    function claimDividend(uint256 time) public virtual override(IIncomeVault, IncomeVaultOpen) {
         ++claimCount;
         super.claimDividend(time);
     }
 
-    function validateTimeCode(uint256 time) public view virtual override returns (TIME_ERROR_CODE) {
+    function validateTimeCode(uint256 time) public view virtual override(IIncomeVault, IncomeVaultOpen) returns (TIME_ERROR_CODE) {
         return super.validateTimeCode(time);
     }
 }

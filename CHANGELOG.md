@@ -169,6 +169,15 @@ forge lint
   `IncomeVault_SnapshotEngineWithAddressZeroNotAllowed` to
   `IncomeVault_SnapshotSourceWithAddressZeroNotAllowed`. `initialize` is unchanged.
   Finding M-2 of `IMPROVEMENT_MODULARITY.md`.
+- `IIncomeVault` (`src/interfaces/IIncomeVault.sol`) states the distribution API — claiming, funding,
+  pushing payouts, claim administration and the state getters — so an integrator imports one interface
+  instead of a concrete contract and its whole dependency graph. It is inherited by
+  `IncomeVaultInternal`, the common base of both payout paths, so the compiler keeps it in step with the
+  implementation, and both deployment variants advertise its id through `supportsInterface`. The enum
+  `TIME_ERROR_CODE` moved from `IncomeVaultInternal` to `IIncomeVault`: it is the return type of
+  `validateTimeCode` and therefore part of the stated API. Its ABI encoding (`uint8`) is unchanged; only
+  the qualified Solidity name moves. ERC-7540's operator id is still deliberately not advertised.
+  Finding M-7 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

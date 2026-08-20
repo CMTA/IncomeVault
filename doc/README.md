@@ -576,6 +576,29 @@ would leave the contract unable to pay the amount it recorded at `deposit`, turn
 contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who
 absorbs a shortfall — a materially larger design than the one this prototype implements.
 
+## The stated API: `IIncomeVault`
+
+`src/interfaces/IIncomeVault.sol` declares everything an integrator calls — claiming, funding, pushing
+payouts, claim administration, and the state getters — so a caller imports one interface rather than a
+concrete contract and the whole graph behind it (CMTAT, the RuleEngine, the upgrade plumbing).
+
+It is inherited by `IncomeVaultInternal`, the common base of both payout paths, so **the compiler**
+keeps it in step with the implementation rather than a convention doing it. That also means an embedded
+host presents the same API as the standalone vault — the two deployments are one interface, not two.
+
+Both deployment variants advertise `type(IIncomeVault).interfaceId` through `supportsInterface`.
+
+Three things are deliberately outside it:
+
+| Left out | Why |
+| --- | --- |
+| `setOperator` / `isOperator`, and the signed variant | They belong to `IERC7540Operator` and `IERC7741`, implemented alongside. Restating a standardised name would fork it. |
+| `transferDividendSelf` | `public` only because `try`/`catch` needs an external call; it rejects every caller but the contract itself. |
+| Pause, freeze, `setRuleEngine`, the snapshot setter | Those belong to the standalone deployment's own modules, not to the distribution API an embedded host implements. |
+
+The enum `TIME_ERROR_CODE` lives on the interface, because `validateTimeCode` returns it: a caller
+holding only the interface must be able to interpret the answer.
+
 ## Embedding the distribution logic in a token
 
 `IncomeVault` is the standalone answer: a separate contract holding the payment token, reading balances

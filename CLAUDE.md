@@ -43,6 +43,12 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `__IncomeVaultBase_init_unchained`; bumping it with a release would invalidate every ERC-7741
   signature already issued. ERC-7741's id `0xa9e50872` **is** advertised through `supportsInterface`
   (the standard requires it) — unlike ERC-7540's operator id, which is not.
+- **`IIncomeVault` is the stated API and is compiler-enforced.** It is inherited by
+  `IncomeVaultInternal`, the common base of both payout paths, so every deployable *and* any embedded
+  host implements it — add a public function to the distribution surface and you add it here too. It
+  owns the `TIME_ERROR_CODE` enum, because `validateTimeCode` returns it. Keep it inheriting **nothing**:
+  `type(...).interfaceId` covers only directly-declared selectors, and both deployment variants
+  advertise that id.
 - **Claim delegation reuses ERC-7540's operator signatures exactly.** `IERC7540Operator` must keep
   `type(...).interfaceId == 0xe3bc4e65`; a test asserts it. Do **not** add that id to
   `supportsInterface` — the vault is not an asynchronous vault and must not advertise as one.
@@ -130,6 +136,8 @@ src/
 │   └── IncomeVaultRestricted.sol          # Role-gated: deposit, withdraw, withdrawAll, distributeDividend,
 │                                          #   setStatusClaim, setTimeLimitToWithdraw
 ├── interfaces/
+│   ├── IIncomeVault.sol                   # The stated distribution API + the TIME_ERROR_CODE enum;
+│   │                                      #   inherited by IncomeVaultInternal so solc enforces it
 │   ├── ISnapshotSource.sol                # The 3 snapshot functions the vault calls — subset of ISnapshotState
 │   ├── IERC7540Operator.sol               # The ERC-7540 operator subset, verbatim; id MUST stay 0xe3bc4e65
 │   └── IERC7741.sol                       # Signed operator authorisation; id MUST stay 0xa9e50872
@@ -155,6 +163,8 @@ test/
 ├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
 ├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings, incl. the
 │                                          #   push/pull claim-window parity (H-1) and restrictions (H-2)
+├── IncomeVaultInterface.t.sol             # M-7: drive a proxy through IIncomeVault alone, ERC-165 id,
+│                                          #   embedded hosts present the same interface
 ├── SnapshotSource.t.sol                   # I-1: a 3-function source is enough; the real engine still fits
 ├── SetDividendSnapshotSource.t.sol        # M-2 setter: gated on openClaimCount() == 0, zero-address, event
 ├── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock

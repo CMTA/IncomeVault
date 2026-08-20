@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IERC7741} from "./interfaces/IERC7741.sol";
+import {IIncomeVault} from "./interfaces/IIncomeVault.sol";
 /* ==== CMTAT === */
 import {AccessControlModule} from "CMTAT/modules/wrapper/security/AccessControlModule.sol";
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
@@ -91,7 +92,8 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
         override(AccessControlUpgradeable)
         returns (bool)
     {
-        return interfaceId == type(IERC7741).interfaceId || AccessControlUpgradeable.supportsInterface(interfaceId);
+        return interfaceId == type(IIncomeVault).interfaceId || interfaceId == type(IERC7741).interfaceId
+            || AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
     /* ============ ERC-2771 / Context disambiguation ============ */

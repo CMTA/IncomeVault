@@ -21,6 +21,7 @@ import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
 import {IERC7741} from "./interfaces/IERC7741.sol";
+import {IIncomeVault} from "./interfaces/IIncomeVault.sol";
 
 /**
 * @title Income Vault to distribute dividends — single-owner deployment
@@ -92,7 +93,8 @@ contract IncomeVaultOwnable2Step is
         override(Ownable2StepERC165Module)
         returns (bool)
     {
-        return interfaceId == type(IERC7741).interfaceId || Ownable2StepERC165Module.supportsInterface(interfaceId);
+        return interfaceId == type(IIncomeVault).interfaceId || interfaceId == type(IERC7741).interfaceId
+            || Ownable2StepERC165Module.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

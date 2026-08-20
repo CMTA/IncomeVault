@@ -29,7 +29,7 @@ headline finding; everything else is smaller.
 | M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | ❌ **not a defect** — one slot, one capability |
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | medium (legibility) |
 | M-6 | One monolithic storage namespace covering four unrelated concerns | medium |
-| M-7 | No interface describes the vault's own API | low |
+| M-7 | No interface describes the vault's own API | ✅ **fixed** |
 | M-8 | `IncomeVaultBase` bundles ERC-2771, which a host already has | low |
 | M-9 | Split `IncomeVaultValidationModule` so an embedded copy reuses CMTAT's RuleEngine | ❌ **already the case** — shared constant slot |
 
@@ -491,14 +491,42 @@ that wants only the distribution still inherits the operator state, and vice ver
 namespaces are hash-derived and cannot collide, so splitting costs nothing but is impossible to do
 later without breaking deployed storage.
 
-## M-7. No interface for the vault's own API — low
+## M-7. No interface for the vault's own API — ✅ **fixed**
 
-There is no `IIncomeVault`. An integrator wanting to call `deposit`/`claimDividend`/`distributeDividend`
-must import the concrete contract and inherit its whole dependency graph.
+There was no `IIncomeVault`. An integrator wanting to call `deposit`/`claimDividend`/`distributeDividend`
+had to import the concrete contract and inherit its whole dependency graph.
 
-**Proposed change:** declare `IIncomeVault` alongside the two standard interfaces, and have the
-deployable contracts implement it. Cheap, and it makes the ABI a stated contract rather than a
-by-product.
+### What was implemented
+
+`src/interfaces/IIncomeVault.sol` — 23 functions covering claiming, the claim window, funding, pushed
+payouts, claim administration and the state getters, plus the `TIME_ERROR_CODE` enum.
+
+**It is inherited by `IncomeVaultInternal`, not merely declared beside the code.** That was the design
+decision worth making. A standalone interface can drift silently from the implementation, which defeats
+the stated purpose of making the ABI a contract rather than a by-product. Attaching it to the common
+base of both payout paths means the compiler proves conformance — for both deployment variants *and* for
+any host embedding the distribution logic, since both reach `IncomeVaultInternal`.
+
+Two consequences worth recording:
+
+- **The enum moved.** `TIME_ERROR_CODE` was declared on `IncomeVaultInternal`; having the interface
+  reference it there created an import cycle (`IIncomeVault` → `IncomeVaultInternal` → `IIncomeVault`),
+  which compiles until a second file imports both and then fails with `Error (2449)`. Moving it to the
+  interface breaks the cycle and is the better home anyway: `validateTimeCode` returns it, so a caller
+  holding only the interface must be able to read it. ABI encoding (`uint8`) is unchanged.
+- **ERC-165.** Both variants now advertise `type(IIncomeVault).interfaceId`, so the interface is
+  discoverable and not merely documented. `IIncomeVault` inherits nothing, so the id covers all 23
+  selectors — keep it that way. ERC-7540's operator id remains deliberately unadvertised, and a test
+  asserts that, because adding one id is exactly the edit that invites adding the other.
+
+### Deliberately out of scope
+
+`setOperator`/`isOperator` (they are `IERC7540Operator`'s), `transferDividendSelf` (a self-call helper
+that rejects every other caller), and the standalone-only surface — pause, freeze, `setRuleEngine`,
+`setDividendSnapshotSource` — which an embedded host does not have and must not be forced to implement.
+
+`test/IncomeVaultInterface.t.sol` drives a real proxy through the interface alone, checks the id on both
+variants, and asserts both host mocks present the same interface. 210 tests pass.
 
 ## M-8. `IncomeVaultBase` bundles ERC-2771 — low
 
@@ -520,7 +548,7 @@ exactly like the access-control model.
    is the correct answer; prefixing ours was implemented and reverted. **M-8** remains. M-3 is closed: the host overrides
    `version()`, which is also how the embedded IncomeVault release stays visible in the host's source.
 5. **M-6** — do it before the first deployment carrying real value; it cannot be done afterwards.
-6. **M-7** — any time.
+6. ~~**M-7**~~ ✅ done — `IIncomeVault`, inherited by `IncomeVaultInternal` so solc enforces it.
 
 ## What "done" looks like — ✅ reached
 
