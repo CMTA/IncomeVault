@@ -16,11 +16,11 @@ This is the **second** pass. The first is [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYS
 | E-1 | Three core internal functions are not `virtual` while five siblings in the same file are | ⬜ reported, not applied |
 | G-1 | Three production comments point at `doc/` paths that have already moved twice | ⬜ reported, not applied |
 | G-2 | NatSpec block length | ⬜ **no change needed** — measured; corrects a worry raised during development |
-| H-1 | `detectTransferRestriction` answers 0 for a payout that `canTransfer` rejects | ⬜ reported, not applied |
+| H-1 | `detectTransferRestriction` answers 0 for a payout that `canTransfer` rejects | ✅ **fixed** |
 | I-1 | The vault demands `IRuleEngine`, whose `transferred` it must never call | ⬜ **keep as is** — the reason is recorded so it is not re-opened |
 | J-1 | Modularity | ⬜ already covered exhaustively elsewhere; not duplicated here |
 
-Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six are recommendations. **None has been applied** — this pass produces the report; applying is a separate decision.
+Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **H-1 has since been implemented**; the rest are still open decisions.
 
 ## Outstanding, carried from the first pass
 
@@ -237,7 +237,15 @@ Returning `TRANSFER_REJECTED_PAUSED` when paused and `TRANSFER_REJECTED_FROM_FRO
 
 **One honest limit:** the vault does **not** advertise `IERC1404` through `supportsInterface` and does not inherit it, so it is not claiming ERC-1404 conformance today. That lowers the severity — but the function carries the ERC-1404 name and signature, and no integrator reads a `supportsInterface` result before trusting a function that is right there.
 
-**Verdict: implement**, and while doing so decide whether `messageForTransferRestriction` should answer for the new codes too — it currently returns `"No restriction"` for **every** code when no RuleEngine is set, including codes that mean something.
+**Verdict: implement.** ✅ **Done.**
+
+`detectTransferRestriction` now evaluates deactivation, pause, either party frozen, then the RuleEngine — the same order and the same conditions as `canTransfer` — returning CMTAT's `REJECTED_CODE_BASE` codes. Deactivation is tested before pause because deactivating requires the pause state, so the more specific code wins.
+
+`messageForTransferRestriction` was fixed in the same change, and it needed it: it answered `"No restriction"` for **every** code when no RuleEngine was set, including codes that mean something. It now answers for each code the vault can issue, delegates anything else to the RuleEngine, and returns `"UnknownCode"` when there is no RuleEngine to ask. The strings are CMTAT's `ValidationModuleERC1404` verbatim (`EnforcedPause`, `AddrFromIsFrozen`, …), so an operator console written against a CMTAT reads a payout refusal exactly as it reads a transfer refusal.
+
+**`canTransfer` was deliberately left calling `ruleEngine_.canTransfer` rather than being rewritten as `detectTransferRestriction(...) == 0`.** The latter would make agreement structural instead of tested, which is tempting — but it changes *which* RuleEngine entry point the payout path calls on every claim. A third-party engine is free to implement the two differently, so that is a behaviour change against an external contract in exchange for tidiness. Agreement is pinned by a test instead.
+
+`test/TransferRestrictionCode.t.sol`, 6 tests. **Verified the guards guard:** reverting `detectTransferRestriction` to the RuleEngine-only body fails three of them with `0 != 2`, `0 != 4` and `0 != 1` — the exact defect; reverting the message half fails the other two with `No restriction != EnforcedPause`. One existing test, `EdgeCases.testErc1404ViewsWithoutARuleEngine`, was asserting the old strings and was updated: it had been pinning the defect.
 
 ## I. Interface granularity
 

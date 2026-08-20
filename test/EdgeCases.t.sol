@@ -78,8 +78,10 @@ contract EdgeCasesTest is HelperContract {
     function testErc1404ViewsWithoutARuleEngine() public view {
         assertEq(address(incomeVault.ruleEngine()), ZERO_ADDRESS);
         assertEq(incomeVault.detectTransferRestriction(address(incomeVault), ADDRESS1, 100), 0);
-        assertEq(incomeVault.messageForTransferRestriction(0), "No restriction");
-        assertEq(incomeVault.messageForTransferRestriction(42), "No restriction");
+        assertEq(incomeVault.messageForTransferRestriction(0), "NoRestriction");
+        // A code the vault never issues, with no RuleEngine to ask. This used to answer
+        // "No restriction" for *every* code, including ones that mean something (H-1).
+        assertEq(incomeVault.messageForTransferRestriction(42), "UnknownCode");
         // and the payout is allowed
         assertEq(incomeVault.canTransfer(address(incomeVault), ADDRESS1, 100), true);
     }

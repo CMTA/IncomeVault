@@ -8,6 +8,7 @@ import {EnforcementModule} from "CMTAT/modules/wrapper/core/EnforcementModule.so
 import {ValidationModuleRuleEngineInternal} from "CMTAT/modules/internal/ValidationModuleRuleEngineInternal.sol";
 /* ==== CMTAT engine === */
 import {IRuleEngine, IRuleEngineERC1404} from "CMTAT/interfaces/engine/IRuleEngine.sol";
+import {IERC1404Extend} from "CMTAT/interfaces/tokenization/draft-IERC1404.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "../storage/IncomeVaultInvariantStorage.sol";
 import {IncomeVaultValidationCore} from "./IncomeVaultValidationCore.sol";
@@ -34,6 +35,25 @@ abstract contract IncomeVaultValidationModule is
     ValidationModuleRuleEngineInternal,
     IncomeVaultInvariantStorage
 {
+    /* ============ State variables ============ */
+    /**
+    * @dev Human-readable answers for {messageForTransferRestriction}. The strings are CMTAT's
+    * (`ValidationModuleERC1404`) verbatim, so an operator console written against a CMTAT reads a
+    * payout refusal exactly as it reads a transfer refusal. The codes are CMTAT's
+    * `REJECTED_CODE_BASE`, for the same reason.
+    */
+    string internal constant TEXT_TRANSFER_OK = "NoRestriction";
+    /// @dev Returned when no configured source claims the code
+    string internal constant TEXT_UNKNOWN_CODE = "UnknownCode";
+    /// @dev The vault is paused
+    string internal constant TEXT_TRANSFER_REJECTED_PAUSED = "EnforcedPause";
+    /// @dev The vault has been permanently deactivated
+    string internal constant TEXT_TRANSFER_REJECTED_DEACTIVATED = "ContractDeactivated";
+    /// @dev The paying address is frozen
+    string internal constant TEXT_TRANSFER_REJECTED_FROM_FROZEN = "AddrFromIsFrozen";
+    /// @dev The receiving token holder is frozen
+    string internal constant TEXT_TRANSFER_REJECTED_TO_FROZEN = "AddrToIsFrozen";
+
     /* ============ Modifier ============ */
     /// @dev Restricts the management of the RuleEngine
     modifier onlyRuleEngineManager() {
@@ -103,9 +123,15 @@ abstract contract IncomeVaultValidationModule is
     }
 
     /**
-    * @notice ERC-1404 restriction code returned by the RuleEngine for a payout from the vault.
-    * @dev Returns `0` (no restriction) when no RuleEngine is set. The pause and freeze states are
-    * not reflected here, only the rules: use {canTransfer} for the complete answer.
+    * @notice ERC-1404 restriction code for a payout from the vault, or `0` when it would be accepted.
+    * @dev Answers for the **whole** payout decision, in the same order {canTransfer} evaluates it:
+    * deactivation, pause, either party frozen, then the RuleEngine. The codes are CMTAT's
+    * `REJECTED_CODE_BASE`, so a caller written against a CMTAT reads them unchanged.
+    *
+    * This returns `0` exactly when {canTransfer} returns true. It used to consult only the RuleEngine,
+    * so a paused vault or a frozen holder was reported as unrestricted and the claim then reverted —
+    * finding H-1 of `CLAUDE_ANALYSIS_SECOND.md`. `test/TransferRestrictionCode.t.sol` asserts the two
+    * views agree.
     * @param from the address sending the payment, always the vault itself
     * @param to the token holder receiving the dividends
     * @param value the amount of payment token
@@ -116,9 +142,22 @@ abstract contract IncomeVaultValidationModule is
         address to,
         uint256 value
     ) public view virtual returns (uint8) {
+        // Deactivation implies pause, so the more specific code is tested first.
+        if(PauseModule.deactivated()){
+            return uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_DEACTIVATED);
+        }
+        if(PauseModule.paused()){
+            return uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_PAUSED);
+        }
+        if(EnforcementModule.isFrozen(from)){
+            return uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_FROM_FROZEN);
+        }
+        if(EnforcementModule.isFrozen(to)){
+            return uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_TO_FROZEN);
+        }
         IRuleEngine ruleEngine_ = ruleEngine();
         if(address(ruleEngine_) == address(0)){
-            return 0;
+            return uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_OK);
         }
         return IRuleEngineERC1404(address(ruleEngine_)).detectTransferRestriction(from, to, value);
     }
@@ -131,9 +170,27 @@ abstract contract IncomeVaultValidationModule is
     function messageForTransferRestriction(
         uint8 restrictionCode
     ) public view virtual returns (string memory) {
+        if(restrictionCode == uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_OK)){
+            return TEXT_TRANSFER_OK;
+        }
+        if(restrictionCode == uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_DEACTIVATED)){
+            return TEXT_TRANSFER_REJECTED_DEACTIVATED;
+        }
+        if(restrictionCode == uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_PAUSED)){
+            return TEXT_TRANSFER_REJECTED_PAUSED;
+        }
+        if(restrictionCode == uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_FROM_FROZEN)){
+            return TEXT_TRANSFER_REJECTED_FROM_FROZEN;
+        }
+        if(restrictionCode == uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_TO_FROZEN)){
+            return TEXT_TRANSFER_REJECTED_TO_FROZEN;
+        }
         IRuleEngine ruleEngine_ = ruleEngine();
         if(address(ruleEngine_) == address(0)){
-            return "No restriction";
+            // The vault answers for its own codes above; anything else could only have come from a
+            // RuleEngine, and there is none. Saying "no restriction" here would repeat the defect
+            // this function's siblings were fixed for.
+            return TEXT_UNKNOWN_CODE;
         }
         return IRuleEngineERC1404(address(ruleEngine_)).messageForTransferRestriction(restrictionCode);
     }

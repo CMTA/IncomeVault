@@ -189,7 +189,7 @@ A claim is considered as a transfer from the contract to the sender (token holde
 
 If any of them refuses the transfer, the function reverts with `IncomeVault_InvalidTransfer(from, to, value)`.
 
-The public view `canTransfer(from, to, value)` returns the same answer without reverting, and `detectTransferRestriction` / `messageForTransferRestriction` forward the ERC-1404 introspection to the RuleEngine.
+The public view `canTransfer(from, to, value)` returns the same answer without reverting. `detectTransferRestriction` answers for the **whole** decision in the same order — deactivation, pause, either party frozen, then the RuleEngine — so it returns `0` exactly when `canTransfer` is true, and `messageForTransferRestriction` explains each code. Both use CMTAT's `REJECTED_CODE_BASE` numbering and CMTAT's message strings, so a console written against a CMTAT reads a refused payout exactly as it reads a refused transfer.
 
 ### Freezing the vault itself
 

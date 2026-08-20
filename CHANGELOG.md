@@ -211,6 +211,13 @@ forge lint
   `IncomeVaultRestricted`, the latter left over from finding M-2. Found by Aderyn; re-running it took
   L-9 from 6 instances to 4, the remaining four being `@inheritdoc` false positives. No bytecode change
   — an unused import contributes no code.
+- `detectTransferRestriction` now reports the whole payout decision instead of only the RuleEngine's
+  part. A paused vault, a deactivated vault or a frozen party used to be reported as unrestricted while
+  `canTransfer` returned false and the claim reverted, so the two views on one contract disagreed and
+  the one carrying the ERC-1404 name was wrong. It returns CMTAT's `REJECTED_CODE_BASE` codes.
+  `messageForTransferRestriction` answers for each of those codes with CMTAT's own strings, and returns
+  `UnknownCode` rather than `No restriction` for a code it cannot explain. Finding H-1 of
+  `CLAUDE_ANALYSIS_SECOND.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.
