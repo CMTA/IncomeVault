@@ -13,6 +13,7 @@ import {ERC2771Module} from "CMTAT/modules/wrapper/options/ERC2771Module.sol";
 import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultValidationCore} from "./modules/IncomeVaultValidationCore.sol";
+import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
 import {IncomeVaultOpen} from "./public/IncomeVaultOpen.sol";
 import {VersionModule} from "./modules/VersionModule.sol";
@@ -30,30 +31,36 @@ import {VersionModule} from "./modules/VersionModule.sol";
 * contract, so the same logic ships role-based ({IncomeVault}) or single-owner
 * ({IncomeVaultOwnable2Step}) — and can be embedded in a host that answers them from its own modules.
 */
-abstract contract IncomeVaultBase is IncomeVaultValidationCore, Initializable, ContextUpgradeable, VersionModule, IncomeVaultRestricted, IncomeVaultOpen, ERC2771Module {
-
+abstract contract IncomeVaultBase is
+    IncomeVaultValidationCore,
+    Initializable,
+    ContextUpgradeable,
+    VersionModule,
+    IncomeVaultSnapshotModule,
+    IncomeVaultRestricted,
+    IncomeVaultOpen,
+    ERC2771Module
+{
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
     */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address forwarderIrrevocable
-    ) ERC2771Module(forwarderIrrevocable) {}
+    constructor(address forwarderIrrevocable) ERC2771Module(forwarderIrrevocable) {}
 
     /* ============  Initializer Function ============ */
     /**
     * @dev calls the initialize functions of the policy-agnostic modules
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
+    * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function __IncomeVaultBase_init_unchained(
         IERC20 ERC20TokenPayment_,
-        ISnapshotSource snapshotEngine_,
+        ISnapshotSource snapshotSource_,
         uint256 timeLimitToWithdraw_
     ) internal onlyInitializing {
         _setERC20TokenPayment(ERC20TokenPayment_);
-        _setSnapshotEngine(snapshotEngine_);
+        _setDividendSnapshotSource(snapshotSource_);
 
         // EIP-712 domain for the ERC-7741 signed operator authorisations. The version stays "1"
         // across releases on purpose: bumping it would invalidate every signature already issued.
@@ -64,7 +71,7 @@ abstract contract IncomeVaultBase is IncomeVaultValidationCore, Initializable, C
     /*//////////////////////////////////////////////////////////////
                             INTERNAL/PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    /** 
+    /**
     * @dev This surcharge is not necessary if you do not use the ERC2771Module
     * @return sender The transaction sender, unwrapped from the forwarder calldata when relayed.
     */
@@ -78,7 +85,7 @@ abstract contract IncomeVaultBase is IncomeVaultValidationCore, Initializable, C
         return ERC2771ContextUpgradeable._msgSender();
     }
 
-    /** 
+    /**
     * @dev This surcharge is not necessary if you do not use the ERC2771Module
     * @return The transaction calldata, with the appended sender stripped when relayed.
     */
@@ -96,9 +103,13 @@ abstract contract IncomeVaultBase is IncomeVaultValidationCore, Initializable, C
     * @dev This surcharge is not necessary if you do not use the ERC2771Module
     * @return The length of the ERC-2771 calldata suffix.
     */
-    function _contextSuffixLength() internal view virtual
-    override(ERC2771ContextUpgradeable, ContextUpgradeable)
-    returns (uint256) {
-         return ERC2771ContextUpgradeable._contextSuffixLength();
+    function _contextSuffixLength()
+        internal
+        view
+        virtual
+        override(ERC2771ContextUpgradeable, ContextUpgradeable)
+        returns (uint256)
+    {
+        return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 }

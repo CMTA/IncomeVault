@@ -7,9 +7,8 @@ import {MinimalSnapshotSourceMock} from "./mocks/MinimalSnapshotSourceMock.sol";
 /**
 * @title Replacing the snapshot source — finding A-3
 */
-contract SetSnapshotEngineTest is HelperContract {
+contract SetDividendSnapshotSourceTest is HelperContract {
     MinimalSnapshotSourceMock newSource;
-
 
     function setUp() public {
         _deployContracts();
@@ -67,9 +66,9 @@ contract SetSnapshotEngineTest is HelperContract {
 
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_ClaimPeriodOpen.selector, 1));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
 
-        assertEq(address(incomeVault.snapshotEngine()), address(snapshotEngine));
+        assertEq(address(incomeVault.dividendSnapshotSource()), address(snapshotEngine));
     }
 
     function testCanReplaceTheSourceOnceEveryPeriodIsClosed() public {
@@ -79,50 +78,49 @@ contract SetSnapshotEngineTest is HelperContract {
         incomeVault.setStatusClaim(defaultSnapshotTime, false);
 
         vm.expectEmit(true, false, false, false);
-        emit SnapshotEngineSet(ISnapshotSource(address(newSource)));
+        emit DividendSnapshotSourceSet(ISnapshotSource(address(newSource)));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
 
-        assertEq(address(incomeVault.snapshotEngine()), address(newSource));
+        assertEq(address(incomeVault.dividendSnapshotSource()), address(newSource));
     }
 
     function testCannotReplaceWithTheSameSource() public {
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_SameValue.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.setSnapshotEngine(ISnapshotSource(address(snapshotEngine)));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(address(snapshotEngine)));
     }
 
     function testCannotReplaceWithTheZeroAddress() public {
-        vm.expectRevert(abi.encodeWithSelector(IncomeVault_SnapshotEngineWithAddressZeroNotAllowed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_SnapshotSourceWithAddressZeroNotAllowed.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.setSnapshotEngine(ISnapshotSource(ZERO_ADDRESS));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(ZERO_ADDRESS));
     }
 
     /* ============ access control, both variants ============ */
     function testAttackerCannotReplaceTheSourceRoleVariant() public {
-        vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
         vm.prank(ATTACKER);
-        incomeVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
     }
 
     function testAttackerCannotReplaceTheSourceOwnableVariant() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", ATTACKER));
         vm.prank(ATTACKER);
-        ownableVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
+        ownableVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
     }
 
     function testOwnerCanReplaceTheSource() public {
         vm.prank(OWNER);
-        ownableVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
-        assertEq(address(ownableVault.snapshotEngine()), address(newSource));
+        ownableVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
+        assertEq(address(ownableVault.dividendSnapshotSource()), address(newSource));
     }
 
     /* ============ the replacement is actually used ============ */
     function testClaimsUseTheNewSourceAfterTheSwap() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.setSnapshotEngine(ISnapshotSource(address(newSource)));
+        incomeVault.setDividendSnapshotSource(ISnapshotSource(address(newSource)));
 
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(defaultSnapshotTime, true);

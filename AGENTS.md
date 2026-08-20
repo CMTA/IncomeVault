@@ -46,7 +46,9 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
 - **Claim delegation reuses ERC-7540's operator signatures exactly.** `IERC7540Operator` must keep
   `type(...).interfaceId == 0xe3bc4e65`; a test asserts it. Do **not** add that id to
   `supportsInterface` — the vault is not an asynchronous vault and must not advertise as one.
-- **Snapshot source** — `snapshotEngine` (`ISnapshotSource`), set at initialization, never zero.
+- **Snapshot source** — reached through the three hooks of `IncomeVaultSnapshotCore`, never a direct
+  call. `IncomeVaultSnapshotModule` is the standalone answer: an `ISnapshotSource` set at initialization,
+  never zero, exposed by `dividendSnapshotSource()` and stored in its **own** ERC-7201 namespace.
   `ISnapshotSource` (`src/interfaces/ISnapshotSource.sol`) declares exactly the three functions the vault
   calls — a strict subset of the SnapshotEngine's `ISnapshotState`, signatures verbatim, so every
   `ISnapshotState` implementation satisfies it. **Do not add an ERC-165 guard on it**: the canonical
@@ -66,7 +68,7 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   Never bound a sweep by `segregatedDividend` alone — that let a fully-claimed period drain another
   period's funds.
 - **`_setStatusClaim` is idempotent and owns `_openClaimCount`.** It is the only writer of the claim
-  status; a repeated write returns early so the counter stays exact. `setSnapshotEngine` depends on
+  status; a repeated write returns early so the counter stays exact. `setDividendSnapshotSource` depends on
   that counter reaching zero, so any new path that changes a claim status must go through it.
 - **Pro-rata formula** — `senderDividend = (senderBalance * segregatedDividend[time]) / tokenTotalSupply`,
   rounded down. Dust stays in the vault; the issuer withdraws it after `timeLimitToWithdraw`.
@@ -82,7 +84,10 @@ ERC-20), a token embedding the snapshot modules, or a custom implementation.
   `IncomeVaultValidationCore` (the `_validateTransfer` question) — never `IncomeVaultValidationModule`
   (one answer). The module is inherited by the **deployment** contracts, like the access-control base.
   Re-coupling them makes the logic unembeddable in any CMTAT: C3 fails with `Error (5005)`, which no
-  override can repair. `test/mocks/EmbeddedDividendHostMock.sol` is the compile-time guard.
+  override can repair. Same rule for the snapshot side: they inherit `IncomeVaultSnapshotCore` (the
+  three questions) — never `IncomeVaultSnapshotModule` (one answer). `test/mocks/` holds the two
+  compile-time guards: `EmbeddedDividendHostMock.sol` (a non-CMTAT host) and `CMTATDividendHostMock.sol`
+  (a `CMTATUpgradeableInternalSnapshot` paying its own dividends).
 - **`ReentrancyGuardTransient` is listed last** in the payout paths, matching CMTAT's ordering. Moving
   it earlier reintroduces the same unresolvable linearization failure.
 - **Transfer restriction** — every payout, pull (`claimDividend`) **and** push (`distributeDividend`),
@@ -115,6 +120,9 @@ src/
 │   ├── IncomeVaultValidationCore.sol      # ONLY `_validateTransfer` — inherits nothing, keep it that way
 │   ├── IncomeVaultValidationModule.sol    # Pause + Enforcement + RuleEngine; canTransfer,
 │   │                                      #   setRuleEngine, detectTransferRestriction. Hooks abstract.
+│   ├── IncomeVaultSnapshotCore.sol        # ONLY the 3 snapshot hooks — inherits nothing, keep it that way
+│   ├── IncomeVaultSnapshotModule.sol      # One answer: a stored ISnapshotSource in its OWN ERC-7201
+│   │                                      #   namespace; dividendSnapshotSource, setDividendSnapshotSource
 │   ├── VersionModule.sol                  # VERSION constant behind IERC3643Version.version()
 │   └── ERC7741Module.sol                  # EIP-712 signed operator authorisation, own ERC-7201 namespace
 ├── public/
@@ -127,7 +135,7 @@ src/
 │   └── IERC7741.sol                       # Signed operator authorisation; id MUST stay 0xa9e50872
 └── libraries/
     ├── IncomeVaultInternal.sol            # ERC-7201 storage struct + getters, _computeDividend(Batch),
-    │                                      #   _transferDividend, _set{SnapshotEngine,ERC20TokenPayment,TimeLimitToWithdraw}
+    │                                      #   _transferDividend, _set{ERC20TokenPayment,TimeLimitToWithdraw}
     ├── IncomeVaultInvariantStorage.sol    # Custom errors and events shared by every variant
     ├── IncomeVaultRolesStorage.sol        # The four INCOME_VAULT_*_ROLE constants — inherited ONLY by IncomeVault
     └── Ownable2StepERC165Module.sol       # ERC-165 advertisement of ERC-173 / Ownable2Step
@@ -137,22 +145,36 @@ script/
 └── DeployIncomeVaultOwnable2Step.s.sol    # single-owner variant
 
 test/
-├── HelperContract.sol                     # Constants + `_deployContracts()`: CMTAT, SnapshotEngine, payment token, proxy
-├── mocks/ERC20PaymentMock.sol             # Minimal ERC-20 used as payment token
+├── HelperContract.sol                     # Constants + `_deployContracts()` / `_deployOwnableVault()`
 ├── IncomeVault.t.sol                      # Single claim: deposit, claim, pause, freeze, error cases
-├── IncomeVaultStorage.t.sol               # ERC-7201: slot derivation, field offsets, getters
+├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
+├── IncomeVaultRestricted.t.sol            # deposit/withdraw/withdrawAll/distributeDividend + access control
+├── IncomeVaultStorage.t.sol               # ERC-7201: slot derivation, field offsets, the two namespaces
 ├── AccessControlHooks.t.sol               # Both variants: every hook accepts/rejects, role separation,
 │                                          #   Ownable2Step handover, ERC-165
 ├── VersionModule.t.sol                    # version() on EVERY deployable contract — keep exhaustive
 ├── CodeQuality.t.sol                      # regressions for CLAUDE_ANALYSIS.md findings, incl. the
 │                                          #   push/pull claim-window parity (H-1) and restrictions (H-2)
 ├── SnapshotSource.t.sol                   # I-1: a 3-function source is enough; the real engine still fits
-├── invariant/                             # handler + 6 invariants; validate any change by sabotaging
+├── SetDividendSnapshotSource.t.sol        # M-2 setter: gated on openClaimCount() == 0, zero-address, event
+├── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
+├── DistributeBestEffort.t.sol             # A-4: one blocked holder is skipped, not reverted
+├── DepositBatch.t.sol                     # depositBatch, incl. the per-transaction gas comparison
+├── UnclaimedDividend.t.sol                # E-3: saturating residue, per-period withdraw bound
+├── Operator.t.sol                         # ERC-7540 operator subset: setOperator, claim-for
+├── OperatorAuthorization.t.sol            # ERC-7741 signed authorisation, EIP-712, ERC-1271
+├── Deactivate.t.sol                       # deactivateContract, permanent kill
+├── EdgeCases.t.sol                        # zero supply, zero balance, boundary times
+├── script/Deploy.t.sol                    # C-4: both deployment scripts, config validation
+├── invariant/                             # handler + 7 invariants; validate any change by sabotaging
 │                                          #   the contract and checking an invariant actually fails
-└── mocks/IncomeVaultOverrideMock.sol      # compile guard for the `virtual` convention
-├── IncomeVaultBatch.t.sol                 # claimDividendBatch behaviour
-├── IncomeVaultRestricted.t.sol            # Access control, deposit/withdraw/withdrawAll, distributeDividend
-└── RuleEngineIntegration.t.sol            # End-to-end with RuleEngine + RuleWhitelistMock
+└── mocks/
+    ├── ERC20PaymentMock.sol               # Minimal ERC-20 used as payment token
+    ├── MinimalSnapshotSourceMock.sol      # I-1: implements ISnapshotSource and nothing else
+    ├── IncomeVaultOverrideMock.sol        # compile guard for the `virtual` convention
+    ├── EmbeddedDividendHostMock.sol       # M-1/M-2 compile guard: a non-CMTAT host paying dividends
+    └── CMTATDividendHostMock.sol          # M-1/M-2 compile guard: a CMTATUpgradeableInternalSnapshot
+                                           #   paying its own dividends, its own snapshots, own canTransfer
 ```
 
 Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which requires `--ffi`,
@@ -266,6 +288,8 @@ slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|RuleEngi
 - `distributeDividend` deliberately bypasses the ValidationModule (no pause / freeze / RuleEngine
   check): it is an issuer-driven push, unlike the holder-driven claims.
 - The `newDeposit` event keeps its lowercase name for backward compatibility with the v1 ABI.
-- `IncomeVaultInvariantStorage` declares `event SnapshotEngineSet`, not `SnapshotEngine`, so the
-  name does not collide with the `SnapshotEngine` contract in tests and integrations.
+- `IncomeVaultInvariantStorage` declares `event DividendSnapshotSourceSet`, and the getter is
+  `dividendSnapshotSource()`. **Never name either of them `snapshotEngine`**: CMTAT declares
+  `snapshotEngine()` with the same parameters and a *different return type*, which Solidity cannot
+  reconcile by any override — see the snapshot bullet in Key concepts.
 - `forge coverage` does not work here — the tests deploy through a proxy.

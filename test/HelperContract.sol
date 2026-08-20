@@ -44,13 +44,12 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
     /// @dev owner of the {IncomeVaultOwnable2Step} deployment
     address constant OWNER = address(11);
 
-    string constant DEFAULT_ADMIN_ROLE_HASH =
-        "0x0000000000000000000000000000000000000000000000000000000000000000";
+    string constant DEFAULT_ADMIN_ROLE_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
     uint8 constant NO_ERROR = 0;
 
     // Forwarder
-    string ERC2771ForwarderDomain = 'ERC2771ForwarderDomain';
+    string ERC2771ForwarderDomain = "ERC2771ForwarderDomain";
 
     uint256 constant TIME_LIMIT_TO_WITHDRAW = 365 days;
 
@@ -89,18 +88,13 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
             CMTAT_ADMIN,
             ICMTATConstructor.ERC20Attributes("CMTA Token", "CMTAT", DECIMALS),
             ICMTATConstructor.ExtraInformationAttributes(
-                "CMTAT_ISIN",
-                IERC1643CMTAT.DocumentInfo("", "", 0x00),
-                "CMTAT_info"
+                "CMTAT_ISIN", IERC1643CMTAT.DocumentInfo("", "", 0x00), "CMTAT_info"
             ),
             ICMTATConstructor.Engine(IRuleEngine(ZERO_ADDRESS))
         );
 
         // Snapshot engine bound to the security token
-        snapshotEngine = new SnapshotEngine(
-            IERC20SnapshotCompatible(address(CMTAT_CONTRACT)),
-            CMTAT_ADMIN
-        );
+        snapshotEngine = new SnapshotEngine(IERC20SnapshotCompatible(address(CMTAT_CONTRACT)), CMTAT_ADMIN);
         vm.prank(CMTAT_ADMIN);
         CMTAT_CONTRACT.setSnapshotEngine(ISnapshotEngine(address(snapshotEngine)));
 

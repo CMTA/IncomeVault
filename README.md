@@ -37,7 +37,9 @@ The vault is **not** tied to the CMTAT: any contract implementing `ISnapshotStat
 - a token embedding the snapshot modules directly (`CMTATStandaloneInternalSnapshot`, `CMTATUpgradeableInternalSnapshot`),
 - any custom contract exposing `snapshotInfo` / `snapshotInfoBatch`.
 
-The address is provided at initialization through the parameter `snapshotEngine_` and is exposed by the public getter `snapshotEngine()`.
+The address is provided at initialization and is exposed by the public getter `dividendSnapshotSource()`.
+The vault reaches it through the three hooks of `IncomeVaultSnapshotCore`, so a token that already records
+snapshots can answer them from itself instead of pointing at a separate contract.
 
 ## Audits
 

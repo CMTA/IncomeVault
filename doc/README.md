@@ -35,11 +35,18 @@ new implementation only has to write the three the vault calls, not five it woul
 Solidity has no implicit conversion between unrelated interfaces, so pass one with an explicit cast:
 `ISnapshotSource(address(engine))`.
 
-The address is set at initialization (parameter `snapshotEngine_`) and cannot be the zero address.
+The address is set at initialization and cannot be the zero address.
+
+The vault does not call it directly. `IncomeVaultSnapshotCore` declares the three questions the payout
+paths actually ask — one holder's balance at a `time`, many holders' balances at a `time`, and one
+holder's balances across many `time`s — and inherits nothing. `IncomeVaultSnapshotModule` is one
+*answer* to them: an `ISnapshotSource` held in its own namespace, reachable through
+`dividendSnapshotSource()`. A token that already records snapshots answers the same three hooks from
+itself, with no second contract and nothing stored. See *Embedding the distribution logic in a token*.
 
 ### Replacing the snapshot source
 
-`setSnapshotEngine` allows a migration — a redeployed `SnapshotEngine`, or a token moving to embedded
+`setDividendSnapshotSource` allows a migration — a redeployed `SnapshotEngine`, or a token moving to embedded
 snapshot modules — but **only while no claim period is open**. The vault tracks how many dividend times
 currently have their claims open in `openClaimCount()`, and the setter reverts with
 `IncomeVault_ClaimPeriodOpen(openClaimCount)` while that is non-zero.
@@ -103,7 +110,7 @@ are different contracts, not a setting, and a deployed proxy cannot be swapped f
 | Push payouts | `distributeDividend`, `distributeDividendBestEffort` | `_authorizeDistribute` | `INCOME_VAULT_DISTRIBUTE_ROLE` | owner |
 | Claim window | `setStatusClaim`, `setTimeLimitToWithdraw` | `_authorizeOperator` | `INCOME_VAULT_OPERATOR_ROLE` | owner |
 | Compliance engine | `setRuleEngine` | `_authorizeRuleEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
-| Snapshot source | `setSnapshotEngine` | `_authorizeSnapshotEngineManagement` | `DEFAULT_ADMIN_ROLE` | owner |
+| Snapshot source | `setDividendSnapshotSource` | `_authorizeSnapshotSourceManagement` | `DEFAULT_ADMIN_ROLE` | owner |
 | Emergency stop | `pause`, `unpause` | `_authorizePause` | `PAUSER_ROLE` | owner |
 | Permanent kill | `deactivateContract` | `_authorizeDeactivate` | `DEFAULT_ADMIN_ROLE` | owner |
 | Address freeze | `setAddressFrozen`, `batchSetAddressFrozen` | `_authorizeFreeze` | `ENFORCER_ROLE` | owner |
@@ -561,6 +568,42 @@ would leave the contract unable to pay the amount it recorded at `deposit`, turn
 contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who
 absorbs a shortfall — a materially larger design than the one this prototype implements.
 
+## Embedding the distribution logic in a token
+
+`IncomeVault` is the standalone answer: a separate contract holding the payment token, reading balances
+from an external snapshot source, and running its own pause/freeze/RuleEngine stack. It is not the only
+one. A token that **already** has a validation stack and **already** records snapshots — a
+`CMTATUpgradeableInternalSnapshot`, for instance — can inherit `IncomeVaultOpen` and
+`IncomeVaultRestricted` directly and pay its own dividends, with no second contract, no second copy of
+the compliance rules and no snapshot address to keep in sync.
+
+Two abstract contracts make that possible. Both **inherit nothing**, which is the whole point: a host
+answering them adds no bases of its own and so cannot fail to linearize.
+
+| Contract | Declares | The standalone answer | A CMTAT host's answer |
+| --- | --- | --- | --- |
+| `IncomeVaultValidationCore` | `_validateTransfer` | `IncomeVaultValidationModule`, built on the CMTAT `PauseModule`, `EnforcementModule` and RuleEngine | its own `canTransfer` |
+| `IncomeVaultSnapshotCore` | `_snapshotInfo`, `_snapshotInfoBatch` (x2) | `IncomeVaultSnapshotModule`, an `ISnapshotSource` in storage | its own snapshot records |
+
+The host then supplies the four `_authorize*` hooks with whatever access-control policy it already uses.
+
+Neither split is cosmetic — each removed a hard compile failure:
+
+- **Inheriting the policy** meant `IncomeVaultOpen` and `IncomeVaultRestricted` dragged `PauseModule`
+  and `EnforcementModule` in transitively. A host that already had them could not linearize at all:
+  `Error (5005)`, which no `override` list can repair.
+- **Storing the source** meant a public `snapshotEngine()` getter. CMTAT declares a function with that
+  exact name and the same parameters but a **different return type**, and Solidity cannot reconcile two
+  functions that differ only in return type — again unresolvable by any override.
+
+Renaming the getter to `dividendSnapshotSource()` and moving the source into its own ERC-7201 namespace
+removes both the collision and the storage slot, so a host that answers the hooks from itself never
+allocates one.
+
+`test/mocks/CMTATDividendHostMock.sol` is a `CMTATUpgradeableInternalSnapshot` with the distribution
+logic embedded, and `test/mocks/EmbeddedDividendHostMock.sol` is the same without any CMTAT at all.
+Both exist only to **compile**: re-couple either dependency and they stop compiling.
+
 ## Improvement
 
 - An automatic distribution of dividend could be performed through [Chainlink Automation](https://docs.chain.link/chainlink-automation) but it requires several changes to allow that.
@@ -697,9 +740,12 @@ CMTAT and OpenZeppelin modules, which use their own namespaces. Consequences:
 - there is **no** `uint256[50] private __gap` anywhere, and the contract declares no sequential
   storage slot at all;
 - a new field can simply be appended to the struct in a later version;
-- the fields are read through the public getters `snapshotEngine()`, `ERC20TokenPayment()`,
-  `claimedDividend()`, `segregatedDividend()`, `segregatedClaim()` and `timeLimitToWithdraw()`,
-  so the external interface is the same as if they were public state variables.
+- the fields are read through the public getters `ERC20TokenPayment()`, `claimedDividend()`,
+  `segregatedDividend()`, `segregatedClaim()` and `timeLimitToWithdraw()`, so the external interface
+  is the same as if they were public state variables;
+- the snapshot source is **not** in this namespace. `IncomeVaultSnapshotModule` keeps it in
+  `IncomeVault.storage.SnapshotSource` instead, so a host that answers the snapshot hooks from its own
+  records never allocates the slot at all.
 
 The hardcoded slot is re-derived from the namespace and compared against what the proxy really
 stores in `test/IncomeVaultStorage.t.sol`.

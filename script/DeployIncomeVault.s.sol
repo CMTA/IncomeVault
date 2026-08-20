@@ -103,12 +103,12 @@ contract DeployIncomeVault is Script {
     */
     function configFromEnv() public view returns (Config memory config) {
         config = Config({
-            proxyAdmin:          vm.envAddress("PROXY_ADMIN"),
-            admin:               vm.envAddress("VAULT_ADMIN"),
-            forwarder:           vm.envOr("FORWARDER", address(0)),
-            paymentToken:        IERC20(vm.envAddress("PAYMENT_TOKEN")),
-            snapshotEngine:      ISnapshotSource(vm.envAddress("SNAPSHOT_ENGINE")),
-            ruleEngine:          IRuleEngine(vm.envOr("RULE_ENGINE", address(0))),
+            proxyAdmin: vm.envAddress("PROXY_ADMIN"),
+            admin: vm.envAddress("VAULT_ADMIN"),
+            forwarder: vm.envOr("FORWARDER", address(0)),
+            paymentToken: IERC20(vm.envAddress("PAYMENT_TOKEN")),
+            snapshotEngine: ISnapshotSource(vm.envAddress("SNAPSHOT_ENGINE")),
+            ruleEngine: IRuleEngine(vm.envOr("RULE_ENGINE", address(0))),
             timeLimitToWithdraw: vm.envUint("TIME_LIMIT_TO_WITHDRAW")
         });
     }
@@ -126,14 +126,8 @@ contract DeployIncomeVault is Script {
         require(config.proxyAdmin != address(0), "DeployIncomeVault: PROXY_ADMIN is zero");
         require(config.admin != address(0), "DeployIncomeVault: VAULT_ADMIN is zero");
         require(config.timeLimitToWithdraw != 0, "DeployIncomeVault: TIME_LIMIT_TO_WITHDRAW is zero");
-        require(
-            address(config.paymentToken).code.length > 0,
-            "DeployIncomeVault: PAYMENT_TOKEN is not a contract"
-        );
-        require(
-            address(config.snapshotEngine).code.length > 0,
-            "DeployIncomeVault: SNAPSHOT_ENGINE is not a contract"
-        );
+        require(address(config.paymentToken).code.length > 0, "DeployIncomeVault: PAYMENT_TOKEN is not a contract");
+        require(address(config.snapshotEngine).code.length > 0, "DeployIncomeVault: SNAPSHOT_ENGINE is not a contract");
         if (address(config.ruleEngine) != address(0)) {
             require(
                 address(config.ruleEngine).code.length > 0,
@@ -153,7 +147,7 @@ contract DeployIncomeVault is Script {
         console.log("  admin:               ", config.admin);
         console.log("  proxy admin:         ", config.proxyAdmin);
         console.log("  payment token:       ", address(vault.ERC20TokenPayment()));
-        console.log("  snapshot source:     ", address(vault.snapshotEngine()));
+        console.log("  snapshot source:     ", address(vault.dividendSnapshotSource()));
         console.log("  rule engine:         ", address(vault.ruleEngine()));
         console.log("  timeLimitToWithdraw: ", vault.timeLimitToWithdraw());
     }

@@ -18,6 +18,7 @@ import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
+import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
 
@@ -34,14 +35,11 @@ import {IncomeVaultRolesStorage} from "./libraries/IncomeVaultRolesStorage.sol";
 * operators, never the admin.
 */
 contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessControlModule, IncomeVaultRolesStorage {
-
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
     */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address forwarderIrrevocable
-    ) IncomeVaultBase(forwarderIrrevocable) {
+    constructor(address forwarderIrrevocable) IncomeVaultBase(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
         _disableInitializers();
     }
@@ -52,18 +50,18 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
     * The calls to this function will revert if the contract was deployed without a proxy
     * @param admin Address of the contract (Access Control)
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
+    * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function initialize(
         address admin,
         IERC20 ERC20TokenPayment_,
-        ISnapshotSource snapshotEngine_,
+        ISnapshotSource snapshotSource_,
         IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) public initializer {
-        if(admin == address(0)){
+        if (admin == address(0)) {
             revert IncomeVault_AdminWithAddressZeroNotAllowed();
         }
         __AccessControl_init_unchained();
@@ -71,11 +69,7 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
         // the validation answer this deployment chose
         __Pausable_init_unchained();
         __IncomeVaultValidation_init_unchained(ruleEngine_);
-        __IncomeVaultBase_init_unchained(
-            ERC20TokenPayment_,
-            snapshotEngine_,
-            timeLimitToWithdraw_
-        );
+        __IncomeVaultBase_init_unchained(ERC20TokenPayment_, snapshotSource_, timeLimitToWithdraw_);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -91,28 +85,27 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
     * @return True if the interface is supported, false otherwise
     */
     function supportsInterface(bytes4 interfaceId)
-        public view virtual override(AccessControlUpgradeable) returns (bool)
+        public
+        view
+        virtual
+        override(AccessControlUpgradeable)
+        returns (bool)
     {
-        return interfaceId == type(IERC7741).interfaceId
-            || AccessControlUpgradeable.supportsInterface(interfaceId);
+        return interfaceId == type(IERC7741).interfaceId || AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
     /* ============ ERC-2771 / Context disambiguation ============ */
     /**
     * @inheritdoc IncomeVaultBase
     */
-    function _msgSender()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (address sender)
-    {
+    function _msgSender() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (address sender) {
         return IncomeVaultBase._msgSender();
     }
 
     /**
     * @inheritdoc IncomeVaultBase
     */
-    function _msgData()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (bytes calldata)
-    {
+    function _msgData() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (bytes calldata) {
         return IncomeVaultBase._msgData();
     }
 
@@ -120,7 +113,11 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
     * @inheritdoc IncomeVaultBase
     */
     function _contextSuffixLength()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (uint256)
+        internal
+        view
+        virtual
+        override(IncomeVaultBase, ContextUpgradeable)
+        returns (uint256)
     {
         return IncomeVaultBase._contextSuffixLength();
     }
@@ -138,8 +135,8 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBase, AccessCont
     /// @inheritdoc IncomeVaultRestricted
     function _authorizeOperator() internal view virtual override onlyRole(INCOME_VAULT_OPERATOR_ROLE) {}
 
-    /// @inheritdoc IncomeVaultRestricted
-    function _authorizeSnapshotEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    /// @inheritdoc IncomeVaultSnapshotModule
+    function _authorizeSnapshotSourceManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /// @inheritdoc IncomeVaultValidationModule
     function _authorizeRuleEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}

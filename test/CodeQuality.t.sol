@@ -32,22 +32,29 @@ contract CodeQualityTest is HelperContract {
             DEFAULT_ADMIN_ADDRESS,
             abi.encodeCall(
                 IncomeVault.initialize,
-                (DEFAULT_ADMIN_ADDRESS, IERC20(address(tokenPayment)),
-                 ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+                (
+                    DEFAULT_ADMIN_ADDRESS,
+                    IERC20(address(tokenPayment)),
+                    ISnapshotSource(address(snapshotEngine)),
+                    IRuleEngine(ZERO_ADDRESS),
+                    TIME_LIMIT_TO_WITHDRAW
+                )
             ),
             opts
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        bool payment; bool snapshot; bool timeLimit;
+        bool payment;
+        bool snapshot;
+        bool timeLimit;
         for (uint256 i = 0; i < logs.length; ++i) {
             bytes32 t = logs[i].topics[0];
             if (t == ERC20TokenPaymentSet.selector) payment = true;
-            if (t == SnapshotEngineSet.selector) snapshot = true;
+            if (t == DividendSnapshotSourceSet.selector) snapshot = true;
             if (t == TimeLimitToWithdrawSet.selector) timeLimit = true;
         }
         assertTrue(payment, "ERC20TokenPaymentSet not emitted at initialize");
-        assertTrue(snapshot, "SnapshotEngineSet not emitted at initialize");
+        assertTrue(snapshot, "DividendSnapshotSourceSet not emitted at initialize");
         assertTrue(timeLimit, "TimeLimitToWithdrawSet not emitted at initialize");
     }
 
@@ -103,7 +110,7 @@ contract CodeQualityTest is HelperContract {
 
         uint256[] memory times = new uint256[](1);
         times[0] = defaultSnapshotTime;
-        incomeVault.validateTimeBatch(times);          // does not revert
+        incomeVault.validateTimeBatch(times); // does not revert
         incomeVault.validateTime(defaultSnapshotTime); // same verdict
         assertEq(uint256(incomeVault.validateTimeCode(defaultSnapshotTime)), 0);
     }
@@ -125,8 +132,7 @@ contract CodeQualityTest is HelperContract {
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
 
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
 
@@ -146,8 +152,7 @@ contract CodeQualityTest is HelperContract {
 
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
@@ -161,8 +166,7 @@ contract CodeQualityTest is HelperContract {
 
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
@@ -230,7 +234,10 @@ contract CodeQualityTest is HelperContract {
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
 
@@ -253,7 +260,10 @@ contract CodeQualityTest is HelperContract {
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
@@ -285,7 +295,10 @@ contract CodeQualityTest is HelperContract {
         addresses[0] = ADDRESS1;
         addresses[1] = ADDRESS2;
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS2, defaultDepositAmount / 2));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS2, defaultDepositAmount / 2
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
 
@@ -321,8 +334,7 @@ contract CodeQualityTest is HelperContract {
     * the transaction succeeded and the event fired. Finding A-1 of `CLAUDE_IMPROVEMENT.md`.
     */
     function testCannotSetAZeroTimeLimitToWithdraw() public {
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setTimeLimitToWithdraw(0);
 
@@ -339,11 +351,15 @@ contract CodeQualityTest is HelperContract {
         IncomeVault implementation = new IncomeVault(ZERO_ADDRESS);
         bytes memory data = abi.encodeCall(
             IncomeVault.initialize,
-            (DEFAULT_ADMIN_ADDRESS, IERC20(address(tokenPayment)),
-             ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), 0)
+            (
+                DEFAULT_ADMIN_ADDRESS,
+                IERC20(address(tokenPayment)),
+                ISnapshotSource(address(snapshotEngine)),
+                IRuleEngine(ZERO_ADDRESS),
+                0
+            )
         );
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
         new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
     }
 

@@ -54,7 +54,7 @@ forge lint
   through the [`ISnapshotState`](https://github.com/CMTA/SnapshotEngine) interface, so **any**
   contract implementing it can be used as the snapshot source (the external `SnapshotEngine`, or a
   token embedding the snapshot logic). The state variable `CMTAT_TOKEN` (`ICMTATSnapshot`) is
-  replaced by `snapshotEngine` (`ISnapshotState`).
+  replaced by the snapshot source, reachable through `dividendSnapshotSource()`.
 - `initialize` no longer takes an `IAuthorizationEngine`, removed by CMTAT v3. New signature:
   `initialize(address admin, IERC20 ERC20TokenPayment_, ISnapshotState snapshotEngine_, IRuleEngine ruleEngine_, uint256 timeLimitToWithdraw_)`.
 - The vault no longer inherits the CMTAT `ValidationModule`. Its own
@@ -67,9 +67,11 @@ forge lint
 - The state moved from sequential storage slots guarded by `uint256[50] private __gap` to a single
   **ERC-7201 namespaced storage** struct, as OpenZeppelin Upgradeable and CMTAT v3 do. Every `__gap`
   is removed and `IncomeVault` now declares **no** sequential storage slot at all. The external ABI
-  is unchanged — `snapshotEngine()`, `ERC20TokenPayment()`, `claimedDividend()`, `segregatedDividend()`,
-  `segregatedClaim()` and `timeLimitToWithdraw()` are kept as explicit getters — but the storage
-  layout is **not** compatible with a 1.x/2.0-rc deployment: this is a redeploy, not an upgrade.
+  is unchanged — `dividendSnapshotSource()`, `ERC20TokenPayment()`, `claimedDividend()`,
+  `segregatedDividend()`, `segregatedClaim()` and `timeLimitToWithdraw()` are kept as explicit getters —
+  but the storage layout is **not** compatible with a 1.x/2.0-rc deployment: this is a redeploy, not an
+  upgrade. The snapshot source later moved out of `IncomeVault.storage.IncomeVaultInternal` into its own
+  namespace (finding M-2), which shifted every remaining field of the internal struct down by one slot.
 
 ### Added
 
@@ -154,6 +156,19 @@ forge lint
   that already owns those modules — a CMTAT with a snapshot engine — can embed the dividend logic
   instead of hitting an unresolvable `Error (5005)`. No behaviour change; all 202 tests pass unchanged.
   Finding M-1 of `IMPROVEMENT_MODULARITY.md`.
+- The snapshot source is no longer a stored address behind a `snapshotEngine()` getter.
+  `IncomeVaultSnapshotCore` declares the three questions the payout paths actually ask — `_snapshotInfo`
+  and the two `_snapshotInfoBatch` overloads — and inherits nothing. `IncomeVaultSnapshotModule` is one
+  *answer* to them: an `ISnapshotSource` held in **its own** ERC-7201 namespace
+  (`IncomeVault.storage.SnapshotSource`). This removes a name collision that no override list could
+  repair: CMTAT already declares `snapshotEngine()` with the same parameters and a **different return
+  type**, so a CMTAT could not embed the dividend logic at all. Renames, all pre-release:
+  `snapshotEngine()` to `dividendSnapshotSource()`, `setSnapshotEngine` to `setDividendSnapshotSource`,
+  `_authorizeSnapshotEngineManagement` to `_authorizeSnapshotSourceManagement`, the event
+  `SnapshotEngineSet` to `DividendSnapshotSourceSet(ISnapshotSource indexed)` and the error
+  `IncomeVault_SnapshotEngineWithAddressZeroNotAllowed` to
+  `IncomeVault_SnapshotSourceWithAddressZeroNotAllowed`. `initialize` is unchanged.
+  Finding M-2 of `IMPROVEMENT_MODULARITY.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

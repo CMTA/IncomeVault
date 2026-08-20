@@ -19,11 +19,7 @@ contract IncomeVaultInvariantTest is HelperContract {
     function setUp() public {
         _deployContracts();
 
-        uint256[3] memory times = [
-            block.timestamp + 100,
-            block.timestamp + 200,
-            block.timestamp + 300
-        ];
+        uint256[3] memory times = [block.timestamp + 100, block.timestamp + 200, block.timestamp + 300];
         address[3] memory holders = [ADDRESS1, ADDRESS2, ADDRESS3];
 
         // give every holder a snapshot balance so the pro-rata maths is non-degenerate
@@ -54,8 +50,7 @@ contract IncomeVaultInvariantTest is HelperContract {
     * observed on a holder, across all three payout paths.
     */
     function invariant_neverPaysMoreThanWasDeposited() public view {
-        assertLe(handler.g_paid(), handler.g_deposited(),
-            "paid out more than was ever deposited");
+        assertLe(handler.g_paid(), handler.g_deposited(), "paid out more than was ever deposited");
     }
 
     /**
@@ -67,8 +62,11 @@ contract IncomeVaultInvariantTest is HelperContract {
         for (uint256 h = 0; h < 3; ++h) {
             address holder = handler.holders(h);
             for (uint256 t = 0; t < 3; ++t) {
-                assertLe(handler.g_payCount(holder, handler.times(t)), 1,
-                    "a holder was paid twice for the same dividend time");
+                assertLe(
+                    handler.g_payCount(holder, handler.times(t)),
+                    1,
+                    "a holder was paid twice for the same dividend time"
+                );
             }
         }
     }
@@ -84,8 +82,9 @@ contract IncomeVaultInvariantTest is HelperContract {
             for (uint256 t = 0; t < 3; ++t) {
                 uint256 time = handler.times(t);
                 if (handler.g_payCount(holder, time) > 0) {
-                    assertTrue(incomeVault.claimedDividend(holder, time),
-                        "a holder was paid but is not marked as claimed");
+                    assertTrue(
+                        incomeVault.claimedDividend(holder, time), "a holder was paid but is not marked as claimed"
+                    );
                 }
             }
         }
@@ -95,8 +94,9 @@ contract IncomeVaultInvariantTest is HelperContract {
     * @notice Every payout is explained by a period becoming claimed
     */
     function invariant_noUnexplainedPayment() public view {
-        assertEq(handler.g_unexplainedPayments(), 0,
-            "a batch path paid a holder without any period transitioning to claimed");
+        assertEq(
+            handler.g_unexplainedPayments(), 0, "a batch path paid a holder without any period transitioning to claimed"
+        );
     }
 
     /**
@@ -123,9 +123,14 @@ contract IncomeVaultInvariantTest is HelperContract {
     */
     function invariant_everyPeriodResidueIsBacked() public view {
         uint256 owed;
-        for (uint256 t = 0; t < 3; ++t) owed += incomeVault.unclaimedDividend(handler.times(t));
-        assertLe(owed, tokenPayment.balanceOf(address(incomeVault)),
-            "the sum of per-period residues exceeds the tokens actually held");
+        for (uint256 t = 0; t < 3; ++t) {
+            owed += incomeVault.unclaimedDividend(handler.times(t));
+        }
+        assertLe(
+            owed,
+            tokenPayment.balanceOf(address(incomeVault)),
+            "the sum of per-period residues exceeds the tokens actually held"
+        );
     }
 
     /**
@@ -135,7 +140,9 @@ contract IncomeVaultInvariantTest is HelperContract {
     */
     function invariant_segregatedNeverExceedsDeposits() public view {
         uint256 sum;
-        for (uint256 t = 0; t < 3; ++t) sum += incomeVault.segregatedDividend(handler.times(t));
+        for (uint256 t = 0; t < 3; ++t) {
+            sum += incomeVault.segregatedDividend(handler.times(t));
+        }
         assertLe(sum, handler.g_deposited(), "segregated accounting exceeds total deposits");
     }
 }

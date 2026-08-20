@@ -103,12 +103,12 @@ contract DeployIncomeVaultOwnable2Step is Script {
     */
     function configFromEnv() public view returns (Config memory config) {
         config = Config({
-            proxyAdmin:          vm.envAddress("PROXY_ADMIN"),
-            owner:               vm.envAddress("VAULT_OWNER"),
-            forwarder:           vm.envOr("FORWARDER", address(0)),
-            paymentToken:        IERC20(vm.envAddress("PAYMENT_TOKEN")),
-            snapshotEngine:      ISnapshotSource(vm.envAddress("SNAPSHOT_ENGINE")),
-            ruleEngine:          IRuleEngine(vm.envOr("RULE_ENGINE", address(0))),
+            proxyAdmin: vm.envAddress("PROXY_ADMIN"),
+            owner: vm.envAddress("VAULT_OWNER"),
+            forwarder: vm.envOr("FORWARDER", address(0)),
+            paymentToken: IERC20(vm.envAddress("PAYMENT_TOKEN")),
+            snapshotEngine: ISnapshotSource(vm.envAddress("SNAPSHOT_ENGINE")),
+            ruleEngine: IRuleEngine(vm.envOr("RULE_ENGINE", address(0))),
             timeLimitToWithdraw: vm.envUint("TIME_LIMIT_TO_WITHDRAW")
         });
     }
@@ -153,7 +153,7 @@ contract DeployIncomeVaultOwnable2Step is Script {
         console.log("  owner:               ", vault.owner());
         console.log("  proxy admin:         ", config.proxyAdmin);
         console.log("  payment token:       ", address(vault.ERC20TokenPayment()));
-        console.log("  snapshot source:     ", address(vault.snapshotEngine()));
+        console.log("  snapshot source:     ", address(vault.dividendSnapshotSource()));
         console.log("  rule engine:         ", address(vault.ruleEngine()));
         console.log("  timeLimitToWithdraw: ", vault.timeLimitToWithdraw());
     }

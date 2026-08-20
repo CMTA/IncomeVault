@@ -17,6 +17,7 @@ import {ISnapshotSource} from "./interfaces/ISnapshotSource.sol";
 import {IncomeVaultBase} from "./IncomeVaultBase.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {IncomeVaultRestricted} from "./public/IncomeVaultRestricted.sol";
+import {IncomeVaultSnapshotModule} from "./modules/IncomeVaultSnapshotModule.sol";
 import {IncomeVaultValidationModule} from "./modules/IncomeVaultValidationModule.sol";
 import {Ownable2StepERC165Module} from "./libraries/Ownable2StepERC165Module.sol";
 import {IERC7741} from "./interfaces/IERC7741.sol";
@@ -34,15 +35,17 @@ import {IERC7741} from "./interfaces/IERC7741.sol";
 * {IncomeVault}, the role-based deployment, whenever depositing and withdrawing must be held by
 * different accounts — which is the usual requirement for an issuer paying dividends.
 */
-contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase, Ownable2StepUpgradeable, Ownable2StepERC165Module {
-
+contract IncomeVaultOwnable2Step is
+    IncomeVaultValidationModule,
+    IncomeVaultBase,
+    Ownable2StepUpgradeable,
+    Ownable2StepERC165Module
+{
     /**
     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
     */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address forwarderIrrevocable
-    ) IncomeVaultBase(forwarderIrrevocable) {
+    constructor(address forwarderIrrevocable) IncomeVaultBase(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
         _disableInitializers();
     }
@@ -53,18 +56,18 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
     * The calls to this function will revert if the contract was deployed without a proxy
     * @param owner_ Address of the initial contract owner (ERC-173)
     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotEngine_ contract implementing {ISnapshotSource}, source of the holder balances
+    * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
     function initialize(
         address owner_,
         IERC20 ERC20TokenPayment_,
-        ISnapshotSource snapshotEngine_,
+        ISnapshotSource snapshotSource_,
         IRuleEngine ruleEngine_,
         uint256 timeLimitToWithdraw_
     ) public initializer {
-        if(owner_ == address(0)){
+        if (owner_ == address(0)) {
             revert IncomeVault_AdminWithAddressZeroNotAllowed();
         }
         __Ownable_init_unchained(owner_);
@@ -73,11 +76,7 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
         // the validation answer this deployment chose
         __Pausable_init_unchained();
         __IncomeVaultValidation_init_unchained(ruleEngine_);
-        __IncomeVaultBase_init_unchained(
-            ERC20TokenPayment_,
-            snapshotEngine_,
-            timeLimitToWithdraw_
-        );
+        __IncomeVaultBase_init_unchained(ERC20TokenPayment_, snapshotSource_, timeLimitToWithdraw_);
     }
 
     /* ============ ERC-165 ============ */
@@ -87,10 +86,13 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
     * for `0xa9e50872`.
     */
     function supportsInterface(bytes4 interfaceId)
-        public view virtual override(Ownable2StepERC165Module) returns (bool)
+        public
+        view
+        virtual
+        override(Ownable2StepERC165Module)
+        returns (bool)
     {
-        return interfaceId == type(IERC7741).interfaceId
-            || Ownable2StepERC165Module.supportsInterface(interfaceId);
+        return interfaceId == type(IERC7741).interfaceId || Ownable2StepERC165Module.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -100,18 +102,14 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
     /**
     * @inheritdoc IncomeVaultBase
     */
-    function _msgSender()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (address sender)
-    {
+    function _msgSender() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (address sender) {
         return IncomeVaultBase._msgSender();
     }
 
     /**
     * @inheritdoc IncomeVaultBase
     */
-    function _msgData()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (bytes calldata)
-    {
+    function _msgData() internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (bytes calldata) {
         return IncomeVaultBase._msgData();
     }
 
@@ -119,7 +117,11 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
     * @inheritdoc IncomeVaultBase
     */
     function _contextSuffixLength()
-        internal view virtual override(IncomeVaultBase, ContextUpgradeable) returns (uint256)
+        internal
+        view
+        virtual
+        override(IncomeVaultBase, ContextUpgradeable)
+        returns (uint256)
     {
         return IncomeVaultBase._contextSuffixLength();
     }
@@ -137,8 +139,8 @@ contract IncomeVaultOwnable2Step is IncomeVaultValidationModule, IncomeVaultBase
     /// @inheritdoc IncomeVaultRestricted
     function _authorizeOperator() internal view virtual override onlyOwner {}
 
-    /// @inheritdoc IncomeVaultRestricted
-    function _authorizeSnapshotEngineManagement() internal view virtual override onlyOwner {}
+    /// @inheritdoc IncomeVaultSnapshotModule
+    function _authorizeSnapshotSourceManagement() internal view virtual override onlyOwner {}
 
     /// @inheritdoc IncomeVaultValidationModule
     function _authorizeRuleEngineManagement() internal view virtual override onlyOwner {}

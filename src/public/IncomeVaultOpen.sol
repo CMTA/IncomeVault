@@ -6,6 +6,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
+import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 import {ERC7741Module} from "../modules/ERC7741Module.sol";
@@ -13,8 +14,12 @@ import {ERC7741Module} from "../modules/ERC7741Module.sol";
 /**
 * @title Permissionless functions
 */
-abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, ReentrancyGuardTransient  {
-
+abstract contract IncomeVaultOpen is
+    IncomeVaultValidationCore,
+    IncomeVaultSnapshotCore,
+    ERC7741Module,
+    ReentrancyGuardTransient
+{
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -23,7 +28,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     * @notice claim your payment
     * @param time provide the date where you want to receive your payment
     */
-    function claimDividend(uint256 time) public virtual nonReentrant() {
+    function claimDividend(uint256 time) public virtual nonReentrant {
         _claimDividend(_msgSender(), time);
     }
 
@@ -37,7 +42,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     * @param holder the token holder to claim for
     * @param time provide the date of the payment
     */
-    function claimDividendFor(address holder, uint256 time) public virtual nonReentrant() {
+    function claimDividendFor(address holder, uint256 time) public virtual nonReentrant {
         _requireHolderOrOperator(holder);
         _claimDividend(holder, time);
     }
@@ -47,7 +52,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     * @param holder the token holder to claim for
     * @param times provide the dates of the payments
     */
-    function claimDividendBatchFor(address holder, uint256[] calldata times) public virtual nonReentrant() {
+    function claimDividendBatchFor(address holder, uint256[] calldata times) public virtual nonReentrant {
         _requireHolderOrOperator(holder);
         _claimDividendBatch(holder, times);
     }
@@ -57,7 +62,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     * @param times provide the dates where you want to receive your payment
     * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
     */
-    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant() {
+    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant {
         _claimDividendBatch(_msgSender(), times);
     }
 
@@ -78,7 +83,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     * @param time the dividend time to check
     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
     */
-    function validateTimeCode(uint256 time) public view virtual returns(TIME_ERROR_CODE code){
+    function validateTimeCode(uint256 time) public view virtual returns (TIME_ERROR_CODE code) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return _timeCode($, time, $._timeLimitToWithdraw);
     }
@@ -99,8 +104,8 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // `_timeLimitToWithdraw` is the same slot for every element: read it once
         uint256 timeLimit = $._timeLimitToWithdraw;
-        for(uint256 i = 0; i < times.length; ++i){
-           _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
+        for (uint256 i = 0; i < times.length; ++i) {
+            _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
         }
     }
 
@@ -117,18 +122,18 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
         validateTime(time);
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // At the beginning since no external call to do
-        if ($._claimedDividend[sender][time]){
+        if ($._claimedDividend[sender][time]) {
             revert IncomeVault_DividendAlreadyClaimed();
         }
 
         // External call to the snapshot source to retrieve the total supply and the sender balance
-        (uint256 senderBalance, uint256 TokenTotalSupply) = $._snapshotEngine.snapshotInfo(time, sender);
-        if (senderBalance == 0){
+        (uint256 senderBalance, uint256 TokenTotalSupply) = _snapshotInfo(time, sender);
+        if (senderBalance == 0) {
             revert IncomeVault_TokenBalanceIsZero();
         }
 
         uint256 senderDividend = _computeDividend(time, senderBalance, TokenTotalSupply);
-        if (senderDividend == 0){
+        if (senderDividend == 0) {
             revert IncomeVault_NoDividendToClaim();
         }
 
@@ -149,9 +154,9 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
         senders[0] = sender;
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // External call to the snapshot source to retrieve the total supply and the sender balance
-        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = $._snapshotEngine.snapshotInfoBatch(times, senders);
-        for(uint256 i = 0; i < times.length; ++i){
-            if (!$._claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0 )){
+        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = _snapshotInfoBatch(times, senders);
+        for (uint256 i = 0; i < times.length; ++i) {
+            if (!$._claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0)) {
                 uint256 senderDividend = _computeDividend(times[i], senderBalances[i][0], TokenTotalSupplys[i]);
                 // Transfer restriction
                 _validateTransfer(address(this), sender, senderDividend);
@@ -159,7 +164,7 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
                 _transferDividend(times[i], sender, senderDividend);
             }
         }
-    } 
+    }
 
     /* ============ View functions ============ */
     /**
@@ -168,9 +173,8 @@ abstract contract IncomeVaultOpen is IncomeVaultValidationCore, ERC7741Module, R
     */
     function _requireHolderOrOperator(address holder) internal view virtual {
         address caller = _msgSender();
-        if(caller != holder && !isOperator(holder, caller)){
+        if (caller != holder && !isOperator(holder, caller)) {
             revert IncomeVault_UnauthorizedOperator(holder, caller);
         }
     }
-
 }

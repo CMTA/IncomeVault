@@ -58,7 +58,7 @@ contract DeployScriptTest is HelperContract {
         IncomeVault vault = roleScript.deploy(_roleConfig());
 
         assertEq(address(vault.ERC20TokenPayment()), address(tokenPayment));
-        assertEq(address(vault.snapshotEngine()), address(snapshotEngine));
+        assertEq(address(vault.dividendSnapshotSource()), address(snapshotEngine));
         assertEq(address(vault.ruleEngine()), ZERO_ADDRESS);
         assertEq(vault.timeLimitToWithdraw(), TIME_LIMIT_TO_WITHDRAW);
         assertEq(vault.version(), "1.1.0");
@@ -72,8 +72,11 @@ contract DeployScriptTest is HelperContract {
         IncomeVault vault = roleScript.deploy(_roleConfig());
         vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
         vault.initialize(
-            VAULT_ADMIN, IERC20(address(tokenPayment)),
-            ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW
+            VAULT_ADMIN,
+            IERC20(address(tokenPayment)),
+            ISnapshotSource(address(snapshotEngine)),
+            IRuleEngine(ZERO_ADDRESS),
+            TIME_LIMIT_TO_WITHDRAW
         );
     }
 
@@ -108,7 +111,7 @@ contract DeployScriptTest is HelperContract {
         IncomeVaultOwnable2Step vault = ownerScript.deploy(_ownerConfig());
 
         assertEq(vault.owner(), VAULT_OWNER);
-        assertEq(address(vault.snapshotEngine()), address(snapshotEngine));
+        assertEq(address(vault.dividendSnapshotSource()), address(snapshotEngine));
         assertEq(vault.timeLimitToWithdraw(), TIME_LIMIT_TO_WITHDRAW);
         assertEq(vault.version(), "1.1.0");
     }

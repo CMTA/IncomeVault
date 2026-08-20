@@ -6,7 +6,6 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /* ==== Snapshot === */
-import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 /* ==== IncomeVault === */
 import {IncomeVaultInvariantStorage} from "./IncomeVaultInvariantStorage.sol";
 import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
@@ -14,8 +13,8 @@ import {IERC7540Operator} from "../interfaces/IERC7540Operator.sol";
 /**
 * @title Internal functions and ERC-7201 storage of the IncomeVault
 * @dev
-* The vault is token-agnostic: the snapshot source is any contract implementing {ISnapshotSource},
-* e.g. the CMTA `SnapshotEngine` bound to an ERC-20, or a token embedding the snapshot logic itself.
+* Holds the dividend bookkeeping. The snapshot source is deliberately **not** here — see
+* {IncomeVaultSnapshotCore} — so a host that is its own source does not inherit an unused reference.
 *
 * The state is held in an ERC-7201 namespaced storage struct, as OpenZeppelin Upgradeable and the
 * CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
@@ -31,7 +30,12 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @dev Shared by the holder-driven claims ({IncomeVaultOpen}) and the issuer-driven distribution
     * ({IncomeVaultRestricted}) so both apply the same window.
     */
-    enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
+    enum TIME_ERROR_CODE {
+        OK,
+        CLAIM_NOT_ACTIVATED,
+        TOO_LATE_TO_WITHDRAW,
+        TOO_EARLY_TO_WITHDRAW
+    }
 
     /* ============ ERC-7201 ============ */
     /**
@@ -39,13 +43,12 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.IncomeVaultInternal")) - 1)) & ~bytes32(uint256(0xff))
     * The derivation is re-checked in `test/IncomeVaultStorage.t.sol`.
     */
-    bytes32 private constant IncomeVaultInternalStorageLocation = 0xe4f8b033bcfc537db031b0e68e3c1ab0f1de86cf03893d031b6590510b0c0c00;
+    bytes32 private constant IncomeVaultInternalStorageLocation =
+        0xe4f8b033bcfc537db031b0e68e3c1ab0f1de86cf03893d031b6590510b0c0c00;
 
     /* ==== ERC-7201 State Variables === */
     /// @custom:storage-location erc7201:IncomeVault.storage.IncomeVaultInternal
     struct IncomeVaultInternalStorage {
-        // Snapshot source used to read the token holder balances and the total supply
-        ISnapshotSource _snapshotEngine;
         // ERC-20 token used to pay the dividends
         IERC20 _ERC20TokenPayment;
         // Records, per token holder and per dividend time, whether the dividends were claimed
@@ -72,15 +75,6 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
                             PUBLIC/EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     /* ============ View functions ============ */
-    /**
-    * @notice Snapshot source used to read the token holder balances and the total supply
-    * @return The contract queried for historical balances and total supply
-    */
-    function snapshotEngine() public view virtual returns (ISnapshotSource) {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        return $._snapshotEngine;
-    }
-
     /**
     * @notice ERC-20 token used to pay the dividends
     * @return The payment token
@@ -124,7 +118,13 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     /**
     * @inheritdoc IERC7540Operator
     */
-    function isOperator(address controller, address operator) public view virtual override(IERC7540Operator) returns (bool) {
+    function isOperator(address controller, address operator)
+        public
+        view
+        virtual
+        override(IERC7540Operator)
+        returns (bool)
+    {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._isOperator[controller][operator];
     }
@@ -166,7 +166,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     /**
     * @notice How many dividend times currently have their claims open
     * @dev Maintained exactly by {_setStatusClaim}, the only writer of the claim status. Used by
-    * {IncomeVaultRestricted-setSnapshotEngine}, which refuses to change the snapshot source while any
+    * {IncomeVaultSnapshotModule-setDividendSnapshotSource}, which refuses to change the snapshot source while any
     * period is open.
     * @return The number of open claim periods
     */
@@ -194,19 +194,19 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @param tokenHolder addresses to send the dividends
     * @param tokenHolderDividend the computed dividends
     */
-    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal{
+    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Before ERC-20 transfer to avoid re-entrancy attack
         $._claimedDividend[tokenHolder][time] = true;
         emit DividendClaimed(time, tokenHolder, tokenHolderDividend);
         // transfer
         // We don't revert if SenderBalance == 0 to record the claim
-        if(tokenHolderDividend != 0){
+        if (tokenHolderDividend != 0) {
             // A payout must come out of its own period. Without this a claim made after the period
             // was swept mid-window would silently be funded from another period's deposit, leaving
             // that one unable to pay its holders. Unreachable in normal operation: the entitlements
             // of a period always sum to at most its deposit.
-            if(tokenHolderDividend > unclaimedDividend(time)){
+            if (tokenHolderDividend > unclaimedDividend(time)) {
                 revert IncomeVault_NotEnoughAmount();
             }
             $._paidDividend[time] += tokenHolderDividend;
@@ -230,26 +230,12 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     }
 
     /**
-    * @notice Sets the snapshot source used to compute the dividends
-    * @dev reverts if `snapshotEngine_` is the zero address
-    * @param snapshotEngine_ any contract implementing {ISnapshotSource}
-    */
-    function _setSnapshotEngine(ISnapshotSource snapshotEngine_) internal virtual {
-        if(address(snapshotEngine_) == address(0)){
-            revert IncomeVault_SnapshotEngineWithAddressZeroNotAllowed();
-        }
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        $._snapshotEngine = snapshotEngine_;
-        emit SnapshotEngineSet(snapshotEngine_);
-    }
-
-    /**
     * @notice Sets the ERC-20 token used to pay the dividends
     * @dev reverts if `ERC20TokenPayment_` is the zero address
     * @param ERC20TokenPayment_ the payment token
     */
     function _setERC20TokenPayment(IERC20 ERC20TokenPayment_) internal virtual {
-        if(address(ERC20TokenPayment_) == address(0)){
+        if (address(ERC20TokenPayment_) == address(0)) {
             revert IncomeVault_TokenPaymentWithAddressZeroNotAllowed();
         }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -266,7 +252,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
         // Zero collapses the claim window to the single instant `block.timestamp == time`: one second
         // later {_timeCode} already returns TOO_LATE_TO_WITHDRAW and the period is unclaimable. Any
         // positive value is allowed — a short settlement window may be deliberate; zero never is.
-        if(timeLimitToWithdraw_ == 0){
+        if (timeLimitToWithdraw_ == 0) {
             revert IncomeVault_TimeLimitToWithdrawZeroNotAllowed();
         }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -284,11 +270,11 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
         // Idempotent: a call that does not change the status writes nothing, emits nothing and — the
         // reason this branch exists — leaves `_openClaimCount` exact. Without it, opening an already
         // open period would double-count and the counter could never return to zero.
-        if($._segregatedClaim[time] == status){
+        if ($._segregatedClaim[time] == status) {
             return;
         }
         $._segregatedClaim[time] = status;
-        if(status){
+        if (status) {
             ++$._openClaimCount;
         } else {
             --$._openClaimCount;
@@ -305,11 +291,16 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @param tokenTotalSupply the total supply
     * @return tokenHolderDividend the dividends owed to each address of `tokenHolders`
     */
-    function _computeDividendBatch(uint256 time, address[] calldata tokenHolders, uint256[] memory tokenHoldersBalance, uint256 tokenTotalSupply) internal view returns(uint256[] memory tokenHolderDividend){
+    function _computeDividendBatch(
+        uint256 time,
+        address[] calldata tokenHolders,
+        uint256[] memory tokenHoldersBalance,
+        uint256 tokenTotalSupply
+    ) internal view returns (uint256[] memory tokenHolderDividend) {
         tokenHolderDividend = new uint256[](tokenHolders.length);
         uint256 dividendTotalSupply = segregatedDividend(time);
-        for(uint256 i = 0; i < tokenHolders.length; ++i){
-            if(tokenHoldersBalance[i] > 0) {
+        for (uint256 i = 0; i < tokenHolders.length; ++i) {
+            if (tokenHoldersBalance[i] > 0) {
                 tokenHolderDividend[i] = (tokenHoldersBalance[i] * dividendTotalSupply) / tokenTotalSupply;
             }
         }
@@ -322,13 +313,17 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @param tokenTotalSupply the total supply
     * @return tokenHolderDividend the dividends owed to the token holder, rounded down
     */
-    function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply) internal view returns(uint256 tokenHolderDividend){
-        if (senderBalance == 0){
+    function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply)
+        internal
+        view
+        returns (uint256 tokenHolderDividend)
+    {
+        if (senderBalance == 0) {
             revert IncomeVault_NoDividendToClaim();
         }
         /**
         * Example
-        * SenderBalance = 300 
+        * SenderBalance = 300
         * totalSupply = 900
         * Dividend total supply = 200
         * dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
@@ -344,11 +339,11 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @param code the code returned by {_timeCode}
     */
     function _revertOnInvalidTime(TIME_ERROR_CODE code) internal view virtual {
-        if(code == TIME_ERROR_CODE.OK){
+        if (code == TIME_ERROR_CODE.OK) {
             return;
-        } else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
+        } else if (code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED) {
             revert IncomeVault_ClaimNotActivated();
-        } else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
+        } else if (code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW) {
             revert IncomeVault_TooLateToWithdraw(block.timestamp);
         } else {
             // TOO_EARLY_TO_WITHDRAW — the only remaining value of an exhaustive enum, so an
@@ -368,15 +363,18 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IERC7540Op
     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
     */
     function _timeCode(IncomeVaultInternalStorage storage $, uint256 time, uint256 timeLimit)
-        internal view virtual returns(TIME_ERROR_CODE code)
+        internal
+        view
+        virtual
+        returns (TIME_ERROR_CODE code)
     {
-        if(!$._segregatedClaim[time]){
+        if (!$._segregatedClaim[time]) {
             return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
         }
-        if(block.timestamp > timeLimit + time){
+        if (block.timestamp > timeLimit + time) {
             return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
         }
-        if(block.timestamp < time){
+        if (block.timestamp < time) {
             return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
         }
         return TIME_ERROR_CODE.OK;

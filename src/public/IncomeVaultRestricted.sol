@@ -10,12 +10,19 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 /* ==== IncomeVault === */
 import {ISnapshotSource} from "../interfaces/ISnapshotSource.sol";
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
+import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
 import {IncomeVaultInternal} from "../libraries/IncomeVaultInternal.sol";
 
 /**
 * @title Restricted functions
 */
-abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpgradeable, IncomeVaultInternal, ReentrancyGuardTransient {
+abstract contract IncomeVaultRestricted is
+    IncomeVaultValidationCore,
+    IncomeVaultSnapshotCore,
+    ContextUpgradeable,
+    IncomeVaultInternal,
+    ReentrancyGuardTransient
+{
     // Security
     using SafeERC20 for IERC20;
 
@@ -44,21 +51,13 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
         _;
     }
 
-    /// @dev Restricts the replacement of the snapshot source
-    modifier onlySnapshotEngineManager() {
-        _authorizeSnapshotEngineManagement();
-        _;
-    }
-
     /* ============  Initializer Function ============ */
     /**
     * @dev calls the different initialize functions from the different modules
     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
     */
-    function __IncomeVaultRestricted_init_unchained(
-        uint256 timeLimitToWithdraw_
-    ) internal onlyInitializing {
-       _setTimeLimitToWithdraw(timeLimitToWithdraw_);
+    function __IncomeVaultRestricted_init_unchained(uint256 timeLimitToWithdraw_) internal onlyInitializing {
+        _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -72,7 +71,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     */
     function deposit(uint256 time, uint256 amount) public virtual onlyDepositManager {
         address sender = _msgSender();
-        if(amount == 0) {
+        if (amount == 0) {
             revert IncomeVault_NoAmountSend();
         }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -94,20 +93,18 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     * @param times the dividend times to deposit for
     * @param amounts the amount to deposit for each time, must be the same length and each non-zero
     */
-    function depositBatch(uint256[] calldata times, uint256[] calldata amounts)
-        public virtual onlyDepositManager
-    {
-        if(times.length != amounts.length){
+    function depositBatch(uint256[] calldata times, uint256[] calldata amounts) public virtual onlyDepositManager {
+        if (times.length != amounts.length) {
             revert IncomeVault_InvalidLengths(times.length, amounts.length);
         }
-        if(times.length == 0){
+        if (times.length == 0) {
             revert IncomeVault_NoAmountSend();
         }
         address sender = _msgSender();
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         uint256 total;
-        for(uint256 i = 0; i < times.length; ++i){
-            if(amounts[i] == 0) {
+        for (uint256 i = 0; i < times.length; ++i) {
+            if (amounts[i] == 0) {
                 revert IncomeVault_NoAmountSend();
             }
             $._segregatedDividend[times[i]] += amounts[i];
@@ -140,7 +137,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
         // is the pro-rata denominator and is never reduced by a payout, so checking against it alone
         // would let a fully-claimed period be swept again — taking another period's money.
         // {unclaimedDividend} saturates at zero, so an over-drawn period simply allows nothing.
-        if(unclaimedDividend(time) < amount) {
+        if (unclaimedDividend(time) < amount) {
             revert IncomeVault_NotEnoughAmount();
         }
         $._segregatedDividend[time] -= amount;
@@ -178,15 +175,15 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
         // exists yet, and would consume the holder's claim for that period at the wrong amount.
         _revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
         // Get info from the snapshot source
-        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
+        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = _snapshotInfoBatch(time, addresses);
         // Compute dividend for all token holders
         uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
         // transfer the dividends for all token holders
-        for(uint256 i = 0; i < addresses.length; ++i){
-             // The dividends are distributed only if they have not yet been claimed by the token holder
-             if (!$._claimedDividend[addresses[i]][time]){
+        for (uint256 i = 0; i < addresses.length; ++i) {
+            // The dividends are distributed only if they have not yet been claimed by the token holder
+            if (!$._claimedDividend[addresses[i]][time]) {
                 // transfer dividends
-                if(tokenHolderDividend[i] > 0){
+                if (tokenHolderDividend[i] > 0) {
                     // Same transfer restriction as a holder-driven claim: pause, freeze and RuleEngine.
                     // Reverts the whole distribution rather than skipping the holder, so a blocked
                     // address cannot be silently dropped from a payout the operator believes succeeded.
@@ -225,20 +222,23 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     * @return skipped the holders that were not paid, trimmed to `paidCount` subtracted from the input
     */
     function distributeDividendBestEffort(address[] calldata addresses, uint256 time)
-        public virtual nonReentrant onlyDistributeManager
+        public
+        virtual
+        nonReentrant
+        onlyDistributeManager
         returns (uint256 paidCount, address[] memory skipped)
     {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         _revertOnInvalidTime(_timeCode($, time, $._timeLimitToWithdraw));
 
-        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = $._snapshotEngine.snapshotInfoBatch(time, addresses);
+        (uint256[] memory tokenHolderBalance, uint256 totalSupply) = _snapshotInfoBatch(time, addresses);
         uint256[] memory tokenHolderDividend = _computeDividendBatch(time, addresses, tokenHolderBalance, totalSupply);
 
         address[] memory skippedBuffer = new address[](addresses.length);
         uint256 skippedCount;
 
-        for(uint256 i = 0; i < addresses.length; ++i){
-            if($._claimedDividend[addresses[i]][time] || tokenHolderDividend[i] == 0){
+        for (uint256 i = 0; i < addresses.length; ++i) {
+            if ($._claimedDividend[addresses[i]][time] || tokenHolderDividend[i] == 0) {
                 continue;
             }
             // External self-call: `try` needs one, and it is what bounds the revert to this holder.
@@ -252,7 +252,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
         }
 
         skipped = new address[](skippedCount);
-        for(uint256 i = 0; i < skippedCount; ++i){
+        for (uint256 i = 0; i < skippedCount; ++i) {
             skipped[i] = skippedBuffer[i];
         }
     }
@@ -273,7 +273,7 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     * @param tokenHolderDividend the amount to pay
     */
     function transferDividendSelf(uint256 time, address tokenHolder, uint256 tokenHolderDividend) public virtual {
-        if(msg.sender != address(this)){
+        if (msg.sender != address(this)) {
             revert IncomeVault_OnlySelfCall();
         }
         _validateTransfer(address(this), tokenHolder, tokenHolderDividend);
@@ -284,38 +284,10 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     * @notice set the status to open or close the claims for a given time
     * @param time target time
     * @param status boolean (true or false)
-    * 
+    *
     */
     function setStatusClaim(uint256 time, bool status) public virtual onlyVaultOperator {
         _setStatusClaim(time, status);
-    }
-
-    /**
-    * @notice Replace the contract the vault reads the holder balances from
-    * @dev
-    * Only accepted while **no claim period is open** — `openClaimCount()` must be zero. Changing the
-    * source under an open period would silently re-price every unclaimed dividend of that period,
-    * because the amounts are computed from the source at claim time, not fixed at deposit.
-    *
-    * @custom:security This restriction narrows the hazard, it does not remove it. Entitlements are
-    * still resolved against whichever source is configured *when the claim happens*, so re-opening a
-    * past `time` after a swap would resolve it against the new source. Holders who already claimed are
-    * protected — `claimedDividend` persists across the change — but holders who had not are not.
-    * Treat a swap as a migration requiring every period to be settled and closed, not as a routine
-    * configuration change.
-    *
-    * @param snapshotEngine_ the new snapshot source, must implement {ISnapshotSource} and be non-zero
-    */
-    function setSnapshotEngine(ISnapshotSource snapshotEngine_) public virtual onlySnapshotEngineManager {
-        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        uint256 open = $._openClaimCount;
-        if(open != 0){
-            revert IncomeVault_ClaimPeriodOpen(open);
-        }
-        if(address(snapshotEngine_) == address($._snapshotEngine)){
-            revert IncomeVault_SameValue();
-        }
-        _setSnapshotEngine(snapshotEngine_);
     }
 
     /**
@@ -327,7 +299,6 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public virtual onlyVaultOperator {
         _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
-    
 
     /* ============ Access Control ============ */
     /**
@@ -353,10 +324,4 @@ abstract contract IncomeVaultRestricted is IncomeVaultValidationCore, ContextUpg
     * Implemented by the deployment contract with the desired access-control policy.
     */
     function _authorizeOperator() internal view virtual;
-
-    /**
-    * @dev Authorization hook invoked before {setSnapshotEngine}.
-    * Implemented by the deployment contract with the desired access-control policy.
-    */
-    function _authorizeSnapshotEngineManagement() internal view virtual;
 }

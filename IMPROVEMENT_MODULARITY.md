@@ -23,7 +23,7 @@ headline finding; everything else is smaller.
 | ID | Finding | Severity for reuse |
 | --- | --- | --- |
 | M-1 | The distribution core hard-inherits CMTAT's `PauseModule` and `EnforcementModule` — C3 linearization becomes impossible against any CMTAT | ✅ **fixed** |
-| M-2 | `snapshotEngine()` collides with CMTAT's, with a *different return type* — irreconcilable | **blocker** |
+| M-2 | `snapshotEngine()` collides with CMTAT's, with a *different return type* — irreconcilable | ✅ **fixed** |
 | M-3 | `version()` collides with CMTAT's `VersionModule` | high |
 | M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | medium |
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | medium (legibility) |
@@ -158,17 +158,17 @@ CMTATStandaloneSnapshot + IncomeVaultOpen + IncomeVaultRestricted
                         _contextSuffixLength, snapshotEngine   <- ordinary overrides, plus M-2
 ```
 
-Every remaining error is the kind an integrator resolves with an override, except `snapshotEngine`,
-which is **M-2** and still open.
+Every remaining error was the kind an integrator resolves with an override, except `snapshotEngine`,
+which was **M-2** — since fixed, so the mix now compiles outright.
 
 `test/mocks/EmbeddedDividendHostMock.sol` is the regression guard: a host that is *not* a CMTAT,
-embedding both payout paths and answering `_validateTransfer` and the eight authorization hooks itself.
+embedding both payout paths and answering `_validateTransfer` and the four authorization hooks itself.
 It only has to compile — re-couple the payout paths to a concrete validation stack and it stops.
 
 Effort: moderate. Risk: low — the standalone vault keeps today's implementation verbatim, and all 202
 existing tests pass unchanged.
 
-## M-2. `snapshotEngine()` cannot coexist with CMTAT's — **blocker**
+## M-2. `snapshotEngine()` cannot coexist with CMTAT's — ✅ **fixed**
 
 ```solidity
 // this project
@@ -203,6 +203,38 @@ Two steps, and the second is the valuable one:
 
 Note this subsumes the current `ISnapshotSource` indirection rather than replacing it: the interface
 stays, as the type of the stored reference in the standalone deployment.
+
+### What was implemented
+
+Both steps, as proposed.
+
+`src/modules/IncomeVaultSnapshotCore.sol` declares the three hooks and inherits nothing.
+`src/modules/IncomeVaultSnapshotModule.sol` is the standalone answer: an `ISnapshotSource` held in its
+own ERC-7201 namespace `IncomeVault.storage.SnapshotSource`, so a host answering the hooks from itself
+never allocates the slot. The source therefore left `IncomeVault.storage.IncomeVaultInternal`, shifting
+every remaining field of that struct down one slot — a pre-release storage break, and the reason this
+had to happen before a deployment rather than after.
+
+Renamed, all pre-release and all external:
+
+| Before | After |
+| --- | --- |
+| `snapshotEngine()` | `dividendSnapshotSource()` |
+| `setSnapshotEngine` | `setDividendSnapshotSource` |
+| `_setSnapshotEngine` | `_setDividendSnapshotSource` |
+| `_authorizeSnapshotEngineManagement` | `_authorizeSnapshotSourceManagement` |
+| `event SnapshotEngineSet(ISnapshotSource)` | `event DividendSnapshotSourceSet(ISnapshotSource indexed)` |
+| `IncomeVault_SnapshotEngineWithAddressZeroNotAllowed` | `IncomeVault_SnapshotSourceWithAddressZeroNotAllowed` |
+
+`initialize` is unchanged, and the claim-period gate on the setter is unchanged.
+
+**The regression guard is `test/mocks/CMTATDividendHostMock.sol`** — a `CMTATUpgradeableInternalSnapshot`
+inheriting `IncomeVaultOpen` and `IncomeVaultRestricted`, answering `_validateTransfer` from the CMTAT's
+own `canTransfer` and the three snapshot hooks from the CMTAT's own snapshot records. It compiles. That
+is the scenario this whole document was written against, and it now works: before M-1 it failed with
+`Error (5005)`, and after M-1 it still failed on the `snapshotEngine()` return-type collision.
+
+204 tests pass.
 
 ## M-3. `version()` collides with CMTAT's — high
 

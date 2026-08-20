@@ -28,8 +28,7 @@ contract IncomeVaultTest is HelperContract {
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_NoDividendToClaim.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NoDividendToClaim.selector));
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
 
@@ -46,8 +45,7 @@ contract IncomeVaultTest is HelperContract {
         vm.warp(defaultSnapshotTime + 50);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -82,8 +80,7 @@ contract IncomeVaultTest is HelperContract {
         incomeVault.claimDividend(defaultSnapshotTime);
 
         // Act & Assert
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_DividendAlreadyClaimed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_DividendAlreadyClaimed.selector));
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -106,7 +103,10 @@ contract IncomeVaultTest is HelperContract {
         // Act
         // Claim deposit
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -129,7 +129,10 @@ contract IncomeVaultTest is HelperContract {
         // Act
         // Claim deposit
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -191,8 +194,7 @@ contract IncomeVaultTest is HelperContract {
 
         // Act
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -209,8 +211,7 @@ contract IncomeVaultTest is HelperContract {
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -220,7 +221,7 @@ contract IncomeVaultTest is HelperContract {
     * @dev the vault is wired to the snapshot engine through {ISnapshotSource}, not to the token
     */
     function testSnapshotEngineIsTheConfiguredSource() public view {
-        assertEq(address(incomeVault.snapshotEngine()), address(snapshotEngine));
+        assertEq(address(incomeVault.dividendSnapshotSource()), address(snapshotEngine));
     }
 
     function testCannotDeployWithSnapshotEngineAddressZero() public {
@@ -235,8 +236,7 @@ contract IncomeVaultTest is HelperContract {
                 TIME_LIMIT_TO_WITHDRAW
             )
         );
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_SnapshotEngineWithAddressZeroNotAllowed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_SnapshotSourceWithAddressZeroNotAllowed.selector));
         new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
     }
 }

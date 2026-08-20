@@ -34,8 +34,13 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
     mapping(address holder => mapping(uint256 time => uint256)) public g_payCount;
     uint256 public g_calls;
 
-    constructor(IncomeVault vault_, ERC20PaymentMock payment_, address admin_,
-                uint256[3] memory times_, address[3] memory holders_) {
+    constructor(
+        IncomeVault vault_,
+        ERC20PaymentMock payment_,
+        address admin_,
+        uint256[3] memory times_,
+        address[3] memory holders_
+    ) {
         vault = vault_;
         payment = payment_;
         admin = admin_;
@@ -43,12 +48,19 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
         holders = holders_;
     }
 
-    function _time(uint256 seed) internal view returns (uint256) { return times[bound(seed, 0, 2)]; }
-    function _holder(uint256 seed) internal view returns (address) { return holders[bound(seed, 0, 2)]; }
+    function _time(uint256 seed) internal view returns (uint256) {
+        return times[bound(seed, 0, 2)];
+    }
+
+    function _holder(uint256 seed) internal view returns (address) {
+        return holders[bound(seed, 0, 2)];
+    }
 
     /// @dev snapshot which (holder, time) pairs are already marked claimed
     function _claimedFlags(address holder) internal view returns (bool[3] memory f) {
-        for (uint256 i = 0; i < 3; ++i) f[i] = vault.claimedDividend(holder, times[i]);
+        for (uint256 i = 0; i < 3; ++i) {
+            f[i] = vault.claimedDividend(holder, times[i]);
+        }
     }
 
     /// @dev payments observed on a batch path that no newly-claimed period explains
@@ -111,18 +123,24 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
         uint256 time = _time(timeSeed);
         uint256 before = payment.balanceOf(holder);
         vm.prank(holder);
-        try vault.claimDividend(time) { _settleOne(holder, time, before); } catch {}
+        try vault.claimDividend(time) {
+            _settleOne(holder, time, before);
+        } catch {}
     }
 
     function claimBatch(uint256 holderSeed) external {
         ++g_calls;
         address holder = _holder(holderSeed);
         uint256[] memory all = new uint256[](3);
-        for (uint256 i = 0; i < 3; ++i) all[i] = times[i];
+        for (uint256 i = 0; i < 3; ++i) {
+            all[i] = times[i];
+        }
         uint256 before = payment.balanceOf(holder);
         bool[3] memory flags = _claimedFlags(holder);
         vm.prank(holder);
-        try vault.claimDividendBatch(all) { _settleBatch(holder, before, flags); } catch {}
+        try vault.claimDividendBatch(all) {
+            _settleBatch(holder, before, flags);
+        } catch {}
     }
 
     function distribute(uint256 timeSeed, uint256 holderSeed) external {
@@ -133,7 +151,9 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
         list[0] = holder;
         uint256 before = payment.balanceOf(holder);
         vm.prank(admin);
-        try vault.distributeDividend(list, time) { _settleOne(holder, time, before); } catch {}
+        try vault.distributeDividend(list, time) {
+            _settleOne(holder, time, before);
+        } catch {}
     }
 
     function distributeBestEffort(uint256 timeSeed) external {
@@ -149,7 +169,9 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
         }
         vm.prank(admin);
         try vault.distributeDividendBestEffort(list, time) {
-            for (uint256 i = 0; i < 3; ++i) _settleBatch(holders[i], befores[i], flags[i]);
+            for (uint256 i = 0; i < 3; ++i) {
+                _settleBatch(holders[i], befores[i], flags[i]);
+            }
         } catch {}
     }
 
@@ -164,7 +186,9 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
         if (available == 0) return;
         amount = bound(amount, 1, available);
         vm.prank(admin);
-        try vault.withdraw(time, amount, admin) { g_withdrawn += amount; } catch {}
+        try vault.withdraw(time, amount, admin) {
+            g_withdrawn += amount;
+        } catch {}
     }
 
     function freeze(uint256 holderSeed, bool status) external {
@@ -176,7 +200,7 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
     function pauseToggle(bool on) external {
         ++g_calls;
         vm.prank(admin);
-        if (on) { try vault.pause() {} catch {} } else { try vault.unpause() {} catch {} }
+        if (on) try vault.pause() {} catch {} else try vault.unpause() {} catch {}
     }
 
     function warp(uint256 secondsAhead) external {

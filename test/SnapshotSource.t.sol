@@ -28,13 +28,18 @@ contract SnapshotSourceTest is HelperContract {
             DEFAULT_ADMIN_ADDRESS,
             abi.encodeCall(
                 IncomeVault.initialize,
-                (DEFAULT_ADMIN_ADDRESS, IERC20(address(tokenPayment)),
-                 ISnapshotSource(address(minimal)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+                (
+                    DEFAULT_ADMIN_ADDRESS,
+                    IERC20(address(tokenPayment)),
+                    ISnapshotSource(address(minimal)),
+                    IRuleEngine(ZERO_ADDRESS),
+                    TIME_LIMIT_TO_WITHDRAW
+                )
             ),
             opts
         );
         IncomeVault vault = IncomeVault(proxy);
-        assertEq(address(vault.snapshotEngine()), address(minimal));
+        assertEq(address(vault.dividendSnapshotSource()), address(minimal));
 
         // and a claim against it pays out on those balances: 100/400 of the deposit
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, defaultDepositAmount);
@@ -59,7 +64,7 @@ contract SnapshotSourceTest is HelperContract {
     function testTheRealSnapshotEngineStillSatisfiesIt() public view {
         ISnapshotSource asSource = ISnapshotSource(address(snapshotEngine));
         assertEq(address(asSource), address(snapshotEngine));
-        assertEq(address(incomeVault.snapshotEngine()), address(snapshotEngine));
+        assertEq(address(incomeVault.dividendSnapshotSource()), address(snapshotEngine));
 
         // the three calls the vault makes all resolve against the real engine
         (uint256 bal, uint256 supply) = asSource.snapshotInfo(defaultSnapshotTime, ADDRESS1);

@@ -69,9 +69,9 @@ abstract contract IncomeVaultInvariantStorage {
     event WithdrawAll(address indexed withdrawAddress, uint256 amount);
     /**
     * @notice Emitted when the snapshot source used to compute the dividends is set.
-    * @param newSnapshotEngine The contract queried for historical balances and total supply.
+    * @param newSource The contract queried for historical balances and total supply.
     */
-    event SnapshotEngineSet(ISnapshotSource indexed newSnapshotEngine);
+    event DividendSnapshotSourceSet(ISnapshotSource indexed newSource);
 
     /* ============ Errors ============ */
     error IncomeVault_ClaimNotActivated();
@@ -79,7 +79,7 @@ abstract contract IncomeVaultInvariantStorage {
     error IncomeVault_NoDividendToClaim();
     error IncomeVault_AdminWithAddressZeroNotAllowed();
     error IncomeVault_TokenPaymentWithAddressZeroNotAllowed();
-    error IncomeVault_SnapshotEngineWithAddressZeroNotAllowed();
+    error IncomeVault_SnapshotSourceWithAddressZeroNotAllowed();
     /**
     * @notice Thrown when the withdraw time limit is set to zero.
     * @dev A limit of zero collapses the claim window `[time, time + limit]` to the single instant
