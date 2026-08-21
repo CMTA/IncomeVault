@@ -125,13 +125,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     */
     function unclaimedDividend(uint256 time) public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        uint256 segregated = $._segregatedDividend[time];
-        uint256 paid = $._paidDividend[time];
-        // Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a
-        // claim made afterwards is priced against the reduced figure and can push `paid` above
-        // `segregated`. That state means the period is over-drawn and nothing is left to sweep — a
-        // view must report zero, never revert.
-        return segregated > paid ? segregated - paid : 0;
+        return _unclaimed($._segregatedDividend[time], $._paidDividend[time]);
     }
 
     /**
@@ -177,10 +171,11 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
             // was swept mid-window would silently be funded from another period's deposit, leaving
             // that one unable to pay its holders. Unreachable in normal operation: the entitlements
             // of a period always sum to at most its deposit.
-            if (tokenHolderDividend > unclaimedDividend(time)) {
+            uint256 paid = $._paidDividend[time];
+            if (tokenHolderDividend > _unclaimed($._segregatedDividend[time], paid)) {
                 revert IncomeVault_NotEnoughAmount();
             }
-            $._paidDividend[time] += tokenHolderDividend;
+            $._paidDividend[time] = paid + tokenHolderDividend;
             // Will revert in case of failure
             $._ERC20TokenPayment.safeTransfer(tokenHolder, tokenHolderDividend);
         }
@@ -240,6 +235,25 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /* ============ View functions ============ */
+    /**
+    * @dev How much of a period's deposit is still held, given the two figures that decide it.
+    *
+    * Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a claim
+    * made afterwards is priced against the reduced figure and can push `paid` above `segregated`. That
+    * state means the period is over-drawn and nothing is left to sweep — this must report zero, never
+    * revert.
+    *
+    * One `pure` rule because both callers must agree on it: {unclaimedDividend} reports it, and
+    * {_transferDividend} enforces it as the bound on a payout. Were they to diverge, a payout could be
+    * funded from another period's deposit.
+    * @param segregated the amount deposited for the period, the pro-rata denominator
+    * @param paid the amount already paid out of that period
+    * @return The amount still attributable to the period, or zero when it is over-drawn
+    */
+    function _unclaimed(uint256 segregated, uint256 paid) internal pure virtual returns (uint256) {
+        return segregated > paid ? segregated - paid : 0;
+    }
+
     /**
     * @notice Computes the dividends owed to several token holders for a given time
     * @param time dividend time

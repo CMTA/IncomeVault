@@ -2,11 +2,15 @@
 pragma solidity ^0.8.24;
 
 import "./HelperContract.sol";
+import {SlotDerivation} from "@openzeppelin/contracts/utils/SlotDerivation.sol";
 
 /**
 * @title Per-period residue accounting — finding E-3
 */
 contract UnclaimedDividendTest is HelperContract {
+    using SlotDerivation for string;
+
+    string constant NAMESPACE = "IncomeVault.storage.IncomeVaultInternal";
     uint256 t1;
     uint256 t2;
 
@@ -207,5 +211,28 @@ contract UnclaimedDividendTest is HelperContract {
         assertEq(incomeVault.paidDividend(t1), 500);
         assertEq(incomeVault.segregatedDividend(t1), 500);
         assertEq(incomeVault.unclaimedDividend(t1), 0, "a view must never revert");
+    }
+
+    /**
+    * @notice Truly over-drawn (`paid` strictly above `segregated`) still reports zero, not a panic
+    * @dev
+    * The test above reaches `paid == segregated`, where a saturating rule and a plain subtraction
+    * agree — so it does not actually pin the saturation. `paid > segregated` is **unreachable through
+    * the public API**: `withdraw` is bounded by `unclaimedDividend`, and `_transferDividend` refuses a
+    * payout larger than it, so neither can push `paid` past `segregated`. The branch is defensive,
+    * which is exactly why it needs `vm.store` to be covered at all.
+    *
+    * Without this, replacing the rule with `segregated - paid` passes the entire suite.
+    */
+    function testUnclaimedSaturatesWhenTrulyOverDrawn() public {
+        _deposit(t1, 1_000);
+
+        // _paidDividend is field 6 of the ERC-7201 struct; force it above _segregatedDividend
+        bytes32 slot = keccak256(abi.encode(t1, uint256(NAMESPACE.erc7201Slot()) + 6));
+        vm.store(address(incomeVault), slot, bytes32(uint256(1_500)));
+
+        assertEq(incomeVault.paidDividend(t1), 1_500, "storage write did not land");
+        assertGt(incomeVault.paidDividend(t1), incomeVault.segregatedDividend(t1));
+        assertEq(incomeVault.unclaimedDividend(t1), 0, "must saturate, not underflow");
     }
 }
