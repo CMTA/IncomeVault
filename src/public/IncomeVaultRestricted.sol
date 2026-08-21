@@ -70,12 +70,8 @@ abstract contract IncomeVaultRestricted is
     */
     function deposit(uint256 time, uint256 amount) public virtual onlyDepositManager {
         address sender = _msgSender();
-        if (amount == 0) {
-            revert IncomeVault_NoAmountSend();
-        }
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
-        $._segregatedDividend[time] += amount;
-        emit newDeposit(time, sender, amount);
+        _deposit($, sender, time, amount);
         // Will revert in case of failure
         $._ERC20TokenPayment.safeTransferFrom(sender, address(this), amount);
     }
@@ -103,12 +99,8 @@ abstract contract IncomeVaultRestricted is
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         uint256 total;
         for (uint256 i = 0; i < times.length; ++i) {
-            if (amounts[i] == 0) {
-                revert IncomeVault_NoAmountSend();
-            }
-            $._segregatedDividend[times[i]] += amounts[i];
+            _deposit($, sender, times[i], amounts[i]);
             total += amounts[i];
-            emit newDeposit(times[i], sender, amounts[i]);
         }
         // One transfer for the whole batch. Will revert in case of failure.
         $._ERC20TokenPayment.safeTransferFrom(sender, address(this), total);

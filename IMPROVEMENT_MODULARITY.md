@@ -25,7 +25,7 @@ headline finding; everything else is smaller.
 | M-1 | The distribution core hard-inherits CMTAT's `PauseModule` and `EnforcementModule` — C3 linearization becomes impossible against any CMTAT | ✅ **fixed** |
 | M-2 | `snapshotEngine()` collides with CMTAT's, with a *different return type* — irreconcilable | ✅ **fixed** |
 | M-3 | `version()` collides with CMTAT's `VersionModule` | ✅ **resolved by design** — host overrides |
-| M-3b | SnapshotEngine vendors its **own** CMTAT at a different version than `lib/CMTAT` | medium — **proven to block**, see below |
+| M-3b | SnapshotEngine vendors its **own** CMTAT — two source trees, not a version gap | medium — **proven to block**; no fix available here, see below |
 | M-4 | `_authorizeRuleEngineManagement()` is declared by both this project and CMTAT | ❌ **not a defect** — one slot, one capability |
 | M-5 | `libraries/` contains no libraries; `public/` groups by visibility rather than capability | ✅ **fixed** — `libraries/` removed; `public/` kept deliberately |
 | M-6 | One monolithic storage namespace covering four unrelated concerns | ✅ **fixed** — operator split out; the rest is one concern |
@@ -313,7 +313,7 @@ names no path, so a host author has nothing to tell them what to alias. **Docume
 `IncomeVaultVersionModule` would also remove it, and remains available if the alias dance proves to
 annoy integrators in practice.
 
-### M-3b. SnapshotEngine vendors its own CMTAT, at a different version
+### M-3b. SnapshotEngine vendors its own CMTAT — two source trees
 
 Turned up while probing the above, and it matters more than M-3 itself.
 
@@ -343,10 +343,31 @@ The practical blast radius stays small **only** because `IncomeVaultValidationMo
 sole CMTAT-derived module and M-1 removed it from the embeddable path. Any future module built on CMTAT
 inherits this problem.
 
-**Action:** before embedding for real, either align SnapshotEngine's nested CMTAT with `lib/CMTAT`, or
-remap `SnapshotEngine/`'s CMTAT imports onto the top-level submodule so the build has exactly one CMTAT.
-Until then, treat "our CMTAT-derived modules" and "SnapshotEngine's CMTAT contracts" as mutually
-exclusive in one linearization.
+### Correction: the version gap is not the cause, and neither proposed fix works
+
+Both remedies suggested above were tested and **both are wrong**. Recorded here rather than quietly
+edited, because the reasoning is the useful part.
+
+**Aligning the versions does nothing.** Checking out `v3.3.0-rc3` in `lib/SnapshotEngine/CMTAT` so both
+trees hold identical source still produces the same **9** `Error (9097)` duplicate-identifier failures,
+now all citing `lib/SnapshotEngine/CMTAT/contracts`. Solidity keys a contract by its **source unit**,
+not by its contents: two files at two paths are two contracts even when byte-identical. The version
+skew is real and worth fixing on its own merits, but it is not what blocks the composition.
+
+**Remapping cannot reach it either.** SnapshotEngine imports CMTAT by *relative* path
+(`../../CMTAT/contracts/...`), and Solidity remappings only rewrite non-relative prefixes. There is no
+remapping that redirects `../../CMTAT/` to `lib/CMTAT/`.
+
+What would actually work is making the two paths **one** directory — a symlink, a vendoring step, or
+SnapshotEngine accepting its CMTAT through a remappable prefix upstream. The first two are build-time
+tricks that every contributor and CI job would have to reproduce; the third is not this project's to
+make.
+
+**Action: none available in this repository.** Treat "this project's CMTAT-derived modules" and
+"SnapshotEngine's CMTAT-derived contracts" as mutually exclusive in one linearization, and keep
+`IncomeVaultValidationModule` off the embeddable path — which M-1 already did, and which is why nothing
+is broken today. The upstream fix is for SnapshotEngine to import CMTAT through a remapping rather than
+a relative path; worth raising there.
 
 ## M-4. `_authorizeRuleEngineManagement()` is declared twice — ❌ **not a defect, closed**
 

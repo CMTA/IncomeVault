@@ -158,6 +158,17 @@ contract DepositBatchTest is HelperContract {
     * instead of N, paying 21,000 gas of base cost once rather than N times. This test compares the
     * totals a caller really pays.
     */
+    /**
+    * @dev WARNING: run this **without** `--gas-report`. The assertions compare `gasleft()` deltas
+    * across a different number of external calls — one for the batch, three for the separate
+    * deposits — and Foundry's tracing charges each traced call. The overhead therefore lands roughly
+    * three times as heavily on the second measurement and flips the first assertion, which fails as
+    * `batch is expected to cost more in-call: 161275 <= 263423`. That is instrumentation, not a
+    * regression: the same test passes on the same bytecode under a plain `forge test`.
+    *
+    * No cheatcode reports whether tracing is active, and correcting for it would mean subtracting a
+    * measured per-call overhead — more fragile than the thing it protects. Documented instead.
+    */
     function testBatchIsCheaperPerTransaction() public {
         uint256 intrinsic = 21_000;
 

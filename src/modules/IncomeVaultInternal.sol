@@ -216,6 +216,37 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
+    * @notice Records a deposit against a dividend time
+    * @dev
+    * The single writer of `_segregatedDividend`, and the only place `newDeposit` is emitted. Both
+    * funding paths go through it — {IncomeVaultRestricted-deposit} once,
+    * {IncomeVaultRestricted-depositBatch} once per element — so validating, writing and announcing a
+    * deposit cannot come apart. Finding C-1 of `CLAUDE_ANALYSIS_SECOND.md`; the two paths previously
+    * carried a copy of all three each.
+    *
+    * The ERC-20 transfer is deliberately **not** here. `depositBatch` makes a single
+    * `safeTransferFrom` for the whole batch, which is the reason it exists; folding the transfer in
+    * would turn that back into one transfer per element.
+    *
+    * Takes the storage pointer rather than fetching it, as {_timeCode} does, so a batch acquires it
+    * once instead of once per element.
+    * @param $ the ERC-7201 storage of the vault
+    * @param sender the account funding the deposit, reported by the event
+    * @param time the dividend time the deposit is segregated under
+    * @param amount the amount of payment token, which may not be zero
+    */
+    function _deposit(IncomeVaultInternalStorage storage $, address sender, uint256 time, uint256 amount)
+        internal
+        virtual
+    {
+        if (amount == 0) {
+            revert IncomeVault_NoAmountSend();
+        }
+        $._segregatedDividend[time] += amount;
+        emit newDeposit(time, sender, amount);
+    }
+
+    /**
     * @notice Opens or closes the claims for a dividend time
     * @param time the dividend time
     * @param status true when the token holders can claim

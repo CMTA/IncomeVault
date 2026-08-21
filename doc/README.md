@@ -166,7 +166,7 @@ Role management itself (`grantRole` / `revokeRole`) is held by `DEFAULT_ADMIN_RO
 
 | Three periods | in-call | + intrinsic | total |
 | --- | --- | --- | --- |
-| `depositBatch` | 136,546 | 21,000 x 1 | **157,546** |
+| `depositBatch` | 136,263 | 21,000 x 1 | **157,263** |
 | 3 x `deposit` | 116,812 | 21,000 x 3 | 179,812 |
 
 So it is worth using for two or more periods, and the advantage grows with the count — but it is a transaction-count optimisation, not a cheaper deposit.

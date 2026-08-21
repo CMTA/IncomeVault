@@ -12,7 +12,7 @@ This is the **second** pass. The first is [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYS
 | --- | --- | --- |
 | A-1 | Loops and iteration | ⬜ nothing to change — verified, see below |
 | B-1 | `_transferDividend` re-reads `_paidDividend[time]` — **209 gas** measured | ✅ **fixed**, in a better shape than proposed — **167 gas** |
-| C-1 | The deposit write, its zero-check and its event are duplicated across two paths | ⬜ reported, not applied |
+| C-1 | The deposit write, its zero-check and its event are duplicated across two paths | ✅ **fixed** |
 | E-1 | Three core internal functions are not `virtual` while five siblings in the same file are | ✅ **fixed** |
 | G-1 | Three production comments point at `doc/` paths that have already moved twice | ⬜ reported, not applied |
 | G-2 | NatSpec block length | ⬜ **no change needed** — measured; corrects a worry raised during development |
@@ -20,7 +20,7 @@ This is the **second** pass. The first is [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYS
 | I-1 | The vault demands `IRuleEngine`, whose `transferred` it must never call | ⬜ **keep as is** — the reason is recorded so it is not re-opened |
 | J-1 | Modularity | ⬜ already covered exhaustively elsewhere; not duplicated here |
 
-Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **B-1, E-1 and H-1 have since been implemented**; C-1 and G-1 remain open (G-1's contract-comment half was applied separately).
+Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **B-1, C-1, E-1, G-1 and H-1 have all since been implemented.** What remains are the two deliberate "keep as is" verdicts, the "nothing found" row, and the modularity pointer.
 
 ## Outstanding, carried from the first pass
 
@@ -120,7 +120,20 @@ function _deposit(IncomeVaultInternalStorage storage $, address sender, uint256 
 
 **The single ERC-20 transfer must stay outside the helper.** `depositBatch` deliberately does one `safeTransferFrom` for the whole batch — that is the documented reason it exists, and folding the transfer into `_deposit` would undo it. The helper owns validate-write-emit and nothing else.
 
-**Verdict: implement.** Behaviour-preserving apart from the widened validation; no ABI change.
+**Verdict: implement.** ✅ **Done.** `_deposit($, sender, time, amount)` lives in `IncomeVaultInternal` beside the other state-writing internals, and takes the storage pointer as {_timeCode} does so a batch acquires it once. `grep -rn 'emit newDeposit' src/` now returns **one** site, and one `+=` writer of `_segregatedDividend`.
+
+**In the event, the widened validation turned out to change nothing**, because both existing paths already carried the zero-check. The report presented it as the behaviour-changing part; it is not, and the value is entirely structural — a third funding path now inherits all three behaviours instead of having to remember them.
+
+**Both sabotages fail tests on *both* paths, which is the property being bought:**
+
+| Sabotage | Failures |
+| --- | --- |
+| drop `emit newDeposit` from the helper | `testDepositRoleCanPerformDeposit` **and** `testDepositBatchPullsTheTokenOnceAndEventsEachEntry` |
+| drop the zero-amount check | `testCannotDepositZeroAmount` **and** `testCannotDepositBatchWithAZeroAmount` |
+
+One change to the shared helper breaks the single path and the batch path together — before, each had its own copy and its own tests, and a change to one would have left the other silently intact.
+
+The batch path measured **136,263** gas in-call afterwards against 136,546 before, so the extraction is 283 gas cheaper rather than a cost. `doc/README.md` and `CHANGELOG.md` are updated to the new figure.
 
 ## D. Duplication
 
@@ -292,7 +305,9 @@ Assessed exhaustively in `IMPROVEMENT_MODULARITY.md` (M-1 to M-9) and not repeat
 - `test/mocks/CMTATDividendHostMock.sol` — a `CMTATUpgradeableInternalSnapshot` embedding the distribution logic — **compiles**. Before M-1 it failed `Error (5005)`; after M-1 it still failed on a `snapshotEngine()` return-type collision, which M-2 removed.
 - `test/mocks/EmbeddedDividendHostMock.sol` and `test/mocks/NoForwarderVaultMock.sol` compile, covering the non-CMTAT host and the deployment without ERC-2771.
 
-The one open item there is **M-3b**: SnapshotEngine vendors its own CMTAT at `v3.3.0-rc1` while this project pins `v3.3.0-rc3`, so mixing the project's CMTAT-derived modules with SnapshotEngine's CMTAT contracts fails with nine duplicate-identifier errors. It is contained only because `IncomeVaultValidationModule` is the sole CMTAT-derived module and M-1 removed it from the embeddable path. It is the only open finding across all reviews with proven compile-breaking evidence.
+The one open item there is **M-3b**: SnapshotEngine vendors its own CMTAT at `v3.3.0-rc1` while this project pins `v3.3.0-rc3`, so mixing the project's CMTAT-derived modules with SnapshotEngine's CMTAT contracts fails with nine duplicate-identifier errors. It is contained only because `IncomeVaultValidationModule` is the sole CMTAT-derived module and M-1 removed it from the embeddable path.
+
+**Since tested, and the recorded fix was wrong.** Aligning the nested CMTAT to `v3.3.0-rc3` so both trees hold identical source leaves the same nine errors: Solidity keys a contract by its source unit, not its contents, so two paths are two contracts even byte-identical. Remapping cannot help either, because SnapshotEngine imports CMTAT by *relative* path and remappings only rewrite non-relative prefixes. There is no fix available inside this repository; the correction is recorded in `IMPROVEMENT_MODULARITY.md`.
 
 ---
 

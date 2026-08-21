@@ -111,7 +111,7 @@ forge lint
   (66,687 -> 88,961, a cold `SSTORE` for the new per-time counter); later claims for the same period pay
   the warm price. Finding E-3.
 - `depositBatch(times[], amounts[])`, crediting several dividend times in one transaction and pulling
-  the payment token once for the total. Measured for three periods: **136,546 gas in-call against
+  the payment token once for the total. Measured for three periods: **136,263 gas in-call against
   116,812 for three separate `deposit` calls** — the batch is the more expensive of the two per call,
   and wins only once the 21,000 intrinsic cost of each saved transaction is counted (157,546 against
   179,812 in total). It is a transaction-count optimisation, not a cheaper deposit.
@@ -226,6 +226,12 @@ forge lint
   `unclaimedDividend` and `_transferDividend`, and each reads its period slots once. Measured **167 gas**
   off every claim (118,924 to 118,757) with one source of truth for a rule the two callers must agree
   on. Finding B-1 of `CLAUDE_ANALYSIS_SECOND.md`.
+- The deposit write, its zero-amount check and its `newDeposit` event move into a single internal
+  `_deposit`, called once by `deposit` and once per element by `depositBatch`. Both paths carried a copy
+  of all three, so the rule that a deposit is validated, recorded and announced together was held by
+  convention rather than structurally. The batch's single `safeTransferFrom` for the whole total stays
+  outside the helper, which is the reason that function exists. No behaviour change; the batch path
+  measures 283 gas cheaper. Finding C-1 of `CLAUDE_ANALYSIS_SECOND.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.
