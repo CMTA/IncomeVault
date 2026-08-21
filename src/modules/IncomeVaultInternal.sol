@@ -159,7 +159,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     * @param tokenHolder addresses to send the dividends
     * @param tokenHolderDividend the computed dividends
     */
-    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal {
+    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend)
+        internal
+        virtual
+    {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Before ERC-20 transfer to avoid re-entrancy attack
         $._claimedDividend[tokenHolder][time] = true;
@@ -267,7 +270,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
         address[] calldata tokenHolders,
         uint256[] memory tokenHoldersBalance,
         uint256 tokenTotalSupply
-    ) internal view returns (uint256[] memory tokenHolderDividend) {
+    ) internal view virtual returns (uint256[] memory tokenHolderDividend) {
         tokenHolderDividend = new uint256[](tokenHolders.length);
         uint256 dividendTotalSupply = segregatedDividend(time);
         for (uint256 i = 0; i < tokenHolders.length; ++i) {
@@ -287,6 +290,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply)
         internal
         view
+        virtual
         returns (uint256 tokenHolderDividend)
     {
         if (senderBalance == 0) {

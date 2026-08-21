@@ -218,6 +218,14 @@ forge lint
   `messageForTransferRestriction` answers for each of those codes with CMTAT's own strings, and returns
   `UnknownCode` rather than `No restriction` for a code it cannot explain. Finding H-1 of
   `CLAUDE_ANALYSIS_SECOND.md`.
+- `_transferDividend`, `_computeDividend` and `_computeDividendBatch` are now `virtual`, matching the
+  five internal functions they sit beside in `IncomeVaultInternal`. `_transferDividend` is the payout
+  routine and the sanctioned way to extend it is an override, since the guide forbids adding another
+  public entry point to it — it could not be overridden. Finding E-1 of `CLAUDE_ANALYSIS_SECOND.md`.
+- The saturating remainder rule is extracted as `_unclaimed(segregated, paid)`, used by both
+  `unclaimedDividend` and `_transferDividend`, and each reads its period slots once. Measured **167 gas**
+  off every claim (118,924 to 118,757) with one source of truth for a rule the two callers must agree
+  on. Finding B-1 of `CLAUDE_ANALYSIS_SECOND.md`.
 - `_revertOnInvalidTime` ends in an unconditional `else` instead of a fourth `else if`. `TIME_ERROR_CODE`
   is exhaustive, so the extra comparison was dead — and the old shape **failed open**: a value added to
   the enum without a matching arm fell through and silently allowed the claim. It now reverts.

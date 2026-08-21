@@ -11,16 +11,16 @@ This is the **second** pass. The first is [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYS
 | ID | Finding | Outcome |
 | --- | --- | --- |
 | A-1 | Loops and iteration | ⬜ nothing to change — verified, see below |
-| B-1 | `_transferDividend` re-reads `_paidDividend[time]` — **209 gas** measured | ⬜ reported, measured, not applied |
+| B-1 | `_transferDividend` re-reads `_paidDividend[time]` — **209 gas** measured | ✅ **fixed**, in a better shape than proposed — **167 gas** |
 | C-1 | The deposit write, its zero-check and its event are duplicated across two paths | ⬜ reported, not applied |
-| E-1 | Three core internal functions are not `virtual` while five siblings in the same file are | ⬜ reported, not applied |
+| E-1 | Three core internal functions are not `virtual` while five siblings in the same file are | ✅ **fixed** |
 | G-1 | Three production comments point at `doc/` paths that have already moved twice | ⬜ reported, not applied |
 | G-2 | NatSpec block length | ⬜ **no change needed** — measured; corrects a worry raised during development |
 | H-1 | `detectTransferRestriction` answers 0 for a payout that `canTransfer` rejects | ✅ **fixed** |
 | I-1 | The vault demands `IRuleEngine`, whose `transferred` it must never call | ⬜ **keep as is** — the reason is recorded so it is not re-opened |
 | J-1 | Modularity | ⬜ already covered exhaustively elsewhere; not duplicated here |
 
-Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **H-1 has since been implemented**; the rest are still open decisions.
+Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **B-1, E-1 and H-1 have since been implemented**; C-1 and G-1 remain open (G-1's contract-comment half was applied separately).
 
 ## Outstanding, carried from the first pass
 
@@ -155,7 +155,20 @@ The four `_getXStorage` accessors are **also** non-virtual, and that is correct:
 
 An 11-gas difference *favouring* virtual, i.e. layout noise. Internal calls are resolved statically, so there is no dispatch to pay for.
 
-**Verdict: add `virtual` to all three.** Guard it the way the first pass guarded its E-1: extend `test/mocks/IncomeVaultOverrideMock.sol` to override `_transferDividend`, so removing the keyword fails the build with `Error (4334)`.
+**Verdict: add `virtual` to all three.** ✅ **Done.** All nine internal functions in the file are now `virtual` except `_getIncomeVaultInternalStorage`, which stays non-virtual with its three sibling accessors — OpenZeppelin declares the equivalent `private`, and a slot accessor is not an extension point.
+
+`IncomeVaultOverrideMock` now overrides all three, and **`test/OverrideMock.t.sol` drives a real deposit-and-claim through it**, which the mock previously lacked: it was compile-only, while its own NatSpec claimed `claimCount` proved the override was reached. Nothing called it, so that claim was false. It is true now.
+
+**Both failure modes verified, because they are different:**
+
+| Sabotage | Caught by | Result |
+| --- | --- | --- |
+| remove `virtual` from `_transferDividend` | the compiler | `Error (4334): Trying to override non-virtual function` |
+| override present but not observably reached | the counter | `internal _transferDividend override was not reached: 0 != 1` |
+
+The second is the one a compile-only guard misses, and it is why the counters exist rather than a bare override.
+
+**An honest limit of the technique**, now stated in the mock: a `view` override cannot increment a counter, so `_computeDividend` and `_computeDividendBatch` stay compile-guarded only. Their `virtual` is pinned by `Error (4334)`, not by an assertion that they ran.
 
 ## F. ERC / specification conformance
 
