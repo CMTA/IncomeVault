@@ -8,11 +8,7 @@ aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 
 Scope: `src/` — 21 files, 982 nSLOC, 87 detectors, mocks excluded. 0 citations of `lib/` or `node_modules/`.
 
-> **Post-processing needed.** Aderyn writes each `Found in` link as a path containing the absolute
-> location of the repository on the machine that ran it (`../../../../../home/<user>/.../src/...`).
-> Those resolve for nobody else and put a local path into a committed file. They are rewritten here to
-> repo-relative form; do the same after any future run:
-> `sed -i 's|\.\./\.\./\.\./\.\./\.\./<abs-path-to-repo>/|../../../../|g' aderyn-report.md`
+> **Post-processing needed.** Aderyn writes each `Found in` link as a path containing the absolute location of the repository on the machine that ran it (`../../../../../home/<user>/.../src/...`). Those resolve for nobody else and put a local path into a committed file. They are rewritten here to repo-relative form; do the same after any future run: `sed -i 's|\.\./\.\./\.\./\.\./\.\./<abs-path-to-repo>/|../../../../|g' aderyn-report.md`
 
 ## Summary
 
@@ -38,9 +34,7 @@ Scope: `src/` — 21 files, 982 nSLOC, 87 detectors, mocks excluded. 0 citations
 | `src/modules/Ownable2StepERC165Module.sol` L7 `IERC165` | **Was real — removed.** `IERC165` appeared on the import line and nowhere else. |
 | `src/public/IncomeVaultRestricted.sol` L11 `ISnapshotSource` | **Was real — removed.** Its only other occurrence is inside a comment, which creates no compile dependency. Left over from finding M-2, when the snapshot source moved into its own module. |
 
-Both were deleted; `forge build` compiles and all 214 tests pass. Re-running Aderyn afterwards took L-9
-from 6 instances to 4, which is the check that the fix landed and that the remaining four really are the
-`@inheritdoc` ones. Neither removal changes bytecode — an unused import contributes no code.
+Both were deleted; `forge build` compiles and all 214 tests pass. Re-running Aderyn afterwards took L-9 from 6 instances to 4, which is the check that the fix landed and that the remaining four really are the `@inheritdoc` ones. Neither removal changes bytecode — an unused import contributes no code.
 
 ## Delta from v1.0.0
 
@@ -48,10 +42,6 @@ v1.0.0 has no Aderyn report; this is the first. No delta is possible, and none i
 
 ## Executive triage
 
-**Nothing exploitable, and nothing left to fix.** The two real findings — unused `IERC165` and
-`ISnapshotSource` imports — have been removed, and Aderyn re-run to confirm: L-9 went from 6 instances
-to 4, all of them `@inheritdoc` false positives.
+**Nothing exploitable, and nothing left to fix.** The two real findings — unused `IERC165` and `ISnapshotSource` imports — have been removed, and Aderyn re-run to confirm: L-9 went from 6 instances to 4, all of them `@inheritdoc` false positives.
 
-One item worth a decision rather than a fix: **L-10**, an event on `invalidateNonce`. ERC-7741 does not
-require one, so adding it is a choice about off-chain observability, and it is easier to make before the
-ABI is frozen than after.
+One item worth a decision rather than a fix: **L-10**, an event on `invalidateNonce`. ERC-7741 does not require one, so adding it is a choice about off-chain observability, and it is easier to make before the ABI is frozen than after.

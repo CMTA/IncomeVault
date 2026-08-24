@@ -22,25 +22,14 @@ Scope: `src/` only, mocks and tests excluded, 90 contracts, 101 detectors. `grep
 
 ## Delta from v1.0.0
 
-The v1.0.0 report predates the CMTAT v3 migration and the whole modularity rework, so a
-finding-by-finding delta would compare two different architectures. What is worth recording:
+The v1.0.0 report predates the CMTAT v3 migration and the whole modularity rework, so a finding-by-finding delta would compare two different architectures. What is worth recording:
 
-- **The v1.0.0 findings are gone by construction.** They cite `__gap`, `ICMTATSnapshot` and
-  `IAuthorizationEngine` — none of which exist now. Storage moved to ERC-7201 (no `__gap`), the
-  snapshot source became `ISnapshotSource`, and the authorization engine was removed by CMTAT v3.
-- **Contract count roughly doubled** (one deployable plus a base, to 21 source files across
-  `deployment/`, `modules/`, `public/`, `interfaces/`, `storage/`), yet the total is 34 findings, all
-  informational-to-medium and none real. The new `assembly` and `naming-convention` instances are the
-  direct, expected cost of adopting ERC-7201.
-- **The filter changed** from a name list to `lib`. See the report header: the old form works today but
-  fails open if a dependency directory is added whose name is not enumerated.
+- **The v1.0.0 findings are gone by construction.** They cite `__gap`, `ICMTATSnapshot` and `IAuthorizationEngine` — none of which exist now. Storage moved to ERC-7201 (no `__gap`), the snapshot source became `ISnapshotSource`, and the authorization engine was removed by CMTAT v3.
+- **Contract count roughly doubled** (one deployable plus a base, to 21 source files across `deployment/`, `modules/`, `public/`, `interfaces/`, `storage/`), yet the total is 34 findings, all informational-to-medium and none real. The new `assembly` and `naming-convention` instances are the direct, expected cost of adopting ERC-7201.
+- **The filter changed** from a name list to `lib`. See the report header: the old form works today but fails open if a dependency directory is added whose name is not enumerated.
 
 ## Executive triage
 
-**Nothing to fix.** No finding is exploitable, and none indicates a defect. The two Medium findings are
-both false positives verified against the source: locals that Solidity zero-initialises, and an external
-call whose result is returned rather than dropped.
+**Nothing to fix.** No finding is exploitable, and none indicates a defect. The two Medium findings are both false positives verified against the source: locals that Solidity zero-initialises, and an external call whose result is returned rather than dropped.
 
-The one finding worth *remembering* rather than fixing is `calls-loop`: batch entry points are bounded by
-gas, so an operator building a very large `distributeDividend` batch must size it themselves. That is
-already the reason `distributeDividendBestEffort` exists.
+The one finding worth *remembering* rather than fixing is `calls-loop`: batch entry points are bounded by gas, so an operator building a very large `distributeDividend` batch must size it themselves. That is already the reason `distributeDividendBestEffort` exists.

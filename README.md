@@ -4,8 +4,7 @@ The `IncomeVault` is a prototype to perform coupon-payment dividend with a token
 
 ![IncomeVault architecture](./doc/schema/plantuml/incomevault-architecture.png)
 
-_Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schema/plantuml/incomevault-architecture.puml).
-The detailed step-by-step flow is in [doc/README.md](./doc/README.md)._
+_Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schema/plantuml/incomevault-architecture.puml). The detailed step-by-step flow is in [doc/README.md](./doc/README.md)._
 
 > This project has not undergone an audit and is provided as-is without any warranties.
 
@@ -33,15 +32,13 @@ The vault is **not** tied to the CMTAT: any contract implementing `ISnapshotStat
 - a token embedding the snapshot modules directly (`CMTATStandaloneInternalSnapshot`, `CMTATUpgradeableInternalSnapshot`),
 - any custom contract exposing `snapshotInfo` / `snapshotInfoBatch`.
 
-The address is provided at initialization and is exposed by the public getter `dividendSnapshotSource()`.
-The vault reaches it through the three hooks of `IncomeVaultSnapshotCore`, so a token that already records
-snapshots can answer them from itself instead of pointing at a separate contract.
+The address is provided at initialization and is exposed by the public getter `dividendSnapshotSource()`. The vault reaches it through the three hooks of `IncomeVaultSnapshotCore`, so a token that already records snapshots can answer them from itself instead of pointing at a separate contract.
 
 ## Audits
 
 The contracts are NOT audited, do not use them for production without auditing them !
 
-Static analysis is run with [Slither](https://github.com/crytic/slither) and [Aderyn](https://github.com/Cyfrin/aderyn). 
+Static analysis is run with [Slither](https://github.com/crytic/slither) and [Aderyn](https://github.com/Cyfrin/aderyn).
 
 Every finding is triaged in a feedback file rather than left as a raw count, and the whole picture is summarised in [doc/audits/AUDIT_OVERVIEW.md](./doc/audits/AUDIT_OVERVIEW.md).
 
@@ -57,7 +54,7 @@ slither . --checklist --filter-paths "node_modules,lib,test" \
 aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
-Both runs exclude mocks and tests. Filter on `lib` rather than on dependency names: this is a Foundry project, and a name-based filter silently puts the whole vendored tree in scope when a dependency it does not list is added. 
+Both runs exclude mocks and tests. Filter on `lib` rather than on dependency names: this is a Foundry project, and a name-based filter silently puts the whole vendored tree in scope when a dependency it does not list is added.
 
 Check `grep -c 'lib/\|node_modules/' <report>` returns 0 before trusting any count.
 
@@ -104,7 +101,7 @@ See also the command's [documentation](https://book.getfoundry.sh/reference/forg
 
 ### Compilation
 
-The official documentation is available in the Foundry [website](https://book.getfoundry.sh/reference/forge/build-commands) 
+The official documentation is available in the Foundry [website](https://book.getfoundry.sh/reference/forge/build-commands)
 
 ```
  forge build --contracts src/deployment/IncomeVault.sol
@@ -120,10 +117,7 @@ make test
 
 `make help` lists every target. Use `make test` rather than `forge test` directly:
 
-> The OpenZeppelin Foundry Upgrades plugin validates upgrade safety from Foundry's build-info and **rejects the output of an incremental compile**. 
->
-> Running `forge test --ffi` straight after editing a contract therefore fails *every* test with
-> `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`, which names neither the cause nor the fix. `make test` does the full build first. (`--ffi` is required for the same reason: the plugin shells out to `@openzeppelin/upgrades-core`.)
+> The OpenZeppelin Foundry Upgrades plugin validates upgrade safety from Foundry's build-info and **rejects the output of an incremental compile**. Running `forge test --ffi` straight after editing a contract therefore fails *every* test with `Failed to run upgrade safety validation: … Build info file … is not from a full compilation`, which names neither the cause nor the fix. `make test` does the full build first. (`--ffi` is required for the same reason: the plugin shells out to `@openzeppelin/upgrades-core`.)
 
 Other useful targets:
 
@@ -168,4 +162,4 @@ forge coverage --ffi --report lcov
 forge coverage --ffi --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
 ```
 
-See [Solidity Coverage in VS Code with Foundry](https://mirror.xyz/devanon.eth/RrDvKPnlD-pmpuW7hQeR5wWdVjklrpOgPCOA-PJkWFU) &  [Foundry forge coverage](https://www.rareskills.io/post/foundry-forge-coverage)
+See [Solidity Coverage in VS Code with Foundry](https://mirror.xyz/devanon.eth/RrDvKPnlD-pmpuW7hQeR5wWdVjklrpOgPCOA-PJkWFU) & [Foundry forge coverage](https://www.rareskills.io/post/foundry-forge-coverage)

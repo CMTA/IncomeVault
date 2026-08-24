@@ -1,13 +1,10 @@
 # Audit and analysis overview
 
-> **The contracts are NOT audited.** No third party has reviewed this code. Everything below is
-> self-assessment and tool output. Do not deploy to production without an audit.
+> **The contracts are NOT audited.** No third party has reviewed this code. Everything below is self-assessment and tool output. Do not deploy to production without an audit.
 
 ## Scope
 
-`src/` only — 21 Solidity files, 982 nSLOC. Tests, mocks and deployment scripts are out of scope for
-static analysis; `script/` carries deliberate string `require` messages for operator diagnostics and is
-excluded from the style check by project convention.
+`src/` only — 21 Solidity files, 982 nSLOC. Tests, mocks and deployment scripts are out of scope for static analysis; `script/` carries deliberate string `require` messages for operator diagnostics and is excluded from the style check by project convention.
 
 ## Analyses
 
@@ -25,8 +22,7 @@ excluded from the style check by project convention.
 | Slither 0.11.5 | 0 | 5 | 6 | 23 | **No** — all false positives or documented design decisions |
 | Aderyn 0.6.5 | 0 | — | 10 | — | **No** — the two unused imports were removed; L-9's four remaining instances are `@inheritdoc` false positives |
 
-Both runs were scope-checked: neither report cites `lib/` or `node_modules/`, so no vendored dependency
-inflates the counts.
+Both runs were scope-checked: neither report cites `lib/` or `node_modules/`, so no vendored dependency inflates the counts.
 
 ### The two real findings — fixed
 
@@ -35,23 +31,17 @@ inflates the counts.
 | `src/modules/Ownable2StepERC165Module.sol:7` | unused `IERC165` import | removed |
 | `src/public/IncomeVaultRestricted.sol:11` | unused `ISnapshotSource` import, left over from finding M-2 | removed |
 
-Aderyn was re-run after the removal: L-9 fell from 6 instances to 4. That drop is the evidence the fix
-landed. Neither import contributed bytecode, so this is source hygiene rather than a behaviour change;
-214 tests pass unchanged.
+Aderyn was re-run after the removal: L-9 fell from 6 instances to 4. That drop is the evidence the fix landed. Neither import contributed bytecode, so this is source hygiene rather than a behaviour change; 214 tests pass unchanged.
 
-The four remaining L-9 instances are **false positives**: they are consumed by `@inheritdoc`, which
-requires the base imported by name and which Aderyn does not parse. Deleting them fails the build.
+The four remaining L-9 instances are **false positives**: they are consumed by `@inheritdoc`, which requires the base imported by name and which Aderyn does not parse. Deleting them fails the build.
 
 ### One open decision
 
-`ERC7741Module.invalidateNonce` changes state without emitting an event (Aderyn L-10). ERC-7741 defines
-no event for it, so the contract is conformant — but an indexer cannot observe a nonce burned outside a
-signature use. Cheaper to decide before the ABI is frozen than after.
+`ERC7741Module.invalidateNonce` changes state without emitting an event (Aderyn L-10). ERC-7741 defines no event for it, so the contract is conformant — but an indexer cannot observe a nonce burned outside a signature use. Cheaper to decide before the ABI is frozen than after.
 
 ## Substantive findings that were fixed
 
-These came from the code-quality review and the modularity review, not from the static analyzers.
-Static analysis found none of them, which is the honest measure of what these tools do and do not cover.
+These came from the code-quality review and the modularity review, not from the static analyzers. Static analysis found none of them, which is the honest measure of what these tools do and do not cover.
 
 | id | Finding | Where |
 | --- | --- | --- |
@@ -71,6 +61,4 @@ slither . --checklist --filter-paths "node_modules,lib,test" \
 aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
-Use `lib` rather than a list of dependency names: this is a Foundry project, and a name-based filter
-fails open when a dependency is added whose directory is not enumerated. After any run, check
-`grep -c 'lib/\|node_modules/' <report>` is 0 before trusting the counts.
+Use `lib` rather than a list of dependency names: this is a Foundry project, and a name-based filter fails open when a dependency is added whose directory is not enumerated. After any run, check `grep -c 'lib/\|node_modules/' <report>` is 0 before trusting the counts.
