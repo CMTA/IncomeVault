@@ -13,12 +13,12 @@ excluded from the style check by project convention.
 
 | Analysis | Version | Report | Triage |
 | --- | --- | --- | --- |
-| Slither | v1.1.0 | [`tools/v1.1.0/slither-report.md`](./tools/v1.1.0/slither-report.md) | [feedback](./tools/v1.1.0/slither-report-feedback.md) |
-| Aderyn | v1.1.0 | [`tools/v1.1.0/aderyn-report.md`](./tools/v1.1.0/aderyn-report.md) | [feedback](./tools/v1.1.0/aderyn-report-feedback.md) |
-| Code-quality review (AI, not a security audit) | v1.1.0 | [`tools/v1.1.0/CLAUDE_ANALYSIS.md`](./tools/v1.1.0/CLAUDE_ANALYSIS.md) | — |
+| Slither | v2.0.0 | [`tools/v2.0.0/slither-report.md`](./tools/v2.0.0/slither-report.md) | [feedback](./tools/v2.0.0/slither-report-feedback.md) |
+| Aderyn | v2.0.0 | [`tools/v2.0.0/aderyn-report.md`](./tools/v2.0.0/aderyn-report.md) | [feedback](./tools/v2.0.0/aderyn-report-feedback.md) |
+| Code-quality review (AI, not a security audit) | v2.0.0 | [`tools/v2.0.0/CLAUDE_ANALYSIS.md`](./tools/v2.0.0/CLAUDE_ANALYSIS.md) | — |
 | Slither | v1.0.0 | [`tools/v1.0.0/slither-report.md`](./tools/v1.0.0/slither-report.md) | — |
 
-## Static-analysis results, v1.1.0
+## Static-analysis results, v2.0.0
 
 | Tool | High | Medium | Low | Informational | Anything to fix? |
 | --- | --- | --- | --- | --- | --- |
@@ -67,8 +67,8 @@ Static analysis found none of them, which is the honest measure of what these to
 
 ```bash
 slither . --checklist --filter-paths "node_modules,lib,test" \
-  > doc/audits/tools/v1.1.0/slither-report.md
-aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
+  > doc/audits/tools/v2.0.0/slither-report.md
+aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
 Use `lib` rather than a list of dependency names: this is a Foundry project, and a name-based filter

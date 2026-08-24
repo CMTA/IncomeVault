@@ -11,8 +11,9 @@ pragma solidity ^0.8.24;
 * {IERC7540Operator}, whose `setOperator` requires the holder to transact.
 *
 * The standard assigns this interface the ERC-165 identifier **`0xa9e50872`**. It inherits nothing,
-* so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value —
-* asserted in `test/OperatorAuthorization.t.sol`.
+* so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value. Adding
+* or changing a selector here changes the id, and the vault would then advertise one the standard does
+* not define.
 *
 * @custom:security ERC-7741 warns that "operators have significant control over users and the signed
 * message can lead to undesired outcomes". Keep `deadline` as short as practical: a signature that

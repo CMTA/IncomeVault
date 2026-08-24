@@ -49,14 +49,14 @@ Every finding is triaged in a feedback file rather than left as a raw count, and
 
 | Version | Tool | Result | Report | Triage |
 | --- | --- | --- | --- | --- |
-| v1.1.0 | Slither 0.11.5 | 0 High · 5 Med · 6 Low · 23 Info — nothing to fix | [report](./doc/audits/tools/v1.1.0/slither-report.md) | [feedback](./doc/audits/tools/v1.1.0/slither-report-feedback.md) |
-| v1.1.0 | Aderyn 0.6.5 | 0 High · 10 Low — nothing to fix | [report](./doc/audits/tools/v1.1.0/aderyn-report.md) | [feedback](./doc/audits/tools/v1.1.0/aderyn-report-feedback.md) |
+| v2.0.0 | Slither 0.11.5 | 0 High · 5 Med · 6 Low · 23 Info — nothing to fix | [report](./doc/audits/tools/v2.0.0/slither-report.md) | [feedback](./doc/audits/tools/v2.0.0/slither-report-feedback.md) |
+| v2.0.0 | Aderyn 0.6.5 | 0 High · 10 Low — nothing to fix | [report](./doc/audits/tools/v2.0.0/aderyn-report.md) | [feedback](./doc/audits/tools/v2.0.0/aderyn-report-feedback.md) |
 | v1.0.0 | Slither | superseded — predates the CMTAT v3 migration | [report](./doc/audits/tools/v1.0.0/slither-report.md) | — |
 
 ```bash
 slither . --checklist --filter-paths "node_modules,lib,test" \
-  > doc/audits/tools/v1.1.0/slither-report.md
-aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
+  > doc/audits/tools/v2.0.0/slither-report.md
+aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
 Both runs exclude mocks and tests. Filter on `lib` rather than on dependency names: this is a Foundry project, and a name-based filter silently puts the whole vendored tree in scope when a dependency it does not list is added. 

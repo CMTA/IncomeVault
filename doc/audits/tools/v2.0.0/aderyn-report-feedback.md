@@ -1,12 +1,18 @@
-# Aderyn feedback — IncomeVault v1.1.0
+# Aderyn feedback — IncomeVault v2.0.0
 
 Triage of every finding in [`aderyn-report.md`](./aderyn-report.md). Each dismissal was checked against the cited `file:line`, not assumed.
 
 ```bash
-aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
+aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
 Scope: `src/` — 21 files, 982 nSLOC, 87 detectors, mocks excluded. 0 citations of `lib/` or `node_modules/`.
+
+> **Post-processing needed.** Aderyn writes each `Found in` link as a path containing the absolute
+> location of the repository on the machine that ran it (`../../../../../home/<user>/.../src/...`).
+> Those resolve for nobody else and put a local path into a committed file. They are rewritten here to
+> repo-relative form; do the same after any future run:
+> `sed -i 's|\.\./\.\./\.\./\.\./\.\./<abs-path-to-repo>/|../../../../|g' aderyn-report.md`
 
 ## Summary
 

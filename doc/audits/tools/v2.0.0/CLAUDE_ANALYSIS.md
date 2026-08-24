@@ -51,7 +51,7 @@ Counted from the rows above: **10 fixed**, **12 deliberately left as is**, **1 n
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
-| G-1 | Version string vs release heading | Semver call belongs to the maintainer; the CHANGELOG's own rule says this release is MAJOR |
+| G-1 | Version string vs release heading | ✅ fixed — `VERSION` bumped to `2.0.0` with its four mirrors |
 | F-2 | ERC-165 for `IERC3643Version` | Cosmetic; no consumer known to filter on it |
 
 ---

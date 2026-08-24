@@ -61,7 +61,7 @@ contract DeployScriptTest is HelperContract {
         assertEq(address(vault.dividendSnapshotSource()), address(snapshotEngine));
         assertEq(address(vault.ruleEngine()), ZERO_ADDRESS);
         assertEq(vault.timeLimitToWithdraw(), TIME_LIMIT_TO_WITHDRAW);
-        assertEq(vault.version(), "1.1.0");
+        assertEq(vault.version(), "2.0.0");
         assertTrue(vault.hasRole(bytes32(0), VAULT_ADMIN), "admin holds DEFAULT_ADMIN_ROLE");
     }
 
@@ -113,7 +113,7 @@ contract DeployScriptTest is HelperContract {
         assertEq(vault.owner(), VAULT_OWNER);
         assertEq(address(vault.dividendSnapshotSource()), address(snapshotEngine));
         assertEq(vault.timeLimitToWithdraw(), TIME_LIMIT_TO_WITHDRAW);
-        assertEq(vault.version(), "1.1.0");
+        assertEq(vault.version(), "2.0.0");
     }
 
     function testTheDeployedOwnableVaultIsOperableByItsOwner() public {

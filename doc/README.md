@@ -629,7 +629,7 @@ The `IncomeVault` is upgradeable and can be deployed with a Transparent Proxy.
 Every deployment exposes its release version through the ERC-3643 `version()` view, the same way the CMTAT, the RuleEngine and the SnapshotEngine do:
 
 ```solidity
-IERC3643Version(address(vault)).version()   // "1.1.0"
+IERC3643Version(address(vault)).version()   // "2.0.0"
 ```
 
 The value is the compile-time constant `VERSION` in `src/modules/VersionModule.sol`. Bump it together with the `CHANGELOG.md` heading of the release — the changelog checklist lists it as the first task.

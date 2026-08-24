@@ -1,4 +1,4 @@
-# Aderyn report — IncomeVault v1.1.0
+# Aderyn report — IncomeVault v2.0.0
 
 > The contracts are **NOT audited**. Static analysis is not an audit; these are leads, not findings.
 
@@ -10,7 +10,7 @@
 | Mocks | **excluded** (`-x mocks`) |
 
 ```bash
-aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
+aderyn -x mocks --output doc/audits/tools/v2.0.0/aderyn-report.md
 ```
 
 **Scope verified:** 0 citations of `lib/` or `node_modules/`. Aderyn reads `foundry.toml` and scopes to
@@ -31,7 +31,7 @@ aderyn -x mocks --output doc/audits/tools/v1.1.0/aderyn-report.md
 | L-9 | Unused Import | 4 | False positive — all four are consumed by `@inheritdoc`, which Aderyn does not parse. Was 6; the two genuinely unused imports were removed |
 | L-10 | State Change Without Event | 1 | Consider — `invalidateNonce` emits nothing; ERC-7741 defines no event, but one would help indexers |
 
-**Nothing left to fix.** The two real findings of the first v1.1.0 run — unused `IERC165` and
+**Nothing left to fix.** The two real findings of the first v2.0.0 run — unused `IERC165` and
 `ISnapshotSource` imports — were removed, taking L-9 from 6 instances to 4. The four that remain are
 false positives: Solidity requires a base imported by name for `@inheritdoc`, and deleting those
 imports fails the build.
@@ -120,109 +120,109 @@ Contracts have owners with privileged rights to perform admin tasks and need to 
 <details><summary>18 Found Instances</summary>
 
 
-- Found in src/deployment/IncomeVault.sol [Line: 129](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L129)
+- Found in src/deployment/IncomeVault.sol [Line: 129](../../../../src/deployment/IncomeVault.sol#L129)
 
 	```solidity
 	    function _authorizeDeposit() internal view virtual override onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 132](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L132)
+- Found in src/deployment/IncomeVault.sol [Line: 132](../../../../src/deployment/IncomeVault.sol#L132)
 
 	```solidity
 	    function _authorizeWithdraw() internal view virtual override onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 135](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L135)
+- Found in src/deployment/IncomeVault.sol [Line: 135](../../../../src/deployment/IncomeVault.sol#L135)
 
 	```solidity
 	    function _authorizeDistribute() internal view virtual override onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 138](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L138)
+- Found in src/deployment/IncomeVault.sol [Line: 138](../../../../src/deployment/IncomeVault.sol#L138)
 
 	```solidity
 	    function _authorizeOperator() internal view virtual override onlyRole(INCOME_VAULT_OPERATOR_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 141](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L141)
+- Found in src/deployment/IncomeVault.sol [Line: 141](../../../../src/deployment/IncomeVault.sol#L141)
 
 	```solidity
 	    function _authorizeSnapshotSourceManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 144](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L144)
+- Found in src/deployment/IncomeVault.sol [Line: 144](../../../../src/deployment/IncomeVault.sol#L144)
 
 	```solidity
 	    function _authorizeRuleEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 147](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L147)
+- Found in src/deployment/IncomeVault.sol [Line: 147](../../../../src/deployment/IncomeVault.sol#L147)
 
 	```solidity
 	    function _authorizePause() internal view virtual override(PauseModule) onlyRole(PAUSER_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 150](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L150)
+- Found in src/deployment/IncomeVault.sol [Line: 150](../../../../src/deployment/IncomeVault.sol#L150)
 
 	```solidity
 	    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 153](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L153)
+- Found in src/deployment/IncomeVault.sol [Line: 153](../../../../src/deployment/IncomeVault.sol#L153)
 
 	```solidity
 	    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 133](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L133)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 133](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L133)
 
 	```solidity
 	    function _authorizeDeposit() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 136](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L136)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 136](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L136)
 
 	```solidity
 	    function _authorizeWithdraw() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 139](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L139)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 139](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L139)
 
 	```solidity
 	    function _authorizeDistribute() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 142](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L142)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 142](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L142)
 
 	```solidity
 	    function _authorizeOperator() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 145](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L145)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 145](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L145)
 
 	```solidity
 	    function _authorizeSnapshotSourceManagement() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 148](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L148)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 148](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L148)
 
 	```solidity
 	    function _authorizeRuleEngineManagement() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 151](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L151)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 151](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L151)
 
 	```solidity
 	    function _authorizePause() internal view virtual override(PauseModule) onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 154](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L154)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 154](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L154)
 
 	```solidity
 	    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 157](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L157)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 157](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L157)
 
 	```solidity
 	    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyOwner {}
@@ -239,127 +239,127 @@ Consider using a specific version of Solidity in your contracts instead of a wid
 <details><summary>21 Found Instances</summary>
 
 
-- Found in src/IncomeVaultBase.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/IncomeVaultBase.sol#L3)
+- Found in src/IncomeVaultBase.sol [Line: 3](../../../../src/IncomeVaultBase.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/IncomeVaultBaseERC2771.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/IncomeVaultBaseERC2771.sol#L3)
+- Found in src/IncomeVaultBaseERC2771.sol [Line: 3](../../../../src/IncomeVaultBaseERC2771.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L3)
+- Found in src/deployment/IncomeVault.sol [Line: 3](../../../../src/deployment/IncomeVault.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L3)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 3](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IERC7540Operator.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IERC7540Operator.sol#L3)
+- Found in src/interfaces/IERC7540Operator.sol [Line: 3](../../../../src/interfaces/IERC7540Operator.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IERC7741.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IERC7741.sol#L3)
+- Found in src/interfaces/IERC7741.sol [Line: 3](../../../../src/interfaces/IERC7741.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IIncomeVault.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IIncomeVault.sol#L3)
+- Found in src/interfaces/IIncomeVault.sol [Line: 3](../../../../src/interfaces/IIncomeVault.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/ISnapshotSource.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/ISnapshotSource.sol#L3)
+- Found in src/interfaces/ISnapshotSource.sol [Line: 3](../../../../src/interfaces/ISnapshotSource.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/ERC7741Module.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/ERC7741Module.sol#L3)
+- Found in src/modules/ERC7741Module.sol [Line: 3](../../../../src/modules/ERC7741Module.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultInternal.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultInternal.sol#L3)
+- Found in src/modules/IncomeVaultInternal.sol [Line: 3](../../../../src/modules/IncomeVaultInternal.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultOperatorModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultOperatorModule.sol#L3)
+- Found in src/modules/IncomeVaultOperatorModule.sol [Line: 3](../../../../src/modules/IncomeVaultOperatorModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultSnapshotCore.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultSnapshotCore.sol#L3)
+- Found in src/modules/IncomeVaultSnapshotCore.sol [Line: 3](../../../../src/modules/IncomeVaultSnapshotCore.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultSnapshotModule.sol#L3)
+- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 3](../../../../src/modules/IncomeVaultSnapshotModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultValidationCore.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultValidationCore.sol#L3)
+- Found in src/modules/IncomeVaultValidationCore.sol [Line: 3](../../../../src/modules/IncomeVaultValidationCore.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultValidationModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultValidationModule.sol#L3)
+- Found in src/modules/IncomeVaultValidationModule.sol [Line: 3](../../../../src/modules/IncomeVaultValidationModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/Ownable2StepERC165Module.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/Ownable2StepERC165Module.sol#L3)
+- Found in src/modules/Ownable2StepERC165Module.sol [Line: 3](../../../../src/modules/Ownable2StepERC165Module.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/VersionModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/VersionModule.sol#L3)
+- Found in src/modules/VersionModule.sol [Line: 3](../../../../src/modules/VersionModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/public/IncomeVaultOpen.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultOpen.sol#L3)
+- Found in src/public/IncomeVaultOpen.sol [Line: 3](../../../../src/public/IncomeVaultOpen.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L3)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 3](../../../../src/public/IncomeVaultRestricted.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/storage/IncomeVaultInvariantStorage.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/storage/IncomeVaultInvariantStorage.sol#L3)
+- Found in src/storage/IncomeVaultInvariantStorage.sol [Line: 3](../../../../src/storage/IncomeVaultInvariantStorage.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/storage/IncomeVaultRolesStorage.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/storage/IncomeVaultRolesStorage.sol#L3)
+- Found in src/storage/IncomeVaultRolesStorage.sol [Line: 3](../../../../src/storage/IncomeVaultRolesStorage.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
@@ -376,13 +376,13 @@ If a function is marked public but is not used internally, consider marking it a
 <details><summary>2 Found Instances</summary>
 
 
-- Found in src/deployment/IncomeVault.sol [Line: 58](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L58)
+- Found in src/deployment/IncomeVault.sol [Line: 58](../../../../src/deployment/IncomeVault.sol#L58)
 
 	```solidity
 	    function initialize(
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 64](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L64)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 64](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L64)
 
 	```solidity
 	    function initialize(
@@ -399,127 +399,127 @@ Solc compiler version 0.8.20 switches the default target EVM version to Shanghai
 <details><summary>21 Found Instances</summary>
 
 
-- Found in src/IncomeVaultBase.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/IncomeVaultBase.sol#L3)
+- Found in src/IncomeVaultBase.sol [Line: 3](../../../../src/IncomeVaultBase.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/IncomeVaultBaseERC2771.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/IncomeVaultBaseERC2771.sol#L3)
+- Found in src/IncomeVaultBaseERC2771.sol [Line: 3](../../../../src/IncomeVaultBaseERC2771.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L3)
+- Found in src/deployment/IncomeVault.sol [Line: 3](../../../../src/deployment/IncomeVault.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L3)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 3](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IERC7540Operator.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IERC7540Operator.sol#L3)
+- Found in src/interfaces/IERC7540Operator.sol [Line: 3](../../../../src/interfaces/IERC7540Operator.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IERC7741.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IERC7741.sol#L3)
+- Found in src/interfaces/IERC7741.sol [Line: 3](../../../../src/interfaces/IERC7741.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/IIncomeVault.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/IIncomeVault.sol#L3)
+- Found in src/interfaces/IIncomeVault.sol [Line: 3](../../../../src/interfaces/IIncomeVault.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/interfaces/ISnapshotSource.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/interfaces/ISnapshotSource.sol#L3)
+- Found in src/interfaces/ISnapshotSource.sol [Line: 3](../../../../src/interfaces/ISnapshotSource.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/ERC7741Module.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/ERC7741Module.sol#L3)
+- Found in src/modules/ERC7741Module.sol [Line: 3](../../../../src/modules/ERC7741Module.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultInternal.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultInternal.sol#L3)
+- Found in src/modules/IncomeVaultInternal.sol [Line: 3](../../../../src/modules/IncomeVaultInternal.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultOperatorModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultOperatorModule.sol#L3)
+- Found in src/modules/IncomeVaultOperatorModule.sol [Line: 3](../../../../src/modules/IncomeVaultOperatorModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultSnapshotCore.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultSnapshotCore.sol#L3)
+- Found in src/modules/IncomeVaultSnapshotCore.sol [Line: 3](../../../../src/modules/IncomeVaultSnapshotCore.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultSnapshotModule.sol#L3)
+- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 3](../../../../src/modules/IncomeVaultSnapshotModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultValidationCore.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultValidationCore.sol#L3)
+- Found in src/modules/IncomeVaultValidationCore.sol [Line: 3](../../../../src/modules/IncomeVaultValidationCore.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/IncomeVaultValidationModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultValidationModule.sol#L3)
+- Found in src/modules/IncomeVaultValidationModule.sol [Line: 3](../../../../src/modules/IncomeVaultValidationModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/Ownable2StepERC165Module.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/Ownable2StepERC165Module.sol#L3)
+- Found in src/modules/Ownable2StepERC165Module.sol [Line: 3](../../../../src/modules/Ownable2StepERC165Module.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/modules/VersionModule.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/modules/VersionModule.sol#L3)
+- Found in src/modules/VersionModule.sol [Line: 3](../../../../src/modules/VersionModule.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/public/IncomeVaultOpen.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultOpen.sol#L3)
+- Found in src/public/IncomeVaultOpen.sol [Line: 3](../../../../src/public/IncomeVaultOpen.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L3)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 3](../../../../src/public/IncomeVaultRestricted.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/storage/IncomeVaultInvariantStorage.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/storage/IncomeVaultInvariantStorage.sol#L3)
+- Found in src/storage/IncomeVaultInvariantStorage.sol [Line: 3](../../../../src/storage/IncomeVaultInvariantStorage.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
 	```
 
-- Found in src/storage/IncomeVaultRolesStorage.sol [Line: 3](../../../../../home/ryan/Pictures/IncomeVault/src/storage/IncomeVaultRolesStorage.sol#L3)
+- Found in src/storage/IncomeVaultRolesStorage.sol [Line: 3](../../../../src/storage/IncomeVaultRolesStorage.sol#L3)
 
 	```solidity
 	pragma solidity ^0.8.24;
@@ -536,13 +536,13 @@ Consider removing the modifier or inlining the logic into the calling function.
 <details><summary>2 Found Instances</summary>
 
 
-- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 26](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultSnapshotModule.sol#L26)
+- Found in src/modules/IncomeVaultSnapshotModule.sol [Line: 26](../../../../src/modules/IncomeVaultSnapshotModule.sol#L26)
 
 	```solidity
 	    modifier onlySnapshotSourceManager() {
 	```
 
-- Found in src/modules/IncomeVaultValidationModule.sol [Line: 39](../../../../../home/ryan/Pictures/IncomeVault/src/modules/IncomeVaultValidationModule.sol#L39)
+- Found in src/modules/IncomeVaultValidationModule.sol [Line: 39](../../../../src/modules/IncomeVaultValidationModule.sol#L39)
 
 	```solidity
 	    modifier onlyRuleEngineManager() {
@@ -559,109 +559,109 @@ Consider removing empty blocks.
 <details><summary>18 Found Instances</summary>
 
 
-- Found in src/deployment/IncomeVault.sol [Line: 129](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L129)
+- Found in src/deployment/IncomeVault.sol [Line: 129](../../../../src/deployment/IncomeVault.sol#L129)
 
 	```solidity
 	    function _authorizeDeposit() internal view virtual override onlyRole(INCOME_VAULT_DEPOSIT_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 132](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L132)
+- Found in src/deployment/IncomeVault.sol [Line: 132](../../../../src/deployment/IncomeVault.sol#L132)
 
 	```solidity
 	    function _authorizeWithdraw() internal view virtual override onlyRole(INCOME_VAULT_WITHDRAW_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 135](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L135)
+- Found in src/deployment/IncomeVault.sol [Line: 135](../../../../src/deployment/IncomeVault.sol#L135)
 
 	```solidity
 	    function _authorizeDistribute() internal view virtual override onlyRole(INCOME_VAULT_DISTRIBUTE_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 138](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L138)
+- Found in src/deployment/IncomeVault.sol [Line: 138](../../../../src/deployment/IncomeVault.sol#L138)
 
 	```solidity
 	    function _authorizeOperator() internal view virtual override onlyRole(INCOME_VAULT_OPERATOR_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 141](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L141)
+- Found in src/deployment/IncomeVault.sol [Line: 141](../../../../src/deployment/IncomeVault.sol#L141)
 
 	```solidity
 	    function _authorizeSnapshotSourceManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 144](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L144)
+- Found in src/deployment/IncomeVault.sol [Line: 144](../../../../src/deployment/IncomeVault.sol#L144)
 
 	```solidity
 	    function _authorizeRuleEngineManagement() internal view virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 147](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L147)
+- Found in src/deployment/IncomeVault.sol [Line: 147](../../../../src/deployment/IncomeVault.sol#L147)
 
 	```solidity
 	    function _authorizePause() internal view virtual override(PauseModule) onlyRole(PAUSER_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 150](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L150)
+- Found in src/deployment/IncomeVault.sol [Line: 150](../../../../src/deployment/IncomeVault.sol#L150)
 
 	```solidity
 	    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyRole(DEFAULT_ADMIN_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 153](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L153)
+- Found in src/deployment/IncomeVault.sol [Line: 153](../../../../src/deployment/IncomeVault.sol#L153)
 
 	```solidity
 	    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyRole(ENFORCER_ROLE) {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 133](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L133)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 133](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L133)
 
 	```solidity
 	    function _authorizeDeposit() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 136](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L136)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 136](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L136)
 
 	```solidity
 	    function _authorizeWithdraw() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 139](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L139)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 139](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L139)
 
 	```solidity
 	    function _authorizeDistribute() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 142](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L142)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 142](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L142)
 
 	```solidity
 	    function _authorizeOperator() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 145](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L145)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 145](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L145)
 
 	```solidity
 	    function _authorizeSnapshotSourceManagement() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 148](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L148)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 148](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L148)
 
 	```solidity
 	    function _authorizeRuleEngineManagement() internal view virtual override onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 151](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L151)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 151](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L151)
 
 	```solidity
 	    function _authorizePause() internal view virtual override(PauseModule) onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 154](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L154)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 154](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L154)
 
 	```solidity
 	    function _authorizeDeactivate() internal view virtual override(PauseModule) onlyOwner {}
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 157](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L157)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 157](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L157)
 
 	```solidity
 	    function _authorizeFreeze() internal view virtual override(EnforcementModule) onlyOwner {}
@@ -678,25 +678,25 @@ Avoid `require` / `revert` statements in a loop because a single bad item can ca
 <details><summary>4 Found Instances</summary>
 
 
-- Found in src/public/IncomeVaultOpen.sol [Line: 95](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultOpen.sol#L95)
+- Found in src/public/IncomeVaultOpen.sol [Line: 95](../../../../src/public/IncomeVaultOpen.sol#L95)
 
 	```solidity
 	        for (uint256 i = 0; i < times.length; ++i) {
 	```
 
-- Found in src/public/IncomeVaultOpen.sol [Line: 146](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultOpen.sol#L146)
+- Found in src/public/IncomeVaultOpen.sol [Line: 146](../../../../src/public/IncomeVaultOpen.sol#L146)
 
 	```solidity
 	        for (uint256 i = 0; i < times.length; ++i) {
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 105](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L105)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 105](../../../../src/public/IncomeVaultRestricted.sol#L105)
 
 	```solidity
 	        for (uint256 i = 0; i < times.length; ++i) {
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 181](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L181)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 181](../../../../src/public/IncomeVaultRestricted.sol#L181)
 
 	```solidity
 	        for (uint256 i = 0; i < addresses.length; ++i) {
@@ -713,19 +713,19 @@ Invoking `SSTORE` operations in loops may waste gas. Use a local variable to hol
 <details><summary>3 Found Instances</summary>
 
 
-- Found in src/public/IncomeVaultOpen.sol [Line: 146](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultOpen.sol#L146)
+- Found in src/public/IncomeVaultOpen.sol [Line: 146](../../../../src/public/IncomeVaultOpen.sol#L146)
 
 	```solidity
 	        for (uint256 i = 0; i < times.length; ++i) {
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 105](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L105)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 105](../../../../src/public/IncomeVaultRestricted.sol#L105)
 
 	```solidity
 	        for (uint256 i = 0; i < times.length; ++i) {
 	```
 
-- Found in src/public/IncomeVaultRestricted.sol [Line: 181](../../../../../home/ryan/Pictures/IncomeVault/src/public/IncomeVaultRestricted.sol#L181)
+- Found in src/public/IncomeVaultRestricted.sol [Line: 181](../../../../src/public/IncomeVaultRestricted.sol#L181)
 
 	```solidity
 	        for (uint256 i = 0; i < addresses.length; ++i) {
@@ -742,25 +742,25 @@ Redundant import statement. Consider removing it.
 <details><summary>4 Found Instances</summary>
 
 
-- Found in src/deployment/IncomeVault.sol [Line: 21](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L21)
+- Found in src/deployment/IncomeVault.sol [Line: 21](../../../../src/deployment/IncomeVault.sol#L21)
 
 	```solidity
 	import {IncomeVaultRestricted} from "../public/IncomeVaultRestricted.sol";
 	```
 
-- Found in src/deployment/IncomeVault.sol [Line: 22](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVault.sol#L22)
+- Found in src/deployment/IncomeVault.sol [Line: 22](../../../../src/deployment/IncomeVault.sol#L22)
 
 	```solidity
 	import {IncomeVaultSnapshotModule} from "../modules/IncomeVaultSnapshotModule.sol";
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 19](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L19)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 19](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L19)
 
 	```solidity
 	import {IncomeVaultRestricted} from "../public/IncomeVaultRestricted.sol";
 	```
 
-- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 20](../../../../../home/ryan/Pictures/IncomeVault/src/deployment/IncomeVaultOwnable2Step.sol#L20)
+- Found in src/deployment/IncomeVaultOwnable2Step.sol [Line: 20](../../../../src/deployment/IncomeVaultOwnable2Step.sol#L20)
 
 	```solidity
 	import {IncomeVaultSnapshotModule} from "../modules/IncomeVaultSnapshotModule.sol";
@@ -777,7 +777,7 @@ There are state variable changes in this function but no event is emitted. Consi
 <details><summary>1 Found Instances</summary>
 
 
-- Found in src/modules/ERC7741Module.sol [Line: 107](../../../../../home/ryan/Pictures/IncomeVault/src/modules/ERC7741Module.sol#L107)
+- Found in src/modules/ERC7741Module.sol [Line: 107](../../../../src/modules/ERC7741Module.sol#L107)
 
 	```solidity
 	    function invalidateNonce(bytes32 nonce) public virtual override(IERC7741) {

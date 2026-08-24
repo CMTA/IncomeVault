@@ -32,7 +32,7 @@ abstract contract IncomeVaultSnapshotModule is IncomeVaultSnapshotCore, IncomeVa
     /**
     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.SnapshotSource")) - 1)) & ~bytes32(uint256(0xff))
-    * The derivation is re-checked in `test/SnapshotSource.t.sol`.
+    * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
     */
     bytes32 private constant SnapshotSourceStorageLocation =
         0x45a69a32b5b7efb4ae8ac48e2427653ef15920a29875121a072e6b49aaccac00;

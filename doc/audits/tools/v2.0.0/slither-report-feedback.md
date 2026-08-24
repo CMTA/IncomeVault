@@ -1,9 +1,9 @@
-# Slither feedback — IncomeVault v1.1.0
+# Slither feedback — IncomeVault v2.0.0
 
 Triage of every finding in [`slither-report.md`](./slither-report.md). Each dismissal was checked against the cited `file:line`, not assumed.
 
 ```bash
-slither . --checklist --filter-paths "node_modules,lib,test" > doc/audits/tools/v1.1.0/slither-report.md
+slither . --checklist --filter-paths "node_modules,lib,test" > doc/audits/tools/v2.0.0/slither-report.md
 ```
 
 Scope: `src/` only, mocks and tests excluded, 90 contracts, 101 detectors. `grep -c 'lib/\|node_modules/'` on the report returns 0.

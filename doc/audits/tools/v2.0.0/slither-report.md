@@ -1,4 +1,4 @@
-# Slither report — IncomeVault v1.1.0
+# Slither report — IncomeVault v2.0.0
 
 > The contracts are **NOT audited**. Static analysis is not an audit; these are leads, not findings.
 
@@ -11,7 +11,7 @@
 
 ```bash
 slither . --checklist --filter-paths "node_modules,lib,test" \
-  > doc/audits/tools/v1.1.0/slither-report.md
+  > doc/audits/tools/v2.0.0/slither-report.md
 ```
 
 **Scope verified:** `grep -c 'lib/\|node_modules/'` on this report returns **0**, so no vendored

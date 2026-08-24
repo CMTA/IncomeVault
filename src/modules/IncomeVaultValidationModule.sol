@@ -128,10 +128,9 @@ abstract contract IncomeVaultValidationModule is
     * deactivation, pause, either party frozen, then the RuleEngine. The codes are CMTAT's
     * `REJECTED_CODE_BASE`, so a caller written against a CMTAT reads them unchanged.
     *
-    * This returns `0` exactly when {canTransfer} returns true. It used to consult only the RuleEngine,
-    * so a paused vault or a frozen holder was reported as unrestricted and the claim then reverted —
-    * finding H-1 of `CLAUDE_ANALYSIS_SECOND.md`. `test/TransferRestrictionCode.t.sol` asserts the two
-    * views agree.
+    * This returns `0` exactly when {canTransfer} returns true, and the two must not be allowed to
+    * drift apart: consulting only the RuleEngine here would report a paused vault or a frozen holder as
+    * unrestricted, and the claim would then revert.
     * @param from the address sending the payment, always the vault itself
     * @param to the token holder receiving the dividends
     * @param value the amount of payment token

@@ -14,7 +14,7 @@ contract VersionModuleTest is HelperContract {
 
 
     /// @dev must match `VERSION` in src/modules/VersionModule.sol and the CHANGELOG entry
-    string constant EXPECTED_VERSION = "1.1.0";
+    string constant EXPECTED_VERSION = "2.0.0";
 
     function setUp() public {
         _deployContracts();

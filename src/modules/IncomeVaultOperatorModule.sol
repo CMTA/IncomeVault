@@ -26,7 +26,7 @@ abstract contract IncomeVaultOperatorModule is ContextUpgradeable, IncomeVaultIn
     /**
     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.Operator")) - 1)) & ~bytes32(uint256(0xff))
-    * The derivation is re-checked in `test/IncomeVaultStorage.t.sol`.
+    * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
     */
     bytes32 private constant OperatorStorageLocation =
         0x70af7571496f61583375b861df45fee91dcc3edadeaff09b686f7920599a5500;

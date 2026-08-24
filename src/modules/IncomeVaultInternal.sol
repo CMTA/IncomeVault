@@ -29,7 +29,7 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     /**
     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.IncomeVaultInternal")) - 1)) & ~bytes32(uint256(0xff))
-    * The derivation is re-checked in `test/IncomeVaultStorage.t.sol`.
+    * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
     */
     bytes32 private constant IncomeVaultInternalStorageLocation =
         0xe4f8b033bcfc537db031b0e68e3c1ab0f1de86cf03893d031b6590510b0c0c00;
@@ -221,8 +221,8 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     * The single writer of `_segregatedDividend`, and the only place `newDeposit` is emitted. Both
     * funding paths go through it — {IncomeVaultRestricted-deposit} once,
     * {IncomeVaultRestricted-depositBatch} once per element — so validating, writing and announcing a
-    * deposit cannot come apart. Finding C-1 of `CLAUDE_ANALYSIS_SECOND.md`; the two paths previously
-    * carried a copy of all three each.
+    * deposit cannot come apart. Each path carrying its own copy is what lets them diverge, so a new
+    * funding path must call this rather than repeat it.
     *
     * The ERC-20 transfer is deliberately **not** here. `depositBatch` makes a single
     * `safeTransferFrom` for the whole batch, which is the reason it exists; folding the transfer in

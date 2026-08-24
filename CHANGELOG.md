@@ -135,10 +135,9 @@ forge lint
   deployment now has a complete on-chain trail. See `CLAUDE_ANALYSIS.md` C-1 to C-4.
 - `doc/audits/CLAUDE_ANALYSIS.md`, a code-quality review (not a security audit).
 - `VersionModule`, exposing the release version through `IERC3643Version.version()`, as the CMTAT,
-  RuleEngine and SnapshotEngine do. `VERSION` currently reads **1.1.0**; note this conflicts with the
-  MAJOR rule stated above, which this release triggers (incompatible proxy storage change, changed
-  `initialize` signature, reworked internal architecture). Align `VERSION` with the release heading
-  before tagging.
+  RuleEngine and SnapshotEngine do. `VERSION` reads **2.0.0**, matching this heading: the release
+  triggers the MAJOR rule stated above on three counts — an incompatible proxy storage change, a
+  changed `initialize` signature, and a reworked internal architecture.
 - `IncomeVaultOwnable2Step`, a second deployment contract using a single ERC-173 owner
   (`Ownable2StepUpgradeable`) instead of roles. The variant is chosen at deployment and cannot be
   swapped afterwards. It **cannot express separated duties** — the owner both funds and drains the

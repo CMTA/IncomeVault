@@ -43,7 +43,7 @@ abstract contract ERC7741Module is
     /**
     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.ERC7741Module")) - 1)) & ~bytes32(uint256(0xff))
-    * The derivation is re-checked in `test/OperatorAuthorization.t.sol`.
+    * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
     */
     bytes32 private constant ERC7741ModuleStorageLocation = 0xb93ff011b98f03386917a7b9b9106f5d9f85ba058e0b4e9b3aad1f6474a96800;
 

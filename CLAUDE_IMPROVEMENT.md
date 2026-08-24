@@ -337,13 +337,13 @@ Predates every refactor in this branch, and the README links it under "Audits". 
 the file with the commit it describes. Neither is expensive; leaving it as is implies a clean run
 against the current code.
 
-Superseded by the v1.1.0 run: `doc/audits/tools/v1.1.0/slither-report.md` (Slither 0.11.5) plus a first
+Superseded by the v2.0.0 run: `doc/audits/tools/v2.0.0/slither-report.md` (Slither 0.11.5) plus a first
 Aderyn report, each with a summary table and a feedback file triaging every finding, and a new
 `doc/audits/AUDIT_OVERVIEW.md`. The stale top-level copy is gone.
 
 Worth carrying forward: the old invocation filtered by dependency **name**
 (`openzeppelin-contracts|test|CMTAT|forge-std`). It matches the same paths today, but fails open — add a
-dependency whose directory is not listed and the whole vendored tree enters scope, silently. The v1.1.0
+dependency whose directory is not listed and the whole vendored tree enters scope, silently. The v2.0.0
 command filters on `lib`, and the report is checked with `grep -c 'lib/\|node_modules/'` returning 0
 before any count is believed.
 
@@ -449,10 +449,20 @@ when a later period's holder tries to claim.
 
 ## F. Release readiness
 
-### F-1. Version string versus release heading — **open, see `CLAUDE_ANALYSIS.md` G-1**
+### F-1. Version string versus release heading — ✅ **fixed**
 
 `VERSION = "1.1.0"` against a `## 2.0.0` changelog heading, where the changelog's own rule makes this
-release MAJOR. One line either way; it only needs a decision.
+release MAJOR.
+
+`VERSION` is now `2.0.0`, with the four mirrors updated alongside it: the version test's
+`EXPECTED_VERSION`, two asserts in the deployment-script tests, and the sample output in the reference
+doc. The changelog's own note that the two disagreed is replaced by the three reasons the release is
+MAJOR — an incompatible proxy storage change, a changed `initialize` signature, and a reworked internal
+architecture.
+
+**Verified the mirrors are guarded:** setting `VERSION` to `2.0.1` alone fails three suites
+(`testVersionIsTheSameOnTheImplementation`, `testDeploysAnInitializedVault`,
+`testDeploysAnInitializedOwnableVault`), so a future bump cannot land in one place only.
 
 ### F-2. The project depends on two release candidates — **verified**
 
