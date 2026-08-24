@@ -20,9 +20,7 @@ Currently, the vault supports only dividend under the form of another ERC-20 and
 
 The `IncomeVault` is **not** an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) tokenized vault, and deliberately so: an ERC-4626 share entitles whoever holds it *now*, whereas a dividend must be allocated to whoever held the security token at a **record date**. See [Comparison with ERC-4626 / ERC-7540 vaults](./doc/README.md#comparison-with-erc-4626--erc-7540-vaults) for the full comparison, including when a 4626 vault *is* the right tool.
 
-For the specific case where dividends are distributed in shares, meaning additional payout of the “existing” CMTAT Token, it is not currently supported due to the following reasons:
-\- With the current architecture, depending on when you decide to mint the new tokens, you will increase the total supply used to compute the token holder shares. Therefore, you will reduce the dividends distributed to the token holders.
-\- In general, for yield tokens, the formula used can be different.
+Paying the dividend in **the security token itself** — a scrip or stock dividend — is **not supported**. The vault would have to hold a stock of that token, and the pro-rata formula divides by the token's total supply, which includes what the vault holds: holders would be diluted by their own dividend, and the shortfall would stay in the vault. A share dividend is also normally declared as a ratio (one new share per N held) rather than as a pot divided pro-rata, which is a different computation. Nothing in the code prevents pointing the vault at the security token, so the reasoning is set out in [Paying the dividend in the security token itself](./doc/README.md#paying-the-dividend-in-the-security-token-itself).
 
 ## Compatibility
 

@@ -29,6 +29,12 @@
   - [What ERC-7540 changes, and what it does not](#what-erc-7540-changes-and-what-it-does-not)
   - [When a 4626 vault is the right tool](#when-a-4626-vault-is-the-right-tool)
   - [A place the two could meet](#a-place-the-two-could-meet)
+- [Paying the dividend in the security token itself](#paying-the-dividend-in-the-security-token-itself)
+  - [The vault would hold the token it is dividing](#the-vault-would-hold-the-token-it-is-dividing)
+  - [Minting after the record date does not avoid it](#minting-after-the-record-date-does-not-avoid-it)
+  - [A share dividend is not a pot divided pro-rata](#a-share-dividend-is-not-a-pot-divided-pro-rata)
+  - [And the payout becomes a transfer of the security](#and-the-payout-becomes-a-transfer-of-the-security)
+  - [What would be needed](#what-would-be-needed)
 - [Source layout](#source-layout)
 - [The stated API: IIncomeVault](#the-stated-api-iincomevault)
 - [Embedding the distribution logic in a token](#embedding-the-distribution-logic-in-a-token)
@@ -473,6 +479,46 @@ The dividing line is whether the payout is **discrete and dated** (this vault) o
 Payment tokens deposited for a `time` sit idle in this contract from `deposit` until each holder claims — potentially months. A future version could hold that float as shares of a 4626 vault and redeem on each payout, so the undistributed dividend earns yield instead of nothing.
 
 It is deliberately **not** implemented: the vault owes a *fixed nominal amount* per period, while 4626 shares carry share-price risk. A loss in the underlying vault would leave the contract unable to pay the amount it recorded at `deposit`, turning a bookkeeping contract into one that can be short. Doing it safely needs a buffer policy and an explicit rule for who absorbs a shortfall — a materially larger design than the one this prototype implements.
+
+## Paying the dividend in the security token itself
+
+A **scrip** or **stock dividend** pays holders in more of the same security rather than in cash. The vault does not support it, and nothing in the code stops an issuer trying: `_setERC20TokenPayment` rejects only the zero address, so a vault can be pointed at the CMTAT it distributes for and will deploy. The failure is in the arithmetic, not in a guard.
+
+### The vault would hold the token it is dividing
+
+To pay in the security token the vault must hold a stock of it. Those tokens are part of the token's total supply, and the pro-rata formula divides by exactly that:
+
+```
+holderDividend = snapshotBalanceOf(holder, time) * segregatedDividend[time] / snapshotTotalSupply(time)
+```
+
+If the vault holds `X` at the record date, `snapshotTotalSupply(time)` includes `X`. Summing over every holder other than the vault:
+
+```
+total paid out = segregatedDividend[time] * (totalSupply - X) / totalSupply   <   segregatedDividend[time]
+```
+
+Holders collectively receive **less than the amount deposited**, short by the fraction the vault itself holds — they are diluted by their own dividend. The shortfall stays in the vault, and the vault has a snapshot balance of its own, so it is nominally entitled to a share of the distribution it is administering. The pot sits inside the denominator it is divided by.
+
+This is silent. Every call succeeds and the numbers look plausible; only the totals are wrong.
+
+### Minting after the record date does not avoid it
+
+Both figures come from the **snapshot at the record date**, never from live balances. So minting new tokens *after* `time` does not affect that period's computation at all.
+
+What it does affect is every *later* record date: the vault's undistributed stock is in the supply for each of them, and it shrinks as holders claim, so the dilution differs per period and moves as claims arrive. Minting *before* the record date inflates that period's denominator directly.
+
+### A share dividend is not a pot divided pro-rata
+
+Even with the accounting fixed, the formula is the wrong shape. A scrip dividend is normally declared as a **ratio** — one new share for every `N` held — which is `floor(balance / N)`, not `balance * pot / totalSupply`. The two agree only if the issuer back-computes a pot from the ratio and the supply, and they diverge on rounding: dust in a stablecoin is a rounding error, dust in shares is a fractional entitlement an issuer usually has to settle in cash.
+
+### And the payout becomes a transfer of the security
+
+`safeTransfer` on a CMTAT runs **the token's own** pause, freeze and RuleEngine checks, which are independent of the vault's. So the vault must itself be an eligible holder of the security, every recipient must be eligible at claim time, and a claim can revert inside the token even after the vault's own validation passed. Two compliance layers, neither aware of the other. Unlike the dilution, this half fails closed — the claim reverts rather than paying the wrong amount.
+
+### What would be needed
+
+Not a payment-token swap. A share distribution needs the entitlement expressed as a ratio, the newly issued shares excluded from the denominator (or minted only as each holder claims), and a stated policy for fractional entitlements. That is a different mechanism from segregating a pot and dividing it, which is what this vault is.
 
 ## Source layout
 
