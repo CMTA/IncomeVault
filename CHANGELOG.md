@@ -46,7 +46,7 @@ forge lint
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script)
   - Update changelog
 
-## 2.0.0
+## 2.0.0-rc0
 
 ### Breaking changes
 
@@ -70,7 +70,7 @@ forge lint
 - `openClaimCount()`, the number of dividend times whose claims are currently open.
 - Events for every state write that had none: `ClaimStatusSet`, `ERC20TokenPaymentSet`, `TimeLimitToWithdrawSet`, `Withdraw` and `WithdrawAll`. Each is emitted from the internal `_setX` helper that performs the write, so they also fire during `initialize` — a vault configured once at deployment now has a complete on-chain trail. See `CLAUDE_ANALYSIS.md` C-1 to C-4.
 - `doc/audits/CLAUDE_ANALYSIS.md`, a code-quality review (not a security audit).
-- `VersionModule`, exposing the release version through `IERC3643Version.version()`, as the CMTAT, RuleEngine and SnapshotEngine do. `VERSION` reads **2.0.0**, matching this heading: the release triggers the MAJOR rule stated above on three counts — an incompatible proxy storage change, a changed `initialize` signature, and a reworked internal architecture.
+- `VersionModule`, exposing the release version through `IERC3643Version.version()`, as the CMTAT, RuleEngine and SnapshotEngine do. `VERSION` reads **2.0.0**: the release triggers the MAJOR rule stated above on three counts — an incompatible proxy storage change, a changed `initialize` signature, and a reworked internal architecture. The `-rc0` suffix on this heading marks the release as a candidate and is deliberately **not** carried into the contract constant, which reports the version the code will ship as.
 - `IncomeVaultOwnable2Step`, a second deployment contract using a single ERC-173 owner (`Ownable2StepUpgradeable`) instead of roles. The variant is chosen at deployment and cannot be swapped afterwards. It **cannot express separated duties** — the owner both funds and drains the vault — so it suits simple deployments only.
 - `Ownable2StepERC165Module`, advertising ERC-173 and the Ownable2Step selectors.
 
