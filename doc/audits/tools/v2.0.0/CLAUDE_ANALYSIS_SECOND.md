@@ -14,20 +14,21 @@ This is the **second** pass. The first is [`CLAUDE_ANALYSIS.md`](./CLAUDE_ANALYS
 | B-1 | `_transferDividend` re-reads `_paidDividend[time]` — **209 gas** measured | ✅ **fixed**, in a better shape than proposed — **167 gas** |
 | C-1 | The deposit write, its zero-check and its event are duplicated across two paths | ✅ **fixed** |
 | E-1 | Three core internal functions are not `virtual` while five siblings in the same file are | ✅ **fixed** |
-| G-1 | Three production comments point at `doc/` paths that have already moved twice | ⬜ reported, not applied |
+| G-1 | Three production comments point at `doc/` paths that have already moved twice | ✅ **fixed**, and the rule was tightened past what this finding proposed |
 | G-2 | NatSpec block length | ⬜ **no change needed** — measured; corrects a worry raised during development |
 | H-1 | `detectTransferRestriction` answers 0 for a payout that `canTransfer` rejects | ✅ **fixed** |
 | I-1 | The vault demands `IRuleEngine`, whose `transferred` it must never call | ⬜ **keep as is** — the reason is recorded so it is not re-opened |
 | J-1 | Modularity | ⬜ already covered exhaustively elsewhere; not duplicated here |
 
-Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **B-1, C-1, E-1, G-1 and H-1 have all since been implemented.** What remains are the two deliberate "keep as is" verdicts, the "nothing found" row, and the modularity pointer.
+Nine rows: two are explicit "do not change" verdicts, one is "nothing found", six were recommendations. **All six recommendations — B-1, C-1, E-1, G-1, H-1 and the carried-forward version bump — have since been implemented.** What remains are the two deliberate "keep as is" verdicts (I-1, G-2), the "nothing found" row (A-1), and the modularity pointer (J-1).
 
 ## Outstanding, carried from the first pass
 
 | ID | Item | Why it is still open |
 | --- | --- | --- |
-| G-1 (first pass) | `VERSION = "1.1.0"` vs `CHANGELOG.md` heading `## 2.0.0` | The semver call is the maintainer's. The CHANGELOG's own rule makes this MAJOR: the ERC-7201 layout changed twice and the architecture was reworked |
 | F-2 (first pass) | `IERC3643Version` not advertised through ERC-165 | Cosmetic; no consumer known to filter on it |
+
+The first pass's own G-1 — `VERSION = "1.1.0"` against a `## 2.0.0` changelog heading — is **closed**. `VERSION` is now `2.0.0`, with its four mirrors updated and a sabotage confirming a lone bump fails three suites. The audit directory was renamed `v1.1.0` to `v2.0.0` to match, which was a correction rather than a follow-on: the changelog has only `2.0.0` and `1.0.0` headings, so no `1.1.0` release ever existed.
 
 ---
 
@@ -207,7 +208,33 @@ The second problem is the one that bites. Someone reading the verified source on
 
 **`VersionModule.sol:13` is different and should be left alone.** It cites `CHANGELOG.md` by **bare filename**, which survives any reorganisation, and the instruction it gives ("bump these together") is actionable without opening the file.
 
-**Verdict: drop the two `doc/README.md` path pointers, keep the sentences, keep the `CHANGELOG.md` reference.**
+**Verdict: drop the two `doc/README.md` path pointers, keep the sentences, keep the `CHANGELOG.md` reference.** ✅ **Done — and then taken further, on the maintainer's instruction.**
+
+### What was actually applied
+
+The rule adopted is stricter than this finding proposed: **`CHANGELOG.md` is the only file reference permitted in a contract comment.** `src/` now contains exactly one, in `VersionModule`.
+
+Nine references were removed, in four groups. This finding had spotted three of them and had explicitly *exempted* two of the groups, so the correction is worth recording rather than glossing:
+
+| Group | Count | This finding said | What was done |
+| --- | --- | --- | --- |
+| `doc/README.md` path pointers | 2 | remove | removed |
+| `CHANGELOG.md` | 1 | keep | kept |
+| Audit findings cited by id (`finding H-1 of CLAUDE_ANALYSIS_SECOND.md`) | 2 | **exempt** — an immutable record, and the bare filename survives a move | **removed** |
+| Test-file pointers (`asserted in test/Operator.t.sol`, four ERC-7201 slot comments) | 6 | not raised at all | **removed** |
+
+**The exemption I argued for does not survive contact with the actual reader.** A finding id means nothing to someone reading verified source on a block explorer, and it was ambiguous even internally — both this file and `CLAUDE_ANALYSIS.md` have an `H-1`. The same applies to a test pointer: *"asserted in `test/Operator.t.sol`"* tells a reader that a guarantee exists somewhere they cannot look.
+
+In each case the pointer was replaced by the thing it was standing in for:
+
+| Was | Now |
+| --- | --- |
+| "finding H-1 of `CLAUDE_ANALYSIS_SECOND.md`" | "consulting only the RuleEngine here would report a paused vault or a frozen holder as unrestricted, and the claim would then revert" |
+| "asserted in `test/Operator.t.sol`" | "change either one and the id no longer matches what ERC-7540 assigns" |
+| "The derivation is re-checked in `test/IncomeVaultStorage.t.sol`" | "Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it" |
+| "Finding C-1 of `CLAUDE_ANALYSIS_SECOND.md`" | "Each path carrying its own copy is what lets them diverge, so a new funding path must call this rather than repeat it" |
+
+Every replacement is actionable without leaving the file, which is the property the original finding was reaching for and only half-applied. `CLAUDE.md`/`AGENTS.md` carry the tightened rule, including the instruction not to cite the test that asserts a property — give the property and the consequence of breaking it.
 
 ### G-2. NatSpec block length — no change needed
 
