@@ -15,27 +15,27 @@ import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step
 import {ISnapshotSource} from "../src/interfaces/ISnapshotSource.sol";
 
 /**
-* @title Deploy the role-based {IncomeVault} behind a transparent proxy
-* @dev
-* Run with:
-*
-* ```bash
-* forge script script/DeployIncomeVaultOwnable2Step.s.sol --rpc-url <RPC> --broadcast --ffi
-* ```
-*
-* `--ffi` is required: the OpenZeppelin Upgrades plugin shells out to the upgrades-core npm package
-* for the upgrade-safety validation, which also needs a **full** build — run `forge clean && forge build`
-* first or every run fails with "not from a full compilation".
-*
-* Configuration comes from the environment; {deploy} takes it explicitly so the same code path is
-* exercised by `test/script/Deploy.t.sol` without any environment at all.
-*/
+ * @title Deploy the role-based {IncomeVault} behind a transparent proxy
+ * @dev
+ * Run with:
+ *
+ * ```bash
+ * forge script script/DeployIncomeVaultOwnable2Step.s.sol --rpc-url <RPC> --broadcast --ffi
+ * ```
+ *
+ * `--ffi` is required: the OpenZeppelin Upgrades plugin shells out to the upgrades-core npm package
+ * for the upgrade-safety validation, which also needs a **full** build — run `forge clean && forge build`
+ * first or every run fails with "not from a full compilation".
+ *
+ * Configuration comes from the environment; {deploy} takes it explicitly so the same code path is
+ * exercised by `test/script/Deploy.t.sol` without any environment at all.
+ */
 contract DeployIncomeVaultOwnable2Step is Script {
     /**
-    * @notice Everything the deployment needs
-    * @dev `forwarder` and `ruleEngine` may be the zero address — gasless support and rule checks are
-    * both optional. Every other member must be set.
-    */
+     * @notice Everything the deployment needs
+     * @dev `forwarder` and `ruleEngine` may be the zero address — gasless support and rule checks are
+     * both optional. Every other member must be set.
+     */
     struct Config {
         // owner of the ProxyAdmin, i.e. who may upgrade the implementation
         address proxyAdmin;
@@ -54,9 +54,9 @@ contract DeployIncomeVaultOwnable2Step is Script {
     }
 
     /**
-    * @notice Entry point — reads the configuration from the environment and broadcasts
-    * @return vault the deployed proxy, typed as {IncomeVault}
-    */
+     * @notice Entry point — reads the configuration from the environment and broadcasts
+     * @return vault the deployed proxy, typed as {IncomeVault}
+     */
     function run() external returns (IncomeVaultOwnable2Step vault) {
         Config memory config = configFromEnv();
         vm.startBroadcast();
@@ -66,11 +66,11 @@ contract DeployIncomeVaultOwnable2Step is Script {
     }
 
     /**
-    * @notice Deploy and initialize the vault
-    * @dev No broadcasting here, so tests can call it directly.
-    * @param config the deployment configuration
-    * @return vault the deployed proxy, typed as {IncomeVault}
-    */
+     * @notice Deploy and initialize the vault
+     * @dev No broadcasting here, so tests can call it directly.
+     * @param config the deployment configuration
+     * @return vault the deployed proxy, typed as {IncomeVault}
+     */
     function deploy(Config memory config) public returns (IncomeVaultOwnable2Step vault) {
         checkConfig(config);
 
@@ -97,10 +97,10 @@ contract DeployIncomeVaultOwnable2Step is Script {
     }
 
     /**
-    * @notice Read the configuration from environment variables
-    * @dev `FORWARDER` and `RULE_ENGINE` default to the zero address; everything else is required.
-    * @return config the configuration
-    */
+     * @notice Read the configuration from environment variables
+     * @dev `FORWARDER` and `RULE_ENGINE` default to the zero address; everything else is required.
+     * @return config the configuration
+     */
     function configFromEnv() public view returns (Config memory config) {
         config = Config({
             proxyAdmin: vm.envAddress("PROXY_ADMIN"),
@@ -114,14 +114,14 @@ contract DeployIncomeVaultOwnable2Step is Script {
     }
 
     /**
-    * @notice Reject a configuration that would deploy a broken vault
-    * @dev
-    * The contract validates the zero addresses itself, so this only adds what it **cannot** check:
-    * that the two external dependencies are actually contracts. Passing an EOA — a mistyped address,
-    * or a token address from the wrong chain — deploys a vault that initializes successfully and then
-    * reverts on the first claim.
-    * @param config the configuration to check
-    */
+     * @notice Reject a configuration that would deploy a broken vault
+     * @dev
+     * The contract validates the zero addresses itself, so this only adds what it **cannot** check:
+     * that the two external dependencies are actually contracts. Passing an EOA — a mistyped address,
+     * or a token address from the wrong chain — deploys a vault that initializes successfully and then
+     * reverts on the first claim.
+     * @param config the configuration to check
+     */
     function checkConfig(Config memory config) public view {
         require(config.proxyAdmin != address(0), "DeployIncomeVaultOwnable2Step: PROXY_ADMIN is zero");
         require(config.owner != address(0), "DeployIncomeVaultOwnable2Step: VAULT_OWNER is zero");
@@ -143,10 +143,10 @@ contract DeployIncomeVaultOwnable2Step is Script {
     }
 
     /**
-    * @notice Print what was deployed
-    * @param vault the deployed proxy
-    * @param config the configuration used
-    */
+     * @notice Print what was deployed
+     * @param vault the deployed proxy
+     * @param config the configuration used
+     */
     function logDeployment(IncomeVaultOwnable2Step vault, Config memory config) public view {
         console.log("IncomeVault (proxy):   ", address(vault));
         console.log("  version:             ", vault.version());
