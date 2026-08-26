@@ -327,14 +327,14 @@ The cost of the current design is that an implementer must satisfy a wider inter
 
 ## J. Modularity
 
-Assessed exhaustively in `IMPROVEMENT_MODULARITY.md` (M-1 to M-9) and not repeated here. Current state, as compile results rather than opinion:
+A separate modularity review ran over this codebase and is closed. Six findings were implemented — the validation and snapshot dependencies became hooks, claim delegation and the snapshot source each got their own ERC-7201 namespace, `src/` was reorganised by what each file *is*, `IIncomeVault` was added, and ERC-2771 moved out of the base. Three more were closed as **not defects** after being checked: `version()` and `_authorizeRuleEngineManagement` collide with CMTAT's by design (one shared hardcoded storage slot, so one override is the correct answer), and splitting `IncomeVaultValidationModule` so an embedded copy reuses the host's RuleEngine is already the case for the same reason. The working document was removed once the work landed; the changelog entries carry what changed. Current state, as compile results rather than opinion:
 
 - `test/mocks/CMTATDividendHostMock.sol` — a `CMTATUpgradeableInternalSnapshot` embedding the distribution logic — **compiles**. Before M-1 it failed `Error (5005)`; after M-1 it still failed on a `snapshotEngine()` return-type collision, which M-2 removed.
 - `test/mocks/EmbeddedDividendHostMock.sol` and `test/mocks/NoForwarderVaultMock.sol` compile, covering the non-CMTAT host and the deployment without ERC-2771.
 
 The one open item there is **M-3b**: SnapshotEngine vendors its own CMTAT at `v3.3.0-rc1` while this project pins `v3.3.0-rc3`, so mixing the project's CMTAT-derived modules with SnapshotEngine's CMTAT contracts fails with nine duplicate-identifier errors. It is contained only because `IncomeVaultValidationModule` is the sole CMTAT-derived module and M-1 removed it from the embeddable path.
 
-**Since tested, and the recorded fix was wrong.** Aligning the nested CMTAT to `v3.3.0-rc3` so both trees hold identical source leaves the same nine errors: Solidity keys a contract by its source unit, not its contents, so two paths are two contracts even byte-identical. Remapping cannot help either, because SnapshotEngine imports CMTAT by *relative* path and remappings only rewrite non-relative prefixes. There is no fix available inside this repository; the correction is recorded in `IMPROVEMENT_MODULARITY.md`.
+**Since tested, and the recorded fix was wrong.** Aligning the nested CMTAT to `v3.3.0-rc3` so both trees hold identical source leaves the same nine errors: Solidity keys a contract by its source unit, not its contents, so two paths are two contracts even byte-identical. Remapping cannot help either, because SnapshotEngine imports CMTAT by *relative* path and remappings only rewrite non-relative prefixes. There is no fix available inside this repository. Keep this project's CMTAT-derived modules and SnapshotEngine's CMTAT-derived contracts out of the same linearization — which M-1 already ensures, and which is why nothing is broken today.
 
 ---
 

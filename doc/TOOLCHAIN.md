@@ -104,7 +104,7 @@ npx sol2uml class -i -c src/deployment/IncomeVault.sol
 
 
 
-The related component can be installed with `npm install` (see [package.json](./package.json)).
+The related component can be installed with `npm install` (see [package.json](../package.json)).
 
 ### [Surya](https://github.com/ConsenSys/surya)
 
@@ -187,4 +187,4 @@ npm run-script lint:sol:test
 npm run-script lint:sol:test:fix
 ```
 
-The related components can be installed with `npm install` (see [package.json](./package.json)).
+The related components can be installed with `npm install` (see [package.json](../package.json)).
