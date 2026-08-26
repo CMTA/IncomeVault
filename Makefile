@@ -31,7 +31,8 @@ install:
 ## build: full build (clean first — required by the upgrade-safety validation)
 build:
 	forge clean
-	forge build --sizes
+	forge build
+	@python3 doc/script/check_sizes.py
 
 ## test: full build, then the whole suite
 test: build
@@ -51,6 +52,7 @@ coverage-report: build
 		--report lcov --report-file lcov.info
 	rm -rf doc/coverage && mkdir -p doc/coverage
 	genhtml lcov.info --branch-coverage --output-dir doc/coverage
+	cp doc/script/coverage-README.md doc/coverage/README.md
 	rm -f lcov.info
 	@echo "open doc/coverage/index.html"
 

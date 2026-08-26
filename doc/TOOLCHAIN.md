@@ -11,6 +11,7 @@
   - [sol2uml](#sol2uml)
   - [Surya](#surya)
   - [Slither](#slither)
+- [Coverage](#coverage)
 - [Code style guidelines](#code-style-guidelines)
 
 <!-- /toc -->
@@ -145,6 +146,27 @@ npx surya graph src/deployment/IncomeVault.sol | dot -Tpng > surya_graph_IncomeV
 ```
 
 
+
+## Coverage
+
+```bash
+make coverage           # summary table in the terminal
+make coverage-report    # HTML in doc/coverage (needs lcov + genhtml)
+```
+
+`doc/coverage/` is **generated and git-ignored**. It is not committed on purpose: a coverage report goes stale on the next contract change, and this repository already carried another project's coverage output — `RuleEngine.sol`, `RuleWhitelist.sol`, `RuleSanctionList.sol` — for long enough that it read as authoritative. A report describing the wrong codebase is worse than no report. `make coverage-report` also drops a `README.md` into that directory, copied from `doc/script/coverage-README.md`, since genhtml recreates the directory each run.
+
+Coverage **does** work here, contrary to an older note in the agent guides: the suite runs under it despite deploying through a proxy. Current figures are roughly 96% of lines and 98% of branches.
+
+Two files report **0%**, which is expected rather than a gap: `IncomeVaultSnapshotCore` and `IncomeVaultValidationCore` declare hooks with no bodies, so there is nothing in them to execute. Function coverage is the least useful of the four figures for the same reason — it counts the empty `_authorize*` overrides, whose whole purpose is to carry a modifier.
+
+Scope is `src/` only:
+
+```
+forge coverage --ffi --exclude-tests --no-match-coverage '(test|mocks?|script)/'
+```
+
+`--ffi` is required, as everywhere else: the OpenZeppelin Upgrades plugin shells out to `@openzeppelin/upgrades-core`.
 
 ## Code style guidelines
 
