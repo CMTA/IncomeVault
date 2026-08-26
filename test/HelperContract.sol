@@ -24,8 +24,8 @@ import {IncomeVaultRolesStorage} from "../src/storage/IncomeVaultRolesStorage.so
 import {ERC20PaymentMock} from "./mocks/ERC20PaymentMock.sol";
 
 /**
-* @title Constants and shared deployment used by the tests
-*/
+ * @title Constants and shared deployment used by the tests
+ */
 abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVaultRolesStorage {
     // EOA to perform tests
     address constant ZERO_ADDRESS = address(0);
@@ -77,10 +77,10 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
     error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);
 
     /**
-    * @dev Deploys the CMTAT, the external SnapshotEngine bound to it, the payment token and the
-    * IncomeVault behind a transparent proxy. The vault reads the balances through {ISnapshotSource},
-    * so the snapshot engine — not the token — is what it is wired to.
-    */
+     * @dev Deploys the CMTAT, the external SnapshotEngine bound to it, the payment token and the
+     * IncomeVault behind a transparent proxy. The vault reads the balances through {ISnapshotSource},
+     * so the snapshot engine — not the token — is what it is wired to.
+     */
     function _deployContracts(IRuleEngine ruleEngine_) internal {
         // Security token
         CMTAT_CONTRACT = new CMTATStandaloneSnapshot(
@@ -129,10 +129,10 @@ abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVau
     }
 
     /**
-    * @dev Deploys the single-owner variant behind its own proxy, against the payment token and
-    * snapshot engine already built by {_deployContracts}. Call it after `_deployContracts()`.
-    * Kept here rather than repeated per suite — five test files used to carry a copy.
-    */
+     * @dev Deploys the single-owner variant behind its own proxy, against the payment token and
+     * snapshot engine already built by {_deployContracts}. Call it after `_deployContracts()`.
+     * Kept here rather than repeated per suite — five test files used to carry a copy.
+     */
     function _deployOwnableVault() internal {
         _deployOwnableVault(IRuleEngine(ZERO_ADDRESS));
     }

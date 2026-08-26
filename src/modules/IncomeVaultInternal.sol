@@ -11,15 +11,15 @@ import {IncomeVaultInvariantStorage} from "../storage/IncomeVaultInvariantStorag
 import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**
-* @title Internal functions and ERC-7201 storage of the IncomeVault
-* @dev
-* Holds the dividend bookkeeping. The snapshot source is deliberately **not** here — see
-* {IncomeVaultSnapshotCore} — so a host that is its own source does not inherit an unused reference.
-*
-* The state is held in an ERC-7201 namespaced storage struct, as OpenZeppelin Upgradeable and the
-* CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
-* inherited modules; no `__gap` is needed and new fields can be appended to the struct freely.
-*/
+ * @title Internal functions and ERC-7201 storage of the IncomeVault
+ * @dev
+ * Holds the dividend bookkeeping. The snapshot source is deliberately **not** here — see
+ * {IncomeVaultSnapshotCore} — so a host that is its own source does not inherit an unused reference.
+ *
+ * The state is held in an ERC-7201 namespaced storage struct, as OpenZeppelin Upgradeable and the
+ * CMTAT do. The namespace is derived from a hash, so it cannot collide with the storage of the
+ * inherited modules; no `__gap` is needed and new fields can be appended to the struct freely.
+ */
 abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVault {
     // Manage transfer failure
     using SafeERC20 for IERC20;
@@ -27,10 +27,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     /* ============ Type declarations ============ */
     /* ============ ERC-7201 ============ */
     /**
-    * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
-    * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.IncomeVaultInternal")) - 1)) & ~bytes32(uint256(0xff))
-    * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
-    */
+     * @dev Slot holding the ERC-7201 namespaced storage of this module, derived as
+     * keccak256(abi.encode(uint256(keccak256("IncomeVault.storage.IncomeVaultInternal")) - 1)) & ~bytes32(uint256(0xff))
+     * Recompute it with `SlotDerivation.erc7201Slot()` before trusting a change to it.
+     */
     bytes32 private constant IncomeVaultInternalStorageLocation =
         0xe4f8b033bcfc537db031b0e68e3c1ab0f1de86cf03893d031b6590510b0c0c00;
 
@@ -61,89 +61,89 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     //////////////////////////////////////////////////////////////*/
     /* ============ View functions ============ */
     /**
-    * @notice ERC-20 token used to pay the dividends
-    * @return The payment token
-    */
+     * @notice ERC-20 token used to pay the dividends
+     * @return The payment token
+     */
     function ERC20TokenPayment() public view virtual returns (IERC20) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._ERC20TokenPayment;
     }
 
     /**
-    * @notice Tells whether a token holder already claimed the dividends of a given time
-    * @param tokenHolder the address to check
-    * @param time the dividend time
-    * @return True if the dividends were already claimed or distributed
-    */
+     * @notice Tells whether a token holder already claimed the dividends of a given time
+     * @param tokenHolder the address to check
+     * @param time the dividend time
+     * @return True if the dividends were already claimed or distributed
+     */
     function claimedDividend(address tokenHolder, uint256 time) public view virtual returns (bool) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._claimedDividend[tokenHolder][time];
     }
 
     /**
-    * @notice Total amount of payment token deposited for a given dividend time
-    * @param time the dividend time
-    * @return The amount deposited, minus what was already withdrawn
-    */
+     * @notice Total amount of payment token deposited for a given dividend time
+     * @param time the dividend time
+     * @return The amount deposited, minus what was already withdrawn
+     */
     function segregatedDividend(uint256 time) public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._segregatedDividend[time];
     }
 
     /**
-    * @notice Claim status of a given dividend time
-    * @param time the dividend time
-    * @return True when the token holders can claim their dividends
-    */
+     * @notice Claim status of a given dividend time
+     * @param time the dividend time
+     * @return True when the token holders can claim their dividends
+     */
     function segregatedClaim(uint256 time) public view virtual returns (bool) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._segregatedClaim[time];
     }
 
     /**
-    * @notice Total already paid out for a dividend time
-    * @param time the dividend time
-    * @return The amount of payment token already transferred to holders for `time`
-    */
+     * @notice Total already paid out for a dividend time
+     * @param time the dividend time
+     * @return The amount of payment token already transferred to holders for `time`
+     */
     function paidDividend(uint256 time) public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._paidDividend[time];
     }
 
     /**
-    * @notice What is still held for a dividend time — the deposit minus what has been paid out
-    * @dev
-    * This is the amount an issuer can sweep with {IncomeVaultRestricted-withdraw}, and it is the bound
-    * that function enforces. `segregatedDividend` alone is **not** that amount: it is the pro-rata
-    * denominator and stays fixed at the deposit even after holders are paid.
-    *
-    * After the claim window closes it is exactly the rounding dust plus anything unclaimed. Before it
-    * closes it still includes what the remaining holders are entitled to, so sweeping early takes
-    * money they can no longer be paid — see the note on {IncomeVaultRestricted-withdraw}.
-    * @param time the dividend time
-    * @return The amount of payment token still attributable to `time`
-    */
+     * @notice What is still held for a dividend time — the deposit minus what has been paid out
+     * @dev
+     * This is the amount an issuer can sweep with {IncomeVaultRestricted-withdraw}, and it is the bound
+     * that function enforces. `segregatedDividend` alone is **not** that amount: it is the pro-rata
+     * denominator and stays fixed at the deposit even after holders are paid.
+     *
+     * After the claim window closes it is exactly the rounding dust plus anything unclaimed. Before it
+     * closes it still includes what the remaining holders are entitled to, so sweeping early takes
+     * money they can no longer be paid — see the note on {IncomeVaultRestricted-withdraw}.
+     * @param time the dividend time
+     * @return The amount of payment token still attributable to `time`
+     */
     function unclaimedDividend(uint256 time) public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return _unclaimed($._segregatedDividend[time], $._paidDividend[time]);
     }
 
     /**
-    * @notice How many dividend times currently have their claims open
-    * @dev Maintained exactly by {_setStatusClaim}, the only writer of the claim status. Used by
-    * {IncomeVaultSnapshotModule-setDividendSnapshotSource}, which refuses to change the snapshot source while any
-    * period is open.
-    * @return The number of open claim periods
-    */
+     * @notice How many dividend times currently have their claims open
+     * @dev Maintained exactly by {_setStatusClaim}, the only writer of the claim status. Used by
+     * {IncomeVaultSnapshotModule-setDividendSnapshotSource}, which refuses to change the snapshot source while any
+     * period is open.
+     * @return The number of open claim periods
+     */
     function openClaimCount() public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._openClaimCount;
     }
 
     /**
-    * @notice Delay, after the dividend time, during which a claim is still accepted
-    * @return The delay in seconds
-    */
+     * @notice Delay, after the dividend time, during which a claim is still accepted
+     * @return The delay in seconds
+     */
     function timeLimitToWithdraw() public view virtual returns (uint256) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return $._timeLimitToWithdraw;
@@ -154,15 +154,12 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     //////////////////////////////////////////////////////////////*/
     /* ============ State functions ============ */
     /**
-    * @notice Records the claim then sends the dividends to the token holder
-    * @param time dividend time
-    * @param tokenHolder addresses to send the dividends
-    * @param tokenHolderDividend the computed dividends
-    */
-    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend)
-        internal
-        virtual
-    {
+     * @notice Records the claim then sends the dividends to the token holder
+     * @param time dividend time
+     * @param tokenHolder addresses to send the dividends
+     * @param tokenHolderDividend the computed dividends
+     */
+    function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal virtual {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Before ERC-20 transfer to avoid re-entrancy attack
         $._claimedDividend[tokenHolder][time] = true;
@@ -185,10 +182,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @notice Sets the ERC-20 token used to pay the dividends
-    * @dev reverts if `ERC20TokenPayment_` is the zero address
-    * @param ERC20TokenPayment_ the payment token
-    */
+     * @notice Sets the ERC-20 token used to pay the dividends
+     * @dev reverts if `ERC20TokenPayment_` is the zero address
+     * @param ERC20TokenPayment_ the payment token
+     */
     function _setERC20TokenPayment(IERC20 ERC20TokenPayment_) internal virtual {
         if (address(ERC20TokenPayment_) == address(0)) {
             revert IncomeVault_TokenPaymentWithAddressZeroNotAllowed();
@@ -199,10 +196,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @notice Sets the delay, after the dividend time, during which a claim is still accepted
-    * @dev reverts if `timeLimitToWithdraw_` is zero — see {IncomeVault_TimeLimitToWithdrawZeroNotAllowed}
-    * @param timeLimitToWithdraw_ the delay in seconds, must be greater than zero
-    */
+     * @notice Sets the delay, after the dividend time, during which a claim is still accepted
+     * @dev reverts if `timeLimitToWithdraw_` is zero — see {IncomeVault_TimeLimitToWithdrawZeroNotAllowed}
+     * @param timeLimitToWithdraw_ the delay in seconds, must be greater than zero
+     */
     function _setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) internal virtual {
         // Zero collapses the claim window to the single instant `block.timestamp == time`: one second
         // later {_timeCode} already returns TOO_LATE_TO_WITHDRAW and the period is unclaimable. Any
@@ -216,25 +213,25 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @notice Records a deposit against a dividend time
-    * @dev
-    * The single writer of `_segregatedDividend`, and the only place `newDeposit` is emitted. Both
-    * funding paths go through it — {IncomeVaultRestricted-deposit} once,
-    * {IncomeVaultRestricted-depositBatch} once per element — so validating, writing and announcing a
-    * deposit cannot come apart. Each path carrying its own copy is what lets them diverge, so a new
-    * funding path must call this rather than repeat it.
-    *
-    * The ERC-20 transfer is deliberately **not** here. `depositBatch` makes a single
-    * `safeTransferFrom` for the whole batch, which is the reason it exists; folding the transfer in
-    * would turn that back into one transfer per element.
-    *
-    * Takes the storage pointer rather than fetching it, as {_timeCode} does, so a batch acquires it
-    * once instead of once per element.
-    * @param $ the ERC-7201 storage of the vault
-    * @param sender the account funding the deposit, reported by the event
-    * @param time the dividend time the deposit is segregated under
-    * @param amount the amount of payment token, which may not be zero
-    */
+     * @notice Records a deposit against a dividend time
+     * @dev
+     * The single writer of `_segregatedDividend`, and the only place `newDeposit` is emitted. Both
+     * funding paths go through it — {IncomeVaultRestricted-deposit} once,
+     * {IncomeVaultRestricted-depositBatch} once per element — so validating, writing and announcing a
+     * deposit cannot come apart. Each path carrying its own copy is what lets them diverge, so a new
+     * funding path must call this rather than repeat it.
+     *
+     * The ERC-20 transfer is deliberately **not** here. `depositBatch` makes a single
+     * `safeTransferFrom` for the whole batch, which is the reason it exists; folding the transfer in
+     * would turn that back into one transfer per element.
+     *
+     * Takes the storage pointer rather than fetching it, as {_timeCode} does, so a batch acquires it
+     * once instead of once per element.
+     * @param $ the ERC-7201 storage of the vault
+     * @param sender the account funding the deposit, reported by the event
+     * @param time the dividend time the deposit is segregated under
+     * @param amount the amount of payment token, which may not be zero
+     */
     function _deposit(IncomeVaultInternalStorage storage $, address sender, uint256 time, uint256 amount)
         internal
         virtual
@@ -247,10 +244,10 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @notice Opens or closes the claims for a dividend time
-    * @param time the dividend time
-    * @param status true when the token holders can claim
-    */
+     * @notice Opens or closes the claims for a dividend time
+     * @param time the dividend time
+     * @param status true when the token holders can claim
+     */
     function _setStatusClaim(uint256 time, bool status) internal virtual {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Idempotent: a call that does not change the status writes nothing, emits nothing and — the
@@ -270,32 +267,32 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
 
     /* ============ View functions ============ */
     /**
-    * @dev How much of a period's deposit is still held, given the two figures that decide it.
-    *
-    * Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a claim
-    * made afterwards is priced against the reduced figure and can push `paid` above `segregated`. That
-    * state means the period is over-drawn and nothing is left to sweep — this must report zero, never
-    * revert.
-    *
-    * One `pure` rule because both callers must agree on it: {unclaimedDividend} reports it, and
-    * {_transferDividend} enforces it as the bound on a payout. Were they to diverge, a payout could be
-    * funded from another period's deposit.
-    * @param segregated the amount deposited for the period, the pro-rata denominator
-    * @param paid the amount already paid out of that period
-    * @return The amount still attributable to the period, or zero when it is over-drawn
-    */
+     * @dev How much of a period's deposit is still held, given the two figures that decide it.
+     *
+     * Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a claim
+     * made afterwards is priced against the reduced figure and can push `paid` above `segregated`. That
+     * state means the period is over-drawn and nothing is left to sweep — this must report zero, never
+     * revert.
+     *
+     * One `pure` rule because both callers must agree on it: {unclaimedDividend} reports it, and
+     * {_transferDividend} enforces it as the bound on a payout. Were they to diverge, a payout could be
+     * funded from another period's deposit.
+     * @param segregated the amount deposited for the period, the pro-rata denominator
+     * @param paid the amount already paid out of that period
+     * @return The amount still attributable to the period, or zero when it is over-drawn
+     */
     function _unclaimed(uint256 segregated, uint256 paid) internal pure virtual returns (uint256) {
         return segregated > paid ? segregated - paid : 0;
     }
 
     /**
-    * @notice Computes the dividends owed to several token holders for a given time
-    * @param time dividend time
-    * @param tokenHolders addresses to compute dividend
-    * @param tokenHoldersBalance the sender balance
-    * @param tokenTotalSupply the total supply
-    * @return tokenHolderDividend the dividends owed to each address of `tokenHolders`
-    */
+     * @notice Computes the dividends owed to several token holders for a given time
+     * @param time dividend time
+     * @param tokenHolders addresses to compute dividend
+     * @param tokenHoldersBalance the sender balance
+     * @param tokenTotalSupply the total supply
+     * @return tokenHolderDividend the dividends owed to each address of `tokenHolders`
+     */
     function _computeDividendBatch(
         uint256 time,
         address[] calldata tokenHolders,
@@ -312,12 +309,12 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @notice Computes the dividends owed to a single token holder for a given time
-    * @param time dividend time
-    * @param senderBalance token holder balance
-    * @param tokenTotalSupply the total supply
-    * @return tokenHolderDividend the dividends owed to the token holder, rounded down
-    */
+     * @notice Computes the dividends owed to a single token holder for a given time
+     * @param time dividend time
+     * @param senderBalance token holder balance
+     * @param tokenTotalSupply the total supply
+     * @return tokenHolderDividend the dividends owed to the token holder, rounded down
+     */
     function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply)
         internal
         view
@@ -328,22 +325,22 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
             revert IncomeVault_NoDividendToClaim();
         }
         /**
-        * Example
-        * SenderBalance = 300
-        * totalSupply = 900
-        * Dividend total supply = 200
-        * dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
-        */
+         * Example
+         * SenderBalance = 300
+         * totalSupply = 900
+         * Dividend total supply = 200
+         * dividend = (300 * 200) / 900 = 60000 / 900 = 600/9 = 66.6 = 66
+         */
         uint256 dividendTotalSupply = segregatedDividend(time);
 
         tokenHolderDividend = (senderBalance * dividendTotalSupply) / tokenTotalSupply;
     }
 
     /**
-    * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}. Exhaustive over the enum, and
-    * fails closed on an unhandled value — see the comment on the final branch.
-    * @param code the code returned by {_timeCode}
-    */
+     * @dev reverts with the error matching a non-OK {TIME_ERROR_CODE}. Exhaustive over the enum, and
+     * fails closed on an unhandled value — see the comment on the final branch.
+     * @param code the code returned by {_timeCode}
+     */
     function _revertOnInvalidTime(TIME_ERROR_CODE code) internal view virtual {
         if (code == TIME_ERROR_CODE.OK) {
             return;
@@ -361,13 +358,13 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
     }
 
     /**
-    * @dev {validateTimeCode} with the caller supplying the storage pointer and the withdraw limit,
-    * so a batch can read the limit once instead of once per element.
-    * @param $ the ERC-7201 storage of the vault
-    * @param time the dividend time to check
-    * @param timeLimit the value of `timeLimitToWithdraw`
-    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
-    */
+     * @dev {validateTimeCode} with the caller supplying the storage pointer and the withdraw limit,
+     * so a batch can read the limit once instead of once per element.
+     * @param $ the ERC-7201 storage of the vault
+     * @param time the dividend time to check
+     * @param timeLimit the value of `timeLimitToWithdraw`
+     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+     */
     function _timeCode(IncomeVaultInternalStorage storage $, uint256 time, uint256 timeLimit)
         internal
         view
@@ -388,9 +385,9 @@ abstract contract IncomeVaultInternal is IncomeVaultInvariantStorage, IIncomeVau
 
     /* ============ ERC-7201 ============ */
     /**
-    * @dev Returns the ERC-7201 namespaced storage of the IncomeVault
-    * @return $ the storage struct
-    */
+     * @dev Returns the ERC-7201 namespaced storage of the IncomeVault
+     * @return $ the storage struct
+     */
     function _getIncomeVaultInternalStorage() internal pure returns (IncomeVaultInternalStorage storage $) {
         assembly {
             $.slot := IncomeVaultInternalStorageLocation

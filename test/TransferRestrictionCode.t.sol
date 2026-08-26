@@ -5,16 +5,16 @@ import "./HelperContract.sol";
 import {IERC1404Extend} from "CMTAT/interfaces/tokenization/draft-IERC1404.sol";
 
 /**
-* @title The ERC-1404 view answers for the whole payout decision — finding H-1
-* @dev
-* `detectTransferRestriction` used to consult only the RuleEngine, so a paused vault or a frozen
-* holder was reported as unrestricted while `canTransfer` said false and the claim reverted. Two views
-* on one contract disagreed about the same payout, and the one carrying the ERC-1404 name was wrong.
-*
-* The invariant these tests pin is **agreement**: `detectTransferRestriction(...) == 0` exactly when
-* `canTransfer(...)` is true. Each state is checked through both views, so removing any branch of
-* either breaks a test rather than silently reintroducing the gap.
-*/
+ * @title The ERC-1404 view answers for the whole payout decision — finding H-1
+ * @dev
+ * `detectTransferRestriction` used to consult only the RuleEngine, so a paused vault or a frozen
+ * holder was reported as unrestricted while `canTransfer` said false and the claim reverted. Two views
+ * on one contract disagreed about the same payout, and the one carrying the ERC-1404 name was wrong.
+ *
+ * The invariant these tests pin is **agreement**: `detectTransferRestriction(...) == 0` exactly when
+ * `canTransfer(...)` is true. Each state is checked through both views, so removing any branch of
+ * either breaks a test rather than silently reintroducing the gap.
+ */
 contract TransferRestrictionCodeTest is HelperContract {
     uint8 constant OK = uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_OK);
     uint8 constant PAUSED = uint8(IERC1404Extend.REJECTED_CODE_BASE.TRANSFER_REJECTED_PAUSED);
@@ -34,17 +34,17 @@ contract TransferRestrictionCodeTest is HelperContract {
     }
 
     /**
-    * @notice With nothing restricting it, the payout is reported as unrestricted
-    */
+     * @notice With nothing restricting it, the payout is reported as unrestricted
+     */
     function testUnrestrictedPayoutReportsOk() public view {
         assertEq(incomeVault.detectTransferRestriction(address(incomeVault), ADDRESS1, 100), OK);
         _assertAgree(address(incomeVault), ADDRESS1, 100);
     }
 
     /**
-    * @notice A paused vault is reported as paused, not as unrestricted
-    * @dev This is the regression: before H-1 this returned 0 while the claim reverted.
-    */
+     * @notice A paused vault is reported as paused, not as unrestricted
+     * @dev This is the regression: before H-1 this returned 0 while the claim reverted.
+     */
     function testPausedVaultReportsPaused() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.pause();
@@ -55,9 +55,9 @@ contract TransferRestrictionCodeTest is HelperContract {
     }
 
     /**
-    * @notice A deactivated vault reports the more specific code, not merely "paused"
-    * @dev Deactivation requires the pause state, so both branches match; the specific one must win.
-    */
+     * @notice A deactivated vault reports the more specific code, not merely "paused"
+     * @dev Deactivation requires the pause state, so both branches match; the specific one must win.
+     */
     function testDeactivatedVaultReportsDeactivated() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.pause();
@@ -69,8 +69,8 @@ contract TransferRestrictionCodeTest is HelperContract {
     }
 
     /**
-    * @notice A frozen recipient is reported, and distinguished from a frozen sender
-    */
+     * @notice A frozen recipient is reported, and distinguished from a frozen sender
+     */
     function testFrozenPartiesReportTheirOwnCode() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setAddressFrozen(ADDRESS1, true, "Blacklist");
@@ -84,9 +84,9 @@ contract TransferRestrictionCodeTest is HelperContract {
     }
 
     /**
-    * @notice Every code the vault can return has a message, without a RuleEngine configured
-    * @dev Previously every code answered "No restriction", including codes that mean something.
-    */
+     * @notice Every code the vault can return has a message, without a RuleEngine configured
+     * @dev Previously every code answered "No restriction", including codes that mean something.
+     */
     function testEveryVaultCodeHasAMessage() public view {
         assertEq(incomeVault.messageForTransferRestriction(OK), "NoRestriction");
         assertEq(incomeVault.messageForTransferRestriction(PAUSED), "EnforcedPause");
@@ -98,8 +98,8 @@ contract TransferRestrictionCodeTest is HelperContract {
     }
 
     /**
-    * @notice The messages are CMTAT's, so a console written against a CMTAT reads payouts unchanged
-    */
+     * @notice The messages are CMTAT's, so a console written against a CMTAT reads payouts unchanged
+     */
     function testMessagesMatchTheCmtatVocabulary() public view {
         assertEq(incomeVault.messageForTransferRestriction(PAUSED), "EnforcedPause");
         assertEq(incomeVault.messageForTransferRestriction(FROM_FROZEN), "AddrFromIsFrozen");

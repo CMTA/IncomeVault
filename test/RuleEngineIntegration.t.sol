@@ -4,12 +4,14 @@ pragma solidity ^0.8.24;
 import "./HelperContract.sol";
 import {RuleEngine} from "RuleEngine/deployment/RuleEngine.sol";
 import {RuleWhitelistMock} from "RuleEngine/mocks/rules/validation/RuleWhitelistMock.sol";
-import {RuleWhitelistInvariantStorage} from "RuleEngine/mocks/rules/validation/abstract/RuleAddressList/invariantStorage/RuleWhitelistInvariantStorage.sol";
+import {
+    RuleWhitelistInvariantStorage
+} from "RuleEngine/mocks/rules/validation/abstract/RuleAddressList/invariantStorage/RuleWhitelistInvariantStorage.sol";
 import {IRule} from "RuleEngine/interfaces/IRule.sol";
 
 /**
-* @title Integration test between the IncomeVault and the RuleEngine
-*/
+ * @title Integration test between the IncomeVault and the RuleEngine
+ */
 contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage {
     // Defined by the RuleEngine
     uint8 constant TRANSFER_OK = 0;
@@ -52,7 +54,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
 
         // Act
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -70,7 +75,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
 
         // Act
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -88,7 +96,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
 
         // Act
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
     }
@@ -154,16 +165,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
         resBool = ruleWhitelist.addressIsListed(ADDRESS2);
         // Assert
         assertEq(resBool, true);
-        uint8 res1 = incomeVault.detectTransferRestriction(
-            ADDRESS1,
-            ADDRESS2,
-            11
-        );
+        uint8 res1 = incomeVault.detectTransferRestriction(ADDRESS1, ADDRESS2, 11);
         // Assert
         assertEq(res1, CODE_ADDRESS_FROM_NOT_WHITELISTED);
-        string memory message1 = incomeVault.messageForTransferRestriction(
-            res1
-        );
+        string memory message1 = incomeVault.messageForTransferRestriction(res1);
         // Assert
         assertEq(message1, TEXT_ADDRESS_FROM_NOT_WHITELISTED);
     }
@@ -177,35 +182,23 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
         resBool = ruleWhitelist.addressIsListed(ADDRESS1);
         assertEq(resBool, true);
         // Act
-        uint8 res1 = incomeVault.detectTransferRestriction(
-            ADDRESS1,
-            ADDRESS2,
-            11
-        );
+        uint8 res1 = incomeVault.detectTransferRestriction(ADDRESS1, ADDRESS2, 11);
         // Assert
         assertEq(res1, CODE_ADDRESS_TO_NOT_WHITELISTED);
         // Act
-        string memory message1 = incomeVault.messageForTransferRestriction(
-            res1
-        );
+        string memory message1 = incomeVault.messageForTransferRestriction(res1);
         // Assert
         assertEq(message1, TEXT_ADDRESS_TO_NOT_WHITELISTED);
     }
 
     function testDetectAndMessageWithFromAndToNotWhitelisted() public view {
         // Act
-        uint8 res1 = incomeVault.detectTransferRestriction(
-            ADDRESS1,
-            ADDRESS2,
-            11
-        );
+        uint8 res1 = incomeVault.detectTransferRestriction(ADDRESS1, ADDRESS2, 11);
 
         // Assert
         assertEq(res1, CODE_ADDRESS_FROM_NOT_WHITELISTED);
         // Act
-        string memory message1 = incomeVault.messageForTransferRestriction(
-            res1
-        );
+        string memory message1 = incomeVault.messageForTransferRestriction(res1);
 
         // Assert
         assertEq(message1, TEXT_ADDRESS_FROM_NOT_WHITELISTED);
@@ -220,25 +213,18 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         ruleWhitelist.addAddressesToTheList(whitelist);
         // Act
-        uint8 res1 = incomeVault.detectTransferRestriction(
-            ADDRESS1,
-            ADDRESS2,
-            11
-        );
+        uint8 res1 = incomeVault.detectTransferRestriction(ADDRESS1, ADDRESS2, 11);
         // Assert
         assertEq(res1, TRANSFER_OK);
         // Act
-        string memory message1 = incomeVault.messageForTransferRestriction(
-            res1
-        );
+        string memory message1 = incomeVault.messageForTransferRestriction(res1);
         // Assert
         assertEq(message1, TEXT_TRANSFER_OK);
     }
 
     /******* setRuleEngine *******/
     function testCannotSetRuleEngineWithTheSameValue() public {
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_SameValue.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_SameValue.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setRuleEngine(ruleEngineMock);
     }
@@ -253,10 +239,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
 
     /******* distributeDividend — H-2 *******/
     /**
-    * @notice The issuer cannot push a dividend to an address the RuleEngine refuses
-    * @dev This is the compliance property the RuleEngine integration exists to provide: before the
-    * H-2 fix the push path skipped the engine entirely, so a non-whitelisted holder could be paid.
-    */
+     * @notice The issuer cannot push a dividend to an address the RuleEngine refuses
+     * @dev This is the compliance property the RuleEngine integration exists to provide: before the
+     * H-2 fix the push path skipped the engine entirely, so a non-whitelisted holder could be paid.
+     */
     function testCannotDistributeToANonWhitelistedHolder() public {
         // only the vault is whitelisted, not the holder
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -270,7 +256,10 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
         vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
 
@@ -279,8 +268,8 @@ contract RuleEngineIntegration is HelperContract, RuleWhitelistInvariantStorage 
     }
 
     /**
-    * @notice Once both addresses are whitelisted the distribution goes through
-    */
+     * @notice Once both addresses are whitelisted the distribution goes through
+     */
     function testCanDistributeWhenBothAddressesWhitelisted() public {
         address[] memory whitelist = new address[](2);
         whitelist[0] = ADDRESS1;

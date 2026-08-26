@@ -8,27 +8,27 @@ import {IncomeVaultSnapshotCore} from "../../src/modules/IncomeVaultSnapshotCore
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
-* @title A host that embeds the dividend logic without any CMTAT at all — findings M-1 and M-2
-* @dev
-* This contract is the regression guard for the two modularity splits, and it only has to **compile**.
-*
-* Before M-1, `IncomeVaultOpen` and `IncomeVaultRestricted` each inherited CMTAT's `PauseModule` and
-* `EnforcementModule` transitively, so a host that already had its own could not embed them —
-* `Error (5005)`, linearization impossible, which no override can repair. Before M-2, the snapshot
-* source was a stored address behind a `snapshotEngine()` getter that a host could not replace.
-*
-* It answers the questions the payout paths ask, and nothing more:
-*
-* - {IncomeVaultValidationCore-_validateTransfer} — here, a trivial "always allowed" policy standing in
-*   for whatever the host already owns;
-* - the three {IncomeVaultSnapshotCore} hooks — answered **from the host itself**, with no external
-*   snapshot contract and no stored address, which is the M-2 property;
-* - the four `_authorize*` hooks — here, open, because the point is the *shape* of the dependency, not
-*   the policy.
-*
-* Re-couple either dependency to a concrete implementation and this file stops compiling.
-* {CMTATDividendHostMock} is the same guard for a host that *is* a CMTAT with internal snapshots.
-*/
+ * @title A host that embeds the dividend logic without any CMTAT at all — findings M-1 and M-2
+ * @dev
+ * This contract is the regression guard for the two modularity splits, and it only has to **compile**.
+ *
+ * Before M-1, `IncomeVaultOpen` and `IncomeVaultRestricted` each inherited CMTAT's `PauseModule` and
+ * `EnforcementModule` transitively, so a host that already had its own could not embed them —
+ * `Error (5005)`, linearization impossible, which no override can repair. Before M-2, the snapshot
+ * source was a stored address behind a `snapshotEngine()` getter that a host could not replace.
+ *
+ * It answers the questions the payout paths ask, and nothing more:
+ *
+ * - {IncomeVaultValidationCore-_validateTransfer} — here, a trivial "always allowed" policy standing in
+ *   for whatever the host already owns;
+ * - the three {IncomeVaultSnapshotCore} hooks — answered **from the host itself**, with no external
+ *   snapshot contract and no stored address, which is the M-2 property;
+ * - the four `_authorize*` hooks — here, open, because the point is the *shape* of the dependency, not
+ *   the policy.
+ *
+ * Re-couple either dependency to a concrete implementation and this file stops compiling.
+ * {CMTATDividendHostMock} is the same guard for a host that *is* a CMTAT with internal snapshots.
+ */
 contract EmbeddedDividendHostMock is IncomeVaultOpen, IncomeVaultRestricted {
     /// @dev stands in for whatever balances the host already records
     uint256 public constant HOLDER_BALANCE = 100;
@@ -41,10 +41,10 @@ contract EmbeddedDividendHostMock is IncomeVaultOpen, IncomeVaultRestricted {
     }
 
     /**
-    * @notice Wire up the embedded dividend logic
-    * @param paymentToken the ERC-20 the dividends are paid in
-    * @param timeLimitToWithdraw_ the claim window length
-    */
+     * @notice Wire up the embedded dividend logic
+     * @param paymentToken the ERC-20 the dividends are paid in
+     * @param timeLimitToWithdraw_ the claim window length
+     */
     function initialize(IERC20 paymentToken, uint256 timeLimitToWithdraw_) public initializer {
         _setERC20TokenPayment(paymentToken);
         __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);
@@ -93,9 +93,9 @@ contract EmbeddedDividendHostMock is IncomeVaultOpen, IncomeVaultRestricted {
 
     /* ============ the host answers the validation question itself — finding M-1 ============ */
     /**
-    * @inheritdoc IncomeVaultValidationCore
-    * @dev Stands in for whatever policy the host already owns. Always allows.
-    */
+     * @inheritdoc IncomeVaultValidationCore
+     * @dev Stands in for whatever policy the host already owns. Always allows.
+     */
     function _validateTransfer(address, address, uint256) internal view virtual override {}
 
     /* ============ Access control — open, the shape is the point ============ */

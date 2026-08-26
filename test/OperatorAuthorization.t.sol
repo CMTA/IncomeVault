@@ -7,10 +7,10 @@ import {IERC7540Operator} from "../src/interfaces/IERC7540Operator.sol";
 import {SlotDerivation} from "@openzeppelin/contracts/utils/SlotDerivation.sol";
 
 /**
-* @title ERC-7741 signed operator authorisation
-* @dev The holder signs; anyone may submit. Nothing here uses `vm.prank` on the holder for the
-* authorisation itself — that is the entire point of the standard.
-*/
+ * @title ERC-7741 signed operator authorisation
+ * @dev The holder signs; anyone may submit. Nothing here uses `vm.prank` on the holder for the
+ * authorisation itself — that is the entire point of the standard.
+ */
 contract OperatorAuthorizationTest is HelperContract {
     using SlotDerivation for string;
 
@@ -19,8 +19,9 @@ contract OperatorAuthorizationTest is HelperContract {
     address constant CUSTODIAN = address(31);
     address constant RELAYER = address(33);
 
-    bytes32 constant TYPEHASH =
-        keccak256("AuthorizeOperator(address controller,address operator,bool approved,bytes32 nonce,uint256 deadline)");
+    bytes32 constant TYPEHASH = keccak256(
+        "AuthorizeOperator(address controller,address operator,bool approved,bytes32 nonce,uint256 deadline)"
+    );
 
     function setUp() public {
         holderKey = 0xA11CE;
@@ -29,7 +30,9 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     function _sign(uint256 key, address controller, address operator, bool approved, bytes32 nonce, uint256 deadline)
-        internal view returns (bytes memory)
+        internal
+        view
+        returns (bytes memory)
     {
         bytes32 structHash = keccak256(abi.encode(TYPEHASH, controller, operator, approved, nonce, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", incomeVault.DOMAIN_SEPARATOR(), structHash));
@@ -39,16 +42,16 @@ contract OperatorAuthorizationTest is HelperContract {
 
     /* ============ the standard's identifier ============ */
     /**
-    * @notice The interface id matches the value ERC-7741 assigns
-    * @dev Pins all four signatures: change any of them and this fails.
-    */
+     * @notice The interface id matches the value ERC-7741 assigns
+     * @dev Pins all four signatures: change any of them and this fails.
+     */
     function testInterfaceIdMatchesTheStandard() public pure {
         assertEq(type(IERC7741).interfaceId, bytes4(0xa9e50872));
     }
 
     /**
-    * @notice ERC-7741 requires the id to be advertised — both variants do
-    */
+     * @notice ERC-7741 requires the id to be advertised — both variants do
+     */
     function testBothVariantsAdvertiseErc7741() public {
         assertTrue(incomeVault.supportsInterface(bytes4(0xa9e50872)), "role-based variant");
         _deployOwnableVault();
@@ -56,8 +59,8 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     /**
-    * @notice The module's ERC-7201 slot is what its comment claims
-    */
+     * @notice The module's ERC-7201 slot is what its comment claims
+     */
     function testModuleStorageSlotDerivation() public pure {
         assertEq(
             string("IncomeVault.storage.ERC7741Module").erc7201Slot(),
@@ -67,8 +70,8 @@ contract OperatorAuthorizationTest is HelperContract {
 
     /* ============ the happy path ============ */
     /**
-    * @notice A relayer submits the holder's signature; the holder never transacts
-    */
+     * @notice A relayer submits the holder's signature; the holder never transacts
+     */
     function testRelayerSubmitsTheHoldersAuthorization() public {
         bytes32 nonce = keccak256("nonce-1");
         uint256 deadline = block.timestamp + 1 hours;
@@ -85,8 +88,8 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     /**
-    * @notice And the authorised operator can then actually claim for the holder
-    */
+     * @notice And the authorised operator can then actually claim for the holder
+     */
     function testAuthorizedOperatorCanClaim() public {
         vm.prank(CMTAT_ADMIN);
         snapshotEngine.scheduleSnapshot(defaultSnapshotTime);
@@ -101,8 +104,7 @@ contract OperatorAuthorizationTest is HelperContract {
         uint256 deadline = block.timestamp + 1 hours;
         vm.prank(RELAYER);
         incomeVault.authorizeOperator(
-            holder, CUSTODIAN, true, nonce, deadline,
-            _sign(holderKey, holder, CUSTODIAN, true, nonce, deadline)
+            holder, CUSTODIAN, true, nonce, deadline, _sign(holderKey, holder, CUSTODIAN, true, nonce, deadline)
         );
 
         vm.prank(CUSTODIAN);
@@ -115,11 +117,15 @@ contract OperatorAuthorizationTest is HelperContract {
         bytes32 n2 = keccak256("revoke");
         uint256 deadline = block.timestamp + 1 hours;
         vm.prank(RELAYER);
-        incomeVault.authorizeOperator(holder, CUSTODIAN, true, n1, deadline, _sign(holderKey, holder, CUSTODIAN, true, n1, deadline));
+        incomeVault.authorizeOperator(
+            holder, CUSTODIAN, true, n1, deadline, _sign(holderKey, holder, CUSTODIAN, true, n1, deadline)
+        );
         assertEq(incomeVault.isOperator(holder, CUSTODIAN), true);
 
         vm.prank(RELAYER);
-        incomeVault.authorizeOperator(holder, CUSTODIAN, false, n2, deadline, _sign(holderKey, holder, CUSTODIAN, false, n2, deadline));
+        incomeVault.authorizeOperator(
+            holder, CUSTODIAN, false, n2, deadline, _sign(holderKey, holder, CUSTODIAN, false, n2, deadline)
+        );
         assertEq(incomeVault.isOperator(holder, CUSTODIAN), false);
     }
 
@@ -132,8 +138,7 @@ contract OperatorAuthorizationTest is HelperContract {
         vm.prank(RELAYER);
         incomeVault.authorizeOperator(holder, CUSTODIAN, true, nonce, deadline, sig);
 
-        vm.expectRevert(abi.encodeWithSignature(
-            "IncomeVault_AuthorizationUsed(address,bytes32)", holder, nonce));
+        vm.expectRevert(abi.encodeWithSignature("IncomeVault_AuthorizationUsed(address,bytes32)", holder, nonce));
         vm.prank(RELAYER);
         incomeVault.authorizeOperator(holder, CUSTODIAN, true, nonce, deadline, sig);
     }
@@ -150,8 +155,8 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     /**
-    * @notice A signature from anyone but the controller is refused
-    */
+     * @notice A signature from anyone but the controller is refused
+     */
     function testCannotForgeAnAuthorization() public {
         uint256 attackerKey = 0xBAD;
         bytes32 nonce = keccak256("forged");
@@ -165,8 +170,8 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     /**
-    * @notice Tampering with any signed field invalidates the signature
-    */
+     * @notice Tampering with any signed field invalidates the signature
+     */
     function testCannotTamperWithTheSignedTerms() public {
         bytes32 nonce = keccak256("tamper");
         uint256 deadline = block.timestamp + 1 hours;
@@ -188,8 +193,8 @@ contract OperatorAuthorizationTest is HelperContract {
 
     /* ============ invalidateNonce ============ */
     /**
-    * @notice A holder can burn a nonce so a leaked signature can never be used
-    */
+     * @notice A holder can burn a nonce so a leaked signature can never be used
+     */
     function testInvalidateNonceBurnsAPendingSignature() public {
         bytes32 nonce = keccak256("leaked");
         uint256 deadline = block.timestamp + 365 days;
@@ -199,15 +204,14 @@ contract OperatorAuthorizationTest is HelperContract {
         incomeVault.invalidateNonce(nonce);
         assertEq(incomeVault.authorizations(holder, nonce), true);
 
-        vm.expectRevert(abi.encodeWithSignature(
-            "IncomeVault_AuthorizationUsed(address,bytes32)", holder, nonce));
+        vm.expectRevert(abi.encodeWithSignature("IncomeVault_AuthorizationUsed(address,bytes32)", holder, nonce));
         vm.prank(RELAYER);
         incomeVault.authorizeOperator(holder, CUSTODIAN, true, nonce, deadline, sig);
     }
 
     /**
-    * @notice Invalidating is per holder — it cannot burn someone else's nonce
-    */
+     * @notice Invalidating is per holder — it cannot burn someone else's nonce
+     */
     function testInvalidateNonceIsPerHolder() public {
         bytes32 nonce = keccak256("mine");
         vm.prank(RELAYER);
@@ -216,8 +220,8 @@ contract OperatorAuthorizationTest is HelperContract {
     }
 
     /**
-    * @notice Nonces are unordered: a later one can be used before an earlier one
-    */
+     * @notice Nonces are unordered: a later one can be used before an earlier one
+     */
     function testNoncesAreUnordered() public {
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 a = keccak256("a");

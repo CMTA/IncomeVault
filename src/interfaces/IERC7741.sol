@@ -3,22 +3,22 @@
 pragma solidity ^0.8.24;
 
 /**
-* @title IERC7741
-* @notice [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) — signed operator authorisation.
-* @dev
-* Lets a holder grant or revoke an operator with an EIP-712 signature instead of a transaction, so a
-* custodian or relayer can submit the authorisation and pay the gas. It complements
-* {IERC7540Operator}, whose `setOperator` requires the holder to transact.
-*
-* The standard assigns this interface the ERC-165 identifier **`0xa9e50872`**. It inherits nothing,
-* so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value. Adding
-* or changing a selector here changes the id, and the vault would then advertise one the standard does
-* not define.
-*
-* @custom:security ERC-7741 warns that "operators have significant control over users and the signed
-* message can lead to undesired outcomes". Keep `deadline` as short as practical: a signature that
-* leaks later is still usable until it expires or its nonce is spent through {invalidateNonce}.
-*/
+ * @title IERC7741
+ * @notice [ERC-7741](https://eips.ethereum.org/EIPS/eip-7741) — signed operator authorisation.
+ * @dev
+ * Lets a holder grant or revoke an operator with an EIP-712 signature instead of a transaction, so a
+ * custodian or relayer can submit the authorisation and pay the gas. It complements
+ * {IERC7540Operator}, whose `setOperator` requires the holder to transact.
+ *
+ * The standard assigns this interface the ERC-165 identifier **`0xa9e50872`**. It inherits nothing,
+ * so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value. Adding
+ * or changing a selector here changes the id, and the vault would then advertise one the standard does
+ * not define.
+ *
+ * @custom:security ERC-7741 warns that "operators have significant control over users and the signed
+ * message can lead to undesired outcomes". Keep `deadline` as short as practical: a signature that
+ * leaks later is still usable until it expires or its nonce is spent through {invalidateNonce}.
+ */
 interface IERC7741 {
     /**
      * @notice Grants or revokes permissions for `operator`, authorised by an EIP-712 signature.

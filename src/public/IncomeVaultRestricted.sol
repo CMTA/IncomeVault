@@ -13,8 +13,8 @@ import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
 import {IncomeVaultInternal} from "../modules/IncomeVaultInternal.sol";
 
 /**
-* @title Restricted functions
-*/
+ * @title Restricted functions
+ */
 abstract contract IncomeVaultRestricted is
     IncomeVaultValidationCore,
     IncomeVaultSnapshotCore,
@@ -52,9 +52,9 @@ abstract contract IncomeVaultRestricted is
 
     /* ============  Initializer Function ============ */
     /**
-    * @dev calls the different initialize functions from the different modules
-    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
-    */
+     * @dev calls the different initialize functions from the different modules
+     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
+     */
     function __IncomeVaultRestricted_init_unchained(uint256 timeLimitToWithdraw_) internal onlyInitializing {
         _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
@@ -64,10 +64,10 @@ abstract contract IncomeVaultRestricted is
     //////////////////////////////////////////////////////////////*/
     /* ============ State restricted functions ============ */
     /**
-    * @notice deposit an amount to pay the dividends.
-    * @param time provide the date where you want to perform a deposit
-    * @param amount the amount to deposit
-    */
+     * @notice deposit an amount to pay the dividends.
+     * @param time provide the date where you want to perform a deposit
+     * @param amount the amount to deposit
+     */
     function deposit(uint256 time, uint256 amount) public virtual onlyDepositManager {
         address sender = _msgSender();
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -77,17 +77,17 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice Deposit for several dividend times in one transaction
-    * @dev
-    * Equivalent to calling {deposit} once per entry — same accounting, same `newDeposit` event per
-    * entry — but the payment token is pulled **once** for the total instead of once per time. That is
-    * the reason the function exists; the common case is an issuer opening a year of coupon periods.
-    *
-    * Repeating a `time` is allowed and accumulates, exactly as separate calls would.
-    *
-    * @param times the dividend times to deposit for
-    * @param amounts the amount to deposit for each time, must be the same length and each non-zero
-    */
+     * @notice Deposit for several dividend times in one transaction
+     * @dev
+     * Equivalent to calling {deposit} once per entry — same accounting, same `newDeposit` event per
+     * entry — but the payment token is pulled **once** for the total instead of once per time. That is
+     * the reason the function exists; the common case is an issuer opening a year of coupon periods.
+     *
+     * Repeating a `time` is allowed and accumulates, exactly as separate calls would.
+     *
+     * @param times the dividend times to deposit for
+     * @param amounts the amount to deposit for each time, must be the same length and each non-zero
+     */
     function depositBatch(uint256[] calldata times, uint256[] calldata amounts) public virtual onlyDepositManager {
         if (times.length != amounts.length) {
             revert IncomeVault_InvalidLengths(times.length, amounts.length);
@@ -107,21 +107,21 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice withdraw a certain amount at a specified time.
-    * @dev
-    * Bounded by {unclaimedDividend}, so a sweep can never reach funds deposited for another dividend
-    * time. Intended for after the claim window closes, when what remains is rounding dust and
-    * unclaimed shares.
-    *
-    * @custom:security Withdrawing **before** the window closes is still destructive to this period:
-    * the amount taken is money the remaining holders are entitled to, and it also lowers
-    * `segregatedDividend`, which re-prices every claim that has not happened yet. The bound stops the
-    * damage spreading to other periods; it does not make an early sweep safe.
-    *
-    * @param time provide the date where you want to perform a deposit
-    * @param amount the amount to withdraw
-    * @param withdrawAddress address to receive `amount`of tokens
-    */
+     * @notice withdraw a certain amount at a specified time.
+     * @dev
+     * Bounded by {unclaimedDividend}, so a sweep can never reach funds deposited for another dividend
+     * time. Intended for after the claim window closes, when what remains is rounding dust and
+     * unclaimed shares.
+     *
+     * @custom:security Withdrawing **before** the window closes is still destructive to this period:
+     * the amount taken is money the remaining holders are entitled to, and it also lowers
+     * `segregatedDividend`, which re-prices every claim that has not happened yet. The bound stops the
+     * damage spreading to other periods; it does not make an early sweep safe.
+     *
+     * @param time provide the date where you want to perform a deposit
+     * @param amount the amount to withdraw
+     * @param withdrawAddress address to receive `amount`of tokens
+     */
     function withdraw(uint256 time, uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Bound by what this period STILL holds, not by what was deposited into it. `_segregatedDividend`
@@ -138,10 +138,10 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice withdraw all tokens from ERC20TokenPayment contracts deposited
-    * @param amount the amount to withdraw
-    * @param withdrawAddress address to receive `amount`of tokens
-    */
+     * @notice withdraw all tokens from ERC20TokenPayment contracts deposited
+     * @param amount the amount to withdraw
+     * @param withdrawAddress address to receive `amount`of tokens
+     */
     function withdrawAll(uint256 amount, address withdrawAddress) public virtual onlyWithdrawManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         emit WithdrawAll(withdrawAddress, amount);
@@ -150,14 +150,14 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice distribute the dividends
-    * @param addresses compute and transfer dividend for these holders
-    * @param time dividend time
-    * @dev The dividends are distributed only if they have not yet been claimed by the token holder.
-    * Subject to the same claim window **and** the same transfer restrictions as
-    * {IncomeVaultOpen-claimDividend}: a holder the pause, freeze or RuleEngine refuses cannot be paid
-    * by the issuer either, and one blocked holder reverts the whole distribution.
-    */
+     * @notice distribute the dividends
+     * @param addresses compute and transfer dividend for these holders
+     * @param time dividend time
+     * @dev The dividends are distributed only if they have not yet been claimed by the token holder.
+     * Subject to the same claim window **and** the same transfer restrictions as
+     * {IncomeVaultOpen-claimDividend}: a holder the pause, freeze or RuleEngine refuses cannot be paid
+     * by the issuer either, and one blocked holder reverts the whole distribution.
+     */
     function distributeDividend(address[] calldata addresses, uint256 time) public virtual onlyDistributeManager {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // Same window as a holder-driven claim: the claims must be open, `time` must have passed so the
@@ -187,31 +187,31 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice Distribute the dividends, skipping any holder whose payout is refused
-    * @dev
-    * Same computation as {distributeDividend}, but a holder the ValidationModule or the payment token
-    * refuses is **skipped** instead of reverting the whole call. Use it when one non-compliant address
-    * must not block a large payout run; use {distributeDividend} when the distribution should be
-    * all-or-nothing.
-    *
-    * Each payout is attempted through an external self-call so it can be wrapped in `try`/`catch`,
-    * which gives **per-holder atomicity**: a holder is either fully paid — marked claimed *and*
-    * transferred — or left completely untouched and still able to claim later. A partial state where
-    * a holder is marked as claimed without receiving the tokens is not reachable.
-    *
-    * Every skip emits {DividendDistributionSkipped} carrying the raw revert data, so the cause can be
-    * decoded off-chain, and the skipped holders are returned for the caller to act on directly.
-    *
-    * @custom:security `catch` cannot distinguish a refused payout from an out-of-gas failure. The two
-    * contracts that can consume gas here — the payment token and the RuleEngine — are both set by the
-    * admin and trusted; a malicious RuleEngine could nonetheless make holders appear skipped. That is
-    * within the existing trust assumption for the RuleEngine, not a new one.
-    *
-    * @param addresses compute and transfer dividend for these holders
-    * @param time dividend time
-    * @return paidCount how many holders were paid
-    * @return skipped the holders that were not paid, trimmed to `paidCount` subtracted from the input
-    */
+     * @notice Distribute the dividends, skipping any holder whose payout is refused
+     * @dev
+     * Same computation as {distributeDividend}, but a holder the ValidationModule or the payment token
+     * refuses is **skipped** instead of reverting the whole call. Use it when one non-compliant address
+     * must not block a large payout run; use {distributeDividend} when the distribution should be
+     * all-or-nothing.
+     *
+     * Each payout is attempted through an external self-call so it can be wrapped in `try`/`catch`,
+     * which gives **per-holder atomicity**: a holder is either fully paid — marked claimed *and*
+     * transferred — or left completely untouched and still able to claim later. A partial state where
+     * a holder is marked as claimed without receiving the tokens is not reachable.
+     *
+     * Every skip emits {DividendDistributionSkipped} carrying the raw revert data, so the cause can be
+     * decoded off-chain, and the skipped holders are returned for the caller to act on directly.
+     *
+     * @custom:security `catch` cannot distinguish a refused payout from an out-of-gas failure. The two
+     * contracts that can consume gas here — the payment token and the RuleEngine — are both set by the
+     * admin and trusted; a malicious RuleEngine could nonetheless make holders appear skipped. That is
+     * within the existing trust assumption for the RuleEngine, not a new one.
+     *
+     * @param addresses compute and transfer dividend for these holders
+     * @param time dividend time
+     * @return paidCount how many holders were paid
+     * @return skipped the holders that were not paid, trimmed to `paidCount` subtracted from the input
+     */
     function distributeDividendBestEffort(address[] calldata addresses, uint256 time)
         public
         virtual
@@ -249,20 +249,20 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice Validate and pay one dividend — callable **only by the vault itself**
-    * @dev
-    * This exists solely so {distributeDividendBestEffort} can wrap a payout in `try`/`catch`, which
-    * requires an external call. It carries no access control of its own beyond the self-call check,
-    * so that check is what stands between it and an unauthorized payout: reverts
-    * {IncomeVault_OnlySelfCall} for every caller other than `address(this)`.
-    *
-    * `msg.sender` is used deliberately rather than `_msgSender()`. The check must identify the real
-    * caller; an ERC-2771 forwarder must never be able to present itself as the vault.
-    *
-    * @param time dividend time
-    * @param tokenHolder the holder to pay
-    * @param tokenHolderDividend the amount to pay
-    */
+     * @notice Validate and pay one dividend — callable **only by the vault itself**
+     * @dev
+     * This exists solely so {distributeDividendBestEffort} can wrap a payout in `try`/`catch`, which
+     * requires an external call. It carries no access control of its own beyond the self-call check,
+     * so that check is what stands between it and an unauthorized payout: reverts
+     * {IncomeVault_OnlySelfCall} for every caller other than `address(this)`.
+     *
+     * `msg.sender` is used deliberately rather than `_msgSender()`. The check must identify the real
+     * caller; an ERC-2771 forwarder must never be able to present itself as the vault.
+     *
+     * @param time dividend time
+     * @param tokenHolder the holder to pay
+     * @param tokenHolderDividend the amount to pay
+     */
     function transferDividendSelf(uint256 time, address tokenHolder, uint256 tokenHolderDividend) public virtual {
         if (msg.sender != address(this)) {
             revert IncomeVault_OnlySelfCall();
@@ -272,47 +272,47 @@ abstract contract IncomeVaultRestricted is
     }
 
     /**
-    * @notice set the status to open or close the claims for a given time
-    * @param time target time
-    * @param status boolean (true or false)
-    *
-    */
+     * @notice set the status to open or close the claims for a given time
+     * @param time target time
+     * @param status boolean (true or false)
+     *
+     */
     function setStatusClaim(uint256 time, bool status) public virtual onlyVaultOperator {
         _setStatusClaim(time, status);
     }
 
     /**
-    * @notice configure the time limit to withdraw
-    * @dev reverts if `timeLimitToWithdraw_` is zero: that would leave a one-second claim window
-    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted,
-    * must be greater than zero
-    */
+     * @notice configure the time limit to withdraw
+     * @dev reverts if `timeLimitToWithdraw_` is zero: that would leave a one-second claim window
+     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted,
+     * must be greater than zero
+     */
     function setTimeLimitToWithdraw(uint256 timeLimitToWithdraw_) public virtual onlyVaultOperator {
         _setTimeLimitToWithdraw(timeLimitToWithdraw_);
     }
 
     /* ============ Access Control ============ */
     /**
-    * @dev Authorization hook invoked before a deposit.
-    * Implemented by the deployment contract with the desired access-control policy.
-    */
+     * @dev Authorization hook invoked before a deposit.
+     * Implemented by the deployment contract with the desired access-control policy.
+     */
     function _authorizeDeposit() internal view virtual;
 
     /**
-    * @dev Authorization hook invoked before {withdraw} and {withdrawAll}.
-    * Implemented by the deployment contract with the desired access-control policy.
-    */
+     * @dev Authorization hook invoked before {withdraw} and {withdrawAll}.
+     * Implemented by the deployment contract with the desired access-control policy.
+     */
     function _authorizeWithdraw() internal view virtual;
 
     /**
-    * @dev Authorization hook invoked before {distributeDividend}.
-    * Implemented by the deployment contract with the desired access-control policy.
-    */
+     * @dev Authorization hook invoked before {distributeDividend}.
+     * Implemented by the deployment contract with the desired access-control policy.
+     */
     function _authorizeDistribute() internal view virtual;
 
     /**
-    * @dev Authorization hook invoked before {setStatusClaim} and {setTimeLimitToWithdraw}.
-    * Implemented by the deployment contract with the desired access-control policy.
-    */
+     * @dev Authorization hook invoked before {setStatusClaim} and {setTimeLimitToWithdraw}.
+     * Implemented by the deployment contract with the desired access-control policy.
+     */
     function _authorizeOperator() internal view virtual;
 }

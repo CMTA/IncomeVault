@@ -5,14 +5,13 @@ import "./HelperContract.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 /**
-* @title Access-control hooks — both deployment variants
-* @dev
-* The logic contracts declare the capabilities, the deployment contracts declare the policy.
-* These tests pin the policy of each variant: who is accepted, who is rejected, and that the
-* role-based variant really separates duties while the single-owner variant really does not.
-*/
+ * @title Access-control hooks — both deployment variants
+ * @dev
+ * The logic contracts declare the capabilities, the deployment contracts declare the policy.
+ * These tests pin the policy of each variant: who is accepted, who is rejected, and that the
+ * role-based variant really separates duties while the single-owner variant really does not.
+ */
 contract AccessControlHooksTest is HelperContract {
-
     address constant NEW_OWNER = address(12);
     address constant DEPOSITOR = address(13);
     address constant WITHDRAWER = address(14);
@@ -50,15 +49,16 @@ contract AccessControlHooksTest is HelperContract {
 
     /* ============ Role variant: the separation of duties is real ============ */
     /**
-    * @notice A depositor cannot drain the vault — the capability that motivates the role variant
-    */
+     * @notice A depositor cannot drain the vault — the capability that motivates the role variant
+     */
     function testDepositRoleCannotWithdraw() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.grantRole(INCOME_VAULT_DEPOSIT_ROLE, DEPOSITOR);
         _performOnlyDeposit();
 
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, INCOME_VAULT_WITHDRAW_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, INCOME_VAULT_WITHDRAW_ROLE)
+        );
         vm.prank(DEPOSITOR);
         incomeVault.withdraw(defaultSnapshotTime, defaultDepositAmount, DEPOSITOR);
     }
@@ -68,7 +68,8 @@ contract AccessControlHooksTest is HelperContract {
         incomeVault.grantRole(INCOME_VAULT_WITHDRAW_ROLE, WITHDRAWER);
 
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, WITHDRAWER, INCOME_VAULT_DEPOSIT_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, WITHDRAWER, INCOME_VAULT_DEPOSIT_ROLE)
+        );
         vm.prank(WITHDRAWER);
         incomeVault.deposit(defaultSnapshotTime, defaultDepositAmount);
     }
@@ -78,7 +79,8 @@ contract AccessControlHooksTest is HelperContract {
         incomeVault.grantRole(INCOME_VAULT_DEPOSIT_ROLE, DEPOSITOR);
 
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, INCOME_VAULT_OPERATOR_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, INCOME_VAULT_OPERATOR_ROLE)
+        );
         vm.prank(DEPOSITOR);
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
     }
@@ -87,8 +89,7 @@ contract AccessControlHooksTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.grantRole(INCOME_VAULT_DEPOSIT_ROLE, DEPOSITOR);
 
-        vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, bytes32(0)));
         vm.prank(DEPOSITOR);
         incomeVault.setRuleEngine(IRuleEngine(ADDRESS3));
     }
@@ -98,7 +99,8 @@ contract AccessControlHooksTest is HelperContract {
         incomeVault.grantRole(INCOME_VAULT_DEPOSIT_ROLE, DEPOSITOR);
 
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, incomeVault.ENFORCER_ROLE()));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, DEPOSITOR, incomeVault.ENFORCER_ROLE())
+        );
         vm.prank(DEPOSITOR);
         incomeVault.setAddressFrozen(ADDRESS1, true, "");
     }
@@ -136,8 +138,8 @@ contract AccessControlHooksTest is HelperContract {
     }
 
     /**
-    * @notice The documented limitation: the funder of the vault is also the account that can empty it
-    */
+     * @notice The documented limitation: the funder of the vault is also the account that can empty it
+     */
     function testOwnableVariantCannotSeparateDepositFromWithdraw() public {
         vm.prank(OWNER);
         tokenPayment.approve(address(ownableVault), defaultDepositAmount);

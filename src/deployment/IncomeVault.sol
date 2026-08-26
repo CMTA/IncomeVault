@@ -24,21 +24,26 @@ import {IncomeVaultValidationModule} from "../modules/IncomeVaultValidationModul
 import {IncomeVaultRolesStorage} from "../storage/IncomeVaultRolesStorage.sol";
 
 /**
-* @title Income Vault to distribute dividends — role-based deployment
-* @dev
-* Answers **who** may do what: every authorization hook of {IncomeVaultBase} is overridden with the
-* role that gates it. Suited to institutional operations, where funding the vault, withdrawing from
-* it and running the claim window are held by different accounts.
-*
-* Note the CMTAT `AccessControlModule` treats `DEFAULT_ADMIN_ROLE` as implicitly holding every role:
-* the admin passes every `hasRole` check but does **not** appear in role enumerations, so an
-* off-chain tool listing role holders will not see them. Role separation therefore constrains the
-* operators, never the admin.
-*/
-contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBaseERC2771, AccessControlModule, IncomeVaultRolesStorage {
+ * @title Income Vault to distribute dividends — role-based deployment
+ * @dev
+ * Answers **who** may do what: every authorization hook of {IncomeVaultBase} is overridden with the
+ * role that gates it. Suited to institutional operations, where funding the vault, withdrawing from
+ * it and running the claim window are held by different accounts.
+ *
+ * Note the CMTAT `AccessControlModule` treats `DEFAULT_ADMIN_ROLE` as implicitly holding every role:
+ * the admin passes every `hasRole` check but does **not** appear in role enumerations, so an
+ * off-chain tool listing role holders will not see them. Role separation therefore constrains the
+ * operators, never the admin.
+ */
+contract IncomeVault is
+    IncomeVaultValidationModule,
+    IncomeVaultBaseERC2771,
+    AccessControlModule,
+    IncomeVaultRolesStorage
+{
     /**
-    * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
-    */
+     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
+     */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address forwarderIrrevocable) IncomeVaultBaseERC2771(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
@@ -46,15 +51,15 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBaseERC2771, Acc
     }
 
     /**
-    * @notice
-    * initialize the proxy contract
-    * The calls to this function will revert if the contract was deployed without a proxy
-    * @param admin Address of the contract (Access Control)
-    * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
-    * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
-    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
-    */
+     * @notice
+     * initialize the proxy contract
+     * The calls to this function will revert if the contract was deployed without a proxy
+     * @param admin Address of the contract (Access Control)
+     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
+     * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
+     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
+     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
+     */
     function initialize(
         address admin,
         IERC20 ERC20TokenPayment_,
@@ -78,13 +83,13 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBaseERC2771, Acc
     //////////////////////////////////////////////////////////////*/
     /* ============ ERC-165 ============ */
     /**
-    * @notice ERC-165 interface detection
-    * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
-    * for `0xa9e50872`. The ERC-7540 operator id is deliberately **not** advertised — this is not an
-    * asynchronous vault; see {IERC7540Operator}.
-    * @param interfaceId The interface identifier to check
-    * @return True if the interface is supported, false otherwise
-    */
+     * @notice ERC-165 interface detection
+     * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
+     * for `0xa9e50872`. The ERC-7540 operator id is deliberately **not** advertised — this is not an
+     * asynchronous vault; see {IERC7540Operator}.
+     * @param interfaceId The interface identifier to check
+     * @return True if the interface is supported, false otherwise
+     */
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -98,22 +103,34 @@ contract IncomeVault is IncomeVaultValidationModule, IncomeVaultBaseERC2771, Acc
 
     /* ============ ERC-2771 / Context disambiguation ============ */
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
-    function _msgSender() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (address sender) {
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
+    function _msgSender()
+        internal
+        view
+        virtual
+        override(IncomeVaultBaseERC2771, ContextUpgradeable)
+        returns (address sender)
+    {
         return IncomeVaultBaseERC2771._msgSender();
     }
 
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
-    function _msgData() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (bytes calldata) {
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
+    function _msgData()
+        internal
+        view
+        virtual
+        override(IncomeVaultBaseERC2771, ContextUpgradeable)
+        returns (bytes calldata)
+    {
         return IncomeVaultBaseERC2771._msgData();
     }
 
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
     function _contextSuffixLength()
         internal
         view

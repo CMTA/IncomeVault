@@ -3,25 +3,25 @@
 pragma solidity ^0.8.24;
 
 /**
-* @title IERC7540Operator
-* @notice The operator subset of [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540), verbatim.
-* @dev
-* ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — a 4626 share
-* entitles whoever holds it now, while a dividend is allocated by record date — but its claim
-* delegation is exactly the operator mechanism that standard specifies, so the signatures are reused
-* rather than invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
-*
-* ERC-7540 assigns this subset the ERC-165 identifier **`0xe3bc4e65`**, described there as
-* "the operator methods that all ERC-7540 Vaults implement". Because this interface inherits nothing,
-* `type(IERC7540Operator).interfaceId` is exactly the XOR of the two selectors below and equals that
-* value. That equality is what pins these signatures to the standard: change either one and the id no
-* longer matches what ERC-7540 assigns.
-*
-* @custom:security The vault does **not** answer `true` for `0xe3bc4e65` from `supportsInterface`.
-* Sharing the operator methods does not make it an asynchronous vault, and a caller discovering that
-* id would reasonably expect the rest of ERC-7540 — the request lifecycle, ERC-7575's `share()` — none
-* of which exists here. Deliberate under-claiming.
-*/
+ * @title IERC7540Operator
+ * @notice The operator subset of [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540), verbatim.
+ * @dev
+ * ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — a 4626 share
+ * entitles whoever holds it now, while a dividend is allocated by record date — but its claim
+ * delegation is exactly the operator mechanism that standard specifies, so the signatures are reused
+ * rather than invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
+ *
+ * ERC-7540 assigns this subset the ERC-165 identifier **`0xe3bc4e65`**, described there as
+ * "the operator methods that all ERC-7540 Vaults implement". Because this interface inherits nothing,
+ * `type(IERC7540Operator).interfaceId` is exactly the XOR of the two selectors below and equals that
+ * value. That equality is what pins these signatures to the standard: change either one and the id no
+ * longer matches what ERC-7540 assigns.
+ *
+ * @custom:security The vault does **not** answer `true` for `0xe3bc4e65` from `supportsInterface`.
+ * Sharing the operator methods does not make it an asynchronous vault, and a caller discovering that
+ * id would reasonably expect the rest of ERC-7540 — the request lifecycle, ERC-7575's `share()` — none
+ * of which exists here. Deliberate under-claiming.
+ */
 interface IERC7540Operator {
     /**
      * @notice The `controller` has set the `approved` status to an `operator`.

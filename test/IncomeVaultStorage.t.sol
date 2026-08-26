@@ -5,11 +5,11 @@ import "./HelperContract.sol";
 import {SlotDerivation} from "@openzeppelin/contracts/utils/SlotDerivation.sol";
 
 /**
-* @title Checks the ERC-7201 namespaced storage of the IncomeVault
-* @dev
-* The slot constant in {IncomeVaultInternal} is hardcoded, so it is re-derived here with
-* {SlotDerivation-erc7201Slot} and compared against what the deployed proxy actually stores.
-*/
+ * @title Checks the ERC-7201 namespaced storage of the IncomeVault
+ * @dev
+ * The slot constant in {IncomeVaultInternal} is hardcoded, so it is re-derived here with
+ * {SlotDerivation-erc7201Slot} and compared against what the deployed proxy actually stores.
+ */
 contract IncomeVaultStorageTest is HelperContract {
     using SlotDerivation for string;
 
@@ -31,8 +31,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice The hardcoded constant matches the ERC-7201 derivation of the namespace
-    */
+     * @notice The hardcoded constant matches the ERC-7201 derivation of the namespace
+     */
     function testStorageLocationMatchesTheErc7201Derivation() public pure {
         assertEq(NAMESPACE.erc7201Slot(), EXPECTED_SLOT);
         assertEq(SNAPSHOT_NAMESPACE.erc7201Slot(), EXPECTED_SNAPSHOT_SLOT);
@@ -40,8 +40,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice ERC-7201 requires the last byte of the slot to be zeroed
-    */
+     * @notice ERC-7201 requires the last byte of the slot to be zeroed
+     */
     function testStorageLocationIsAligned() public pure {
         assertEq(uint256(EXPECTED_SLOT) & 0xff, 0);
         assertEq(uint256(EXPECTED_SNAPSHOT_SLOT) & 0xff, 0);
@@ -49,8 +49,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice The two namespaces are disjoint, so neither module can corrupt the other
-    */
+     * @notice The two namespaces are disjoint, so neither module can corrupt the other
+     */
     function testTheNamespacesDoNotOverlap() public pure {
         assertTrue(EXPECTED_SLOT != EXPECTED_SNAPSHOT_SLOT);
         assertTrue(EXPECTED_SLOT != EXPECTED_OPERATOR_SLOT);
@@ -58,11 +58,11 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice Claim delegation is stored in the operator namespace, not the distribution one
-    * @dev Finding M-6. The mapping used to be the last field of `IncomeVaultInternalStorage`; a host
-    * embedding only the distribution would have carried it. Reading the derived mapping slot proves
-    * where it actually lives rather than trusting the declaration.
-    */
+     * @notice Claim delegation is stored in the operator namespace, not the distribution one
+     * @dev Finding M-6. The mapping used to be the last field of `IncomeVaultInternalStorage`; a host
+     * embedding only the distribution would have carried it. Reading the derived mapping slot proves
+     * where it actually lives rather than trusting the declaration.
+     */
     function testOperatorAuthorisationsLiveInTheOperatorNamespace() public {
         vm.prank(ADDRESS1);
         incomeVault.setOperator(ADDRESS2, true);
@@ -80,9 +80,9 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice The proxy really stores the state at the namespaced slot, in the declared field order
-    * @dev field 0 is `_ERC20TokenPayment`, field 4 is `_timeLimitToWithdraw`
-    */
+     * @notice The proxy really stores the state at the namespaced slot, in the declared field order
+     * @dev field 0 is `_ERC20TokenPayment`, field 4 is `_timeLimitToWithdraw`
+     */
     function testProxyStoresTheStateAtTheNamespacedSlot() public view {
         bytes32 slot = NAMESPACE.erc7201Slot();
 
@@ -95,8 +95,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice The snapshot source is stored in its own namespace, not in the internal one
-    */
+     * @notice The snapshot source is stored in its own namespace, not in the internal one
+     */
     function testTheSnapshotSourceLivesInItsOwnNamespace() public view {
         bytes32 raw = vm.load(address(incomeVault), SNAPSHOT_NAMESPACE.erc7201Slot());
         assertEq(address(uint160(uint256(raw))), address(snapshotEngine));
@@ -104,8 +104,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice Slot 0 is free: no state is declared outside the ERC-7201 namespaces
-    */
+     * @notice Slot 0 is free: no state is declared outside the ERC-7201 namespaces
+     */
     function testNoStateInTheSequentialSlots() public view {
         for (uint256 i = 0; i < 8; ++i) {
             assertEq(vm.load(address(incomeVault), bytes32(i)), bytes32(0));
@@ -113,8 +113,8 @@ contract IncomeVaultStorageTest is HelperContract {
     }
 
     /**
-    * @notice The public getters kept by the migration still expose the whole state
-    */
+     * @notice The public getters kept by the migration still expose the whole state
+     */
     function testGettersExposeTheNamespacedState() public {
         _performDeposit();
         assertEq(incomeVault.segregatedDividend(defaultSnapshotTime), defaultDepositAmount);

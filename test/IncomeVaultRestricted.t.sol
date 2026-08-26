@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "./HelperContract.sol";
 
 /**
-* @title Test for the restricted functions of IncomeVault
-*/
+ * @title Test for the restricted functions of IncomeVault
+ */
 contract IncomeVaultRestrictedTest is HelperContract {
     uint256 resUint256;
     bool resBool;
@@ -24,11 +24,7 @@ contract IncomeVaultRestrictedTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         //Event
         vm.expectEmit(true, true, false, true);
-        emit newDeposit(
-            time,
-            DEFAULT_ADMIN_ADDRESS,
-            defaultDepositAmount
-        );
+        emit newDeposit(time, DEFAULT_ADMIN_ADDRESS, defaultDepositAmount);
         incomeVault.deposit(time, defaultDepositAmount);
         // Assert
         resUint256 = incomeVault.segregatedDividend(time);
@@ -36,8 +32,7 @@ contract IncomeVaultRestrictedTest is HelperContract {
     }
 
     function testCannotDepositZeroAmount() public {
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_NoAmountSend.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NoAmountSend.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.deposit(200, 0);
     }
@@ -97,8 +92,7 @@ contract IncomeVaultRestrictedTest is HelperContract {
     function testCannotWithdrawMoreThanDepositedForATime() public {
         uint256 time = block.timestamp + 50;
         _performOnlyDeposit(time, defaultDepositAmount);
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_NotEnoughAmount.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_NotEnoughAmount.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.withdraw(time, defaultDepositAmount + 1, ADDRESS2);
     }
@@ -155,21 +149,24 @@ contract IncomeVaultRestrictedTest is HelperContract {
     /****** Attacker */
     function testCannotAttackerSetStatusClaim() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.setStatusClaim(122, true);
     }
 
     function testCannotAttackerSetTimeLimitToWithdraw() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_OPERATOR_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.setTimeLimitToWithdraw(122);
     }
 
     function testCannotAttackerDistributeDividend() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DISTRIBUTE_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DISTRIBUTE_ROLE)
+        );
         vm.prank(ATTACKER);
         address[] memory addresses = new address[](0);
         incomeVault.distributeDividend(addresses, 12);
@@ -177,35 +174,38 @@ contract IncomeVaultRestrictedTest is HelperContract {
 
     function testCannotAttackerWithdrawAll() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.withdrawAll(12, ADDRESS2);
     }
 
     function testCannotAttackerWithdraw() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_WITHDRAW_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.withdraw(12, 12, ADDRESS2);
     }
 
     function testCannotAttackerPerformDeposit() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DEPOSIT_ROLE));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DEPOSIT_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.deposit(12, 12);
     }
 
     function testCannotAttackerSetRuleEngine() public {
-        vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
         vm.prank(ATTACKER);
         incomeVault.setRuleEngine(IRuleEngine(ADDRESS3));
     }
 
     function testCannotAttackerPause() public {
         vm.expectRevert(
-        abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, incomeVault.PAUSER_ROLE()));
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, incomeVault.PAUSER_ROLE())
+        );
         vm.prank(ATTACKER);
         incomeVault.pause();
     }

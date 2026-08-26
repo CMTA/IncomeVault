@@ -5,8 +5,8 @@ import "./HelperContract.sol";
 import {MinimalSnapshotSourceMock} from "./mocks/MinimalSnapshotSourceMock.sol";
 
 /**
-* @title Replacing the snapshot source — finding A-3
-*/
+ * @title Replacing the snapshot source — finding A-3
+ */
 contract SetDividendSnapshotSourceTest is HelperContract {
     MinimalSnapshotSourceMock newSource;
 
@@ -39,8 +39,8 @@ contract SetDividendSnapshotSourceTest is HelperContract {
     }
 
     /**
-    * @notice Repeating a status must not move the counter — otherwise it could never return to zero
-    */
+     * @notice Repeating a status must not move the counter — otherwise it could never return to zero
+     */
     function testRepeatedStatusWritesDoNotDriftTheCounter() public {
         vm.startPrank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(100, true);

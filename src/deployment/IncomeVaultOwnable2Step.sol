@@ -5,7 +5,6 @@ pragma solidity ^0.8.24;
 /* ==== OpenZeppelin === */
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 /* ==== CMTAT === */
 import {PauseModule} from "CMTAT/modules/wrapper/core/PauseModule.sol";
@@ -24,18 +23,18 @@ import {IERC7741} from "../interfaces/IERC7741.sol";
 import {IIncomeVault} from "../interfaces/IIncomeVault.sol";
 
 /**
-* @title Income Vault to distribute dividends — single-owner deployment
-* @dev
-* Answers **who** may do what with a single ERC-173 owner: every authorization hook collapses to
-* `onlyOwner`. `Ownable2Step` is used rather than `Ownable` so a mistyped address cannot lose the
-* contract — the handover only completes when the new owner calls `acceptOwnership`.
-*
-* @custom:security This variant **cannot express separated duties**. The owner deposits, withdraws,
-* distributes, runs the claim window, pauses, freezes and repoints the RuleEngine. In particular the
-* account that funds the vault is the same account that can empty it through `withdrawAll`. Choose
-* {IncomeVault}, the role-based deployment, whenever depositing and withdrawing must be held by
-* different accounts — which is the usual requirement for an issuer paying dividends.
-*/
+ * @title Income Vault to distribute dividends — single-owner deployment
+ * @dev
+ * Answers **who** may do what with a single ERC-173 owner: every authorization hook collapses to
+ * `onlyOwner`. `Ownable2Step` is used rather than `Ownable` so a mistyped address cannot lose the
+ * contract — the handover only completes when the new owner calls `acceptOwnership`.
+ *
+ * @custom:security This variant **cannot express separated duties**. The owner deposits, withdraws,
+ * distributes, runs the claim window, pauses, freezes and repoints the RuleEngine. In particular the
+ * account that funds the vault is the same account that can empty it through `withdrawAll`. Choose
+ * {IncomeVault}, the role-based deployment, whenever depositing and withdrawing must be held by
+ * different accounts — which is the usual requirement for an issuer paying dividends.
+ */
 contract IncomeVaultOwnable2Step is
     IncomeVaultValidationModule,
     IncomeVaultBaseERC2771,
@@ -43,8 +42,8 @@ contract IncomeVaultOwnable2Step is
     Ownable2StepERC165Module
 {
     /**
-    * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
-    */
+     * @param forwarderIrrevocable Address of the forwarder, required for the gasless support
+     */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address forwarderIrrevocable) IncomeVaultBaseERC2771(forwarderIrrevocable) {
         // Disable the possibility to initialize the implementation
@@ -52,15 +51,15 @@ contract IncomeVaultOwnable2Step is
     }
 
     /**
-    * @notice
-    * initialize the proxy contract
-    * The calls to this function will revert if the contract was deployed without a proxy
-    * @param owner_ Address of the initial contract owner (ERC-173)
-    * @param ERC20TokenPayment_ ERC20 token used to perform the payment
-    * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
-    * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
-    * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
-    */
+     * @notice
+     * initialize the proxy contract
+     * The calls to this function will revert if the contract was deployed without a proxy
+     * @param owner_ Address of the initial contract owner (ERC-173)
+     * @param ERC20TokenPayment_ ERC20 token used to perform the payment
+     * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances
+     * @param ruleEngine_ optional RuleEngine applied to the payouts, or the zero address
+     * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted
+     */
     function initialize(
         address owner_,
         IERC20 ERC20TokenPayment_,
@@ -82,10 +81,10 @@ contract IncomeVaultOwnable2Step is
 
     /* ============ ERC-165 ============ */
     /**
-    * @inheritdoc Ownable2StepERC165Module
-    * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
-    * for `0xa9e50872`.
-    */
+     * @inheritdoc Ownable2StepERC165Module
+     * @dev Adds ERC-7741, whose specification requires a contract implementing it to answer `true`
+     * for `0xa9e50872`.
+     */
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -102,22 +101,34 @@ contract IncomeVaultOwnable2Step is
     //////////////////////////////////////////////////////////////*/
     /* ============ ERC-2771 / Context disambiguation ============ */
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
-    function _msgSender() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (address sender) {
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
+    function _msgSender()
+        internal
+        view
+        virtual
+        override(IncomeVaultBaseERC2771, ContextUpgradeable)
+        returns (address sender)
+    {
         return IncomeVaultBaseERC2771._msgSender();
     }
 
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
-    function _msgData() internal view virtual override(IncomeVaultBaseERC2771, ContextUpgradeable) returns (bytes calldata) {
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
+    function _msgData()
+        internal
+        view
+        virtual
+        override(IncomeVaultBaseERC2771, ContextUpgradeable)
+        returns (bytes calldata)
+    {
         return IncomeVaultBaseERC2771._msgData();
     }
 
     /**
-    * @inheritdoc IncomeVaultBaseERC2771
-    */
+     * @inheritdoc IncomeVaultBaseERC2771
+     */
     function _contextSuffixLength()
         internal
         view

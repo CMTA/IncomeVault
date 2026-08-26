@@ -4,13 +4,12 @@ pragma solidity ^0.8.24;
 import "./HelperContract.sol";
 
 /**
-* @title `deactivateContract` — finding B-1
-* @dev
-* The only irreversible action in the system: once deactivated the vault can never be unpaused, so
-* with a proxy the sole way back is a new implementation. It was previously untested in both variants.
-*/
+ * @title `deactivateContract` — finding B-1
+ * @dev
+ * The only irreversible action in the system: once deactivated the vault can never be unpaused, so
+ * with a proxy the sole way back is a new implementation. It was previously untested in both variants.
+ */
 contract DeactivateTest is HelperContract {
-
     function setUp() public {
         _deployContracts();
 
@@ -31,8 +30,8 @@ contract DeactivateTest is HelperContract {
     }
 
     /**
-    * @notice The vault must be paused first — deactivation is not a shortcut around the pause
-    */
+     * @notice The vault must be paused first — deactivation is not a shortcut around the pause
+     */
     function testCannotDeactivateWithoutPausingFirst() public {
         vm.expectRevert(abi.encodeWithSignature("ExpectedPause()"));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -41,8 +40,8 @@ contract DeactivateTest is HelperContract {
     }
 
     /**
-    * @notice Deactivation is irreversible: the vault can never be unpaused again
-    */
+     * @notice Deactivation is irreversible: the vault can never be unpaused again
+     */
     function testADeactivatedVaultCanNeverBeUnpaused() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.pause();
@@ -66,8 +65,8 @@ contract DeactivateTest is HelperContract {
     }
 
     /**
-    * @notice A deactivated vault pays nobody — the practical consequence
-    */
+     * @notice A deactivated vault pays nobody — the practical consequence
+     */
     function testADeactivatedVaultRefusesEveryPayout() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -79,15 +78,21 @@ contract DeactivateTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.deactivateContract();
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(ADDRESS1);
         incomeVault.claimDividend(defaultSnapshotTime);
 
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
-        vm.expectRevert(abi.encodeWithSelector(
-            IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS1, defaultDepositAmount
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
@@ -96,16 +101,15 @@ contract DeactivateTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.pause();
 
-        vm.expectRevert(abi.encodeWithSelector(
-            AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, bytes32(0)));
         vm.prank(ATTACKER);
         incomeVault.deactivateContract();
         assertEq(incomeVault.deactivated(), false);
     }
 
     /**
-    * @notice `PAUSER_ROLE` alone is not enough — deactivation needs the admin
-    */
+     * @notice `PAUSER_ROLE` alone is not enough — deactivation needs the admin
+     */
     function testPauserRoleAloneCannotDeactivate() public {
         address pauser = address(21);
         // read the role first: a call inside the argument list would consume the prank
@@ -116,8 +120,7 @@ contract DeactivateTest is HelperContract {
         vm.prank(pauser);
         incomeVault.pause();
 
-        vm.expectRevert(abi.encodeWithSelector(
-            AccessControlUnauthorizedAccount.selector, pauser, bytes32(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, pauser, bytes32(0)));
         vm.prank(pauser);
         incomeVault.deactivateContract();
     }

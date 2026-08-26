@@ -7,17 +7,17 @@ import {IncomeVault} from "../../src/deployment/IncomeVault.sol";
 import {ERC20PaymentMock} from "../mocks/ERC20PaymentMock.sol";
 
 /**
-* @title Bounded random driver for the IncomeVault invariants
-* @dev
-* Actions are squeezed into a small legal domain — three dividend times, three holders — so a run
-* explores *orderings* rather than wandering into reverts. Calls that legitimately revert (claiming
-* outside the window, while paused, while frozen) are caught: the invariant is about what the vault
-* does when it succeeds, not about which calls are allowed.
-*
-* Ghosts are deliberately **scalar totals** rather than per-time sums. A batch claim pays several
-* periods in one balance delta and cannot be attributed to a single `time` from the outside; totals
-* need no attribution and still express the properties that matter.
-*/
+ * @title Bounded random driver for the IncomeVault invariants
+ * @dev
+ * Actions are squeezed into a small legal domain — three dividend times, three holders — so a run
+ * explores *orderings* rather than wandering into reverts. Calls that legitimately revert (claiming
+ * outside the window, while paused, while frozen) are caught: the invariant is about what the vault
+ * does when it succeeds, not about which calls are allowed.
+ *
+ * Ghosts are deliberately **scalar totals** rather than per-time sums. A batch claim pays several
+ * periods in one balance delta and cannot be attributed to a single `time` from the outside; totals
+ * need no attribution and still express the properties that matter.
+ */
 contract IncomeVaultHandler is CommonBase, StdUtils {
     IncomeVault public immutable vault;
     ERC20PaymentMock public immutable payment;
@@ -67,10 +67,10 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
     uint256 public g_unexplainedPayments;
 
     /**
-    * @dev Single-time paths: count a payment whenever the balance actually rises.
-    * Counting flag *transitions* instead would be blind to the very thing this is here to catch —
-    * a second payment for a period already marked claimed leaves the flag untouched.
-    */
+     * @dev Single-time paths: count a payment whenever the balance actually rises.
+     * Counting flag *transitions* instead would be blind to the very thing this is here to catch —
+     * a second payment for a period already marked claimed leaves the flag untouched.
+     */
     function _settleOne(address holder, uint256 time, uint256 balanceBefore) internal {
         uint256 delta = payment.balanceOf(holder) - balanceBefore;
         if (delta > 0) {
@@ -80,9 +80,9 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
     }
 
     /**
-    * @dev Batch paths pay several periods in one delta, so payments are attributed by flag
-    * transition. A delta that no transition explains is a re-payment and is counted separately.
-    */
+     * @dev Batch paths pay several periods in one delta, so payments are attributed by flag
+     * transition. A delta that no transition explains is a re-payment and is counted separately.
+     */
     function _settleBatch(address holder, uint256 balanceBefore, bool[3] memory claimedBefore) internal {
         uint256 delta = payment.balanceOf(holder) - balanceBefore;
         if (delta == 0) return;
@@ -176,9 +176,9 @@ contract IncomeVaultHandler is CommonBase, StdUtils {
     }
 
     /**
-    * @dev The issuer sweeping a period. Bounded to what the period holds so the call itself is legal;
-    * whether sweeping *while claims are open* is wise is exactly what the solvency invariant probes.
-    */
+     * @dev The issuer sweeping a period. Bounded to what the period holds so the call itself is legal;
+     * whether sweeping *while claims are open* is wise is exactly what the solvency invariant probes.
+     */
     function withdraw(uint256 timeSeed, uint256 amount) external {
         ++g_calls;
         uint256 time = _time(timeSeed);

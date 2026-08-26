@@ -6,8 +6,8 @@ import {Vm} from "forge-std/Vm.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
-* @title Regression tests for the findings of CLAUDE_ANALYSIS.md
-*/
+ * @title Regression tests for the findings of CLAUDE_ANALYSIS.md
+ */
 contract CodeQualityTest is HelperContract {
     function setUp() public {
         _deployContracts();
@@ -101,8 +101,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice The hoisted read must not change what a single-element batch reports
-    */
+     * @notice The hoisted read must not change what a single-element batch reports
+     */
     function testValidateTimeBatchMatchesValidateTime() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
@@ -117,12 +117,12 @@ contract CodeQualityTest is HelperContract {
 
     /* ============ H-1 — the push path applies the same claim window as the pull path ============ */
     /**
-    * @notice `distributeDividend` must refuse a distribution before `time`
-    * @dev
-    * Before `time` the snapshot has not been recorded, and {ISnapshotSource} falls back to the **live**
-    * balance — so a distribution would pay from current balances and permanently consume the holder's
-    * claim for that period at the wrong amount. This is finding H-1.
-    */
+     * @notice `distributeDividend` must refuse a distribution before `time`
+     * @dev
+     * Before `time` the snapshot has not been recorded, and {ISnapshotSource} falls back to the **live**
+     * balance — so a distribution would pay from current balances and permanently consume the holder's
+     * claim for that period at the wrong amount. This is finding H-1.
+     */
     function testCannotDistributeBeforeTheDividendTime() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -142,8 +142,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice `distributeDividend` must refuse a distribution after the withdraw limit
-    */
+     * @notice `distributeDividend` must refuse a distribution after the withdraw limit
+     */
     function testCannotDistributeAfterTheWithdrawLimit() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -158,8 +158,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice The claim-not-activated case still reverts with its own error
-    */
+     * @notice The claim-not-activated case still reverts with its own error
+     */
     function testCannotDistributeWhenTheClaimIsNotActivated() public {
         _performDeposit();
         vm.warp(defaultSnapshotTime + 50);
@@ -172,8 +172,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice Inside the window the distribution still works, on the recorded snapshot balances
-    */
+     * @notice Inside the window the distribution still works, on the recorded snapshot balances
+     */
     function testDistributeInsideTheWindowStillWorks() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -190,8 +190,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice The push path and the pull path now agree on when a payout is allowed
-    */
+     * @notice The push path and the pull path now agree on when a payout is allowed
+     */
     function testPushAndPullAgreeOnTheWindow() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -220,8 +220,8 @@ contract CodeQualityTest is HelperContract {
 
     /* ============ H-2 — the push path enforces the same restrictions as the pull path ============ */
     /**
-    * @notice A frozen holder cannot be paid by the issuer either
-    */
+     * @notice A frozen holder cannot be paid by the issuer either
+     */
     function testCannotDistributeToAFrozenHolder() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -246,8 +246,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice Pausing the vault stops the issuer-driven distribution too
-    */
+     * @notice Pausing the vault stops the issuer-driven distribution too
+     */
     function testCannotDistributeWhilePaused() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -269,11 +269,11 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice One blocked holder reverts the whole batch, and the error names that holder
-    * @dev Same semantics as {claimDividendBatch}: the vault fails closed rather than paying a
-    * partial set silently. `IncomeVault_InvalidTransfer` carries the address so the operator can
-    * remove it from the list and retry.
-    */
+     * @notice One blocked holder reverts the whole batch, and the error names that holder
+     * @dev Same semantics as {claimDividendBatch}: the vault fails closed rather than paying a
+     * partial set silently. `IncomeVault_InvalidTransfer` carries the address so the operator can
+     * remove it from the list and retry.
+     */
     function testOneBlockedHolderRevertsTheWholeDistribution() public {
         _performOnlyDeposit();
         vm.prank(CMTAT_ADMIN);
@@ -308,8 +308,8 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice With every holder allowed the distribution is unchanged
-    */
+     * @notice With every holder allowed the distribution is unchanged
+     */
     function testDistributeStillWorksWhenEveryHolderIsAllowed() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -326,13 +326,13 @@ contract CodeQualityTest is HelperContract {
 
     /* ============ A-1 — a zero withdraw limit cannot be configured ============ */
     /**
-    * @notice `setTimeLimitToWithdraw(0)` is refused
-    * @dev
-    * With `timeLimitToWithdraw == 0` the claim window `[time, time + limit]` collapses to the single
-    * instant `block.timestamp == time`: one second later `_timeCode` already returns
-    * `TOO_LATE_TO_WITHDRAW`. The period becomes effectively unclaimable, and nothing signalled it —
-    * the transaction succeeded and the event fired. Finding A-1 of `CLAUDE_IMPROVEMENT.md`.
-    */
+     * @notice `setTimeLimitToWithdraw(0)` is refused
+     * @dev
+     * With `timeLimitToWithdraw == 0` the claim window `[time, time + limit]` collapses to the single
+     * instant `block.timestamp == time`: one second later `_timeCode` already returns
+     * `TOO_LATE_TO_WITHDRAW`. The period becomes effectively unclaimable, and nothing signalled it —
+     * the transaction succeeded and the event fired. Finding A-1 of `CLAUDE_IMPROVEMENT.md`.
+     */
     function testCannotSetAZeroTimeLimitToWithdraw() public {
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_TimeLimitToWithdrawZeroNotAllowed.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -343,10 +343,10 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice The guard lives in the internal setter, so `initialize` is covered too
-    * @dev This is the point of validating in `_setTimeLimitToWithdraw` rather than at the call site:
-    * a vault cannot be *deployed* into the bricked state either.
-    */
+     * @notice The guard lives in the internal setter, so `initialize` is covered too
+     * @dev This is the point of validating in `_setTimeLimitToWithdraw` rather than at the call site:
+     * a vault cannot be *deployed* into the bricked state either.
+     */
     function testCannotInitializeWithAZeroTimeLimitToWithdraw() public {
         IncomeVault implementation = new IncomeVault(ZERO_ADDRESS);
         bytes memory data = abi.encodeCall(
@@ -364,10 +364,10 @@ contract CodeQualityTest is HelperContract {
     }
 
     /**
-    * @notice Any positive value is still accepted — only zero is refused
-    * @dev A short window may be a deliberate settlement policy; zero is the only value that is
-    * broken by definition, so it is the only one rejected.
-    */
+     * @notice Any positive value is still accepted — only zero is refused
+     * @dev A short window may be a deliberate settlement policy; zero is the only value that is
+     * broken by definition, so it is the only one rejected.
+     */
     function testAOneSecondTimeLimitIsStillAccepted() public {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setTimeLimitToWithdraw(1);

@@ -5,8 +5,8 @@ import "./HelperContract.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 /**
-* @title Best-effort distribution — finding A-4
-*/
+ * @title Best-effort distribution — finding A-4
+ */
 contract DistributeBestEffortTest is HelperContract {
     function setUp() public {
         _deployContracts();
@@ -50,10 +50,10 @@ contract DistributeBestEffortTest is HelperContract {
     }
 
     /**
-    * @notice A skipped holder is left completely untouched and can still claim
-    * @dev Per-holder atomicity: the self-call rolls back `claimedDividend` along with the transfer,
-    * so a holder is never marked as paid without receiving the tokens.
-    */
+     * @notice A skipped holder is left completely untouched and can still claim
+     * @dev Per-holder atomicity: the self-call rolls back `claimedDividend` along with the transfer,
+     * so a holder is never marked as paid without receiving the tokens.
+     */
     function testASkippedHolderIsUntouchedAndCanClaimLater() public {
         address[] memory addresses = _twoHolders();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -72,8 +72,8 @@ contract DistributeBestEffortTest is HelperContract {
     }
 
     /**
-    * @notice The skip is reported with decodable revert data
-    */
+     * @notice The skip is reported with decodable revert data
+     */
     function testSkipEmitsTheReason() public {
         address[] memory addresses = _twoHolders();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -119,8 +119,11 @@ contract DistributeBestEffortTest is HelperContract {
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setAddressFrozen(ADDRESS2, true, "");
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS2, defaultDepositAmount / 2));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IncomeVault_InvalidTransfer.selector, address(incomeVault), ADDRESS2, defaultDepositAmount / 2
+            )
+        );
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividend(addresses, defaultSnapshotTime);
     }
@@ -133,8 +136,7 @@ contract DistributeBestEffortTest is HelperContract {
 
         address[] memory addresses = new address[](1);
         addresses[0] = ADDRESS1;
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.distributeDividendBestEffort(addresses, defaultSnapshotTime);
     }
@@ -142,17 +144,18 @@ contract DistributeBestEffortTest is HelperContract {
     /* ============ access control ============ */
     function testAttackerCannotRunTheBestEffortDistribution() public {
         address[] memory addresses = _twoHolders();
-        vm.expectRevert(abi.encodeWithSelector(
-            AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DISTRIBUTE_ROLE));
+        vm.expectRevert(
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DISTRIBUTE_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.distributeDividendBestEffort(addresses, defaultSnapshotTime);
     }
 
     /**
-    * @notice The self-call helper is unreachable from outside — the critical guard
-    * @dev It carries no role check of its own, so without this the payout path would be open to
-    * anyone. Neither an attacker nor the privileged admin may call it directly.
-    */
+     * @notice The self-call helper is unreachable from outside — the critical guard
+     * @dev It carries no role check of its own, so without this the payout path would be open to
+     * anyone. Neither an attacker nor the privileged admin may call it directly.
+     */
     function testNobodyCanCallTheSelfHelperDirectly() public {
         _twoHolders();
 

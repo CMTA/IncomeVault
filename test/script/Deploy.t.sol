@@ -6,15 +6,15 @@ import {DeployIncomeVault} from "../../script/DeployIncomeVault.s.sol";
 import {DeployIncomeVaultOwnable2Step} from "../../script/DeployIncomeVaultOwnable2Step.s.sol";
 
 /**
-* @title The deployment scripts — finding C-4
-* @dev
-* The scripts are the documented way to deploy, so they are tested like anything else. Each case
-* drives `deploy(config)` directly, which is why that function is separated from the environment
-* reading in `run()` — the tested code path is the one an operator runs.
-*
-* The assertions that matter are not "an address came back" but "the vault this produced actually
-* pays a dividend".
-*/
+ * @title The deployment scripts — finding C-4
+ * @dev
+ * The scripts are the documented way to deploy, so they are tested like anything else. Each case
+ * drives `deploy(config)` directly, which is why that function is separated from the environment
+ * reading in `run()` — the tested code path is the one an operator runs.
+ *
+ * The assertions that matter are not "an address came back" but "the vault this produced actually
+ * pays a dividend".
+ */
 contract DeployScriptTest is HelperContract {
     DeployIncomeVault roleScript;
     DeployIncomeVaultOwnable2Step ownerScript;
@@ -66,8 +66,8 @@ contract DeployScriptTest is HelperContract {
     }
 
     /**
-    * @notice The deployed vault cannot be initialized a second time
-    */
+     * @notice The deployed vault cannot be initialized a second time
+     */
     function testTheDeployedVaultIsAlreadyInitialized() public {
         IncomeVault vault = roleScript.deploy(_roleConfig());
         vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
@@ -81,8 +81,8 @@ contract DeployScriptTest is HelperContract {
     }
 
     /**
-    * @notice The real test: a vault the script produced actually pays a dividend
-    */
+     * @notice The real test: a vault the script produced actually pays a dividend
+     */
     function testTheDeployedVaultPaysADividendEndToEnd() public {
         IncomeVault vault = roleScript.deploy(_roleConfig());
 
@@ -125,10 +125,10 @@ contract DeployScriptTest is HelperContract {
 
     /* ============ configuration guards ============ */
     /**
-    * @notice The check the contract cannot do for itself: an EOA where a contract belongs
-    * @dev A mistyped address, or one copied from another chain, initializes fine and then reverts on
-    * the first claim. Catching it in the script is the whole point of having one.
-    */
+     * @notice The check the contract cannot do for itself: an EOA where a contract belongs
+     * @dev A mistyped address, or one copied from another chain, initializes fine and then reverts on
+     * the first claim. Catching it in the script is the whole point of having one.
+     */
     function testRejectsAPaymentTokenThatIsNotAContract() public {
         DeployIncomeVault.Config memory config = _roleConfig();
         config.paymentToken = IERC20(address(0xBEEF));
@@ -179,8 +179,8 @@ contract DeployScriptTest is HelperContract {
     }
 
     /**
-    * @notice A rule engine is optional and the zero address is accepted
-    */
+     * @notice A rule engine is optional and the zero address is accepted
+     */
     function testAZeroRuleEngineIsAccepted() public {
         IncomeVault vault = roleScript.deploy(_roleConfig());
         assertEq(address(vault.ruleEngine()), ZERO_ADDRESS);

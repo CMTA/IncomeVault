@@ -5,8 +5,8 @@ import "./HelperContract.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
-* @title Test for IncomeVault
-*/
+ * @title Test for IncomeVault
+ */
 contract IncomeVaultTest is HelperContract {
     uint256 resUint256;
     bool resBool;
@@ -218,8 +218,8 @@ contract IncomeVaultTest is HelperContract {
 
     /* ============ Snapshot source ============ */
     /**
-    * @dev the vault is wired to the snapshot engine through {ISnapshotSource}, not to the token
-    */
+     * @dev the vault is wired to the snapshot engine through {ISnapshotSource}, not to the token
+     */
     function testSnapshotEngineIsTheConfiguredSource() public view {
         assertEq(address(incomeVault.dividendSnapshotSource()), address(snapshotEngine));
     }

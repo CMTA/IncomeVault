@@ -7,12 +7,11 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 /* ==== IncomeVault === */
 import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
 import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
-import {IncomeVaultInternal} from "../modules/IncomeVaultInternal.sol";
 import {ERC7741Module} from "../modules/ERC7741Module.sol";
 
 /**
-* @title Permissionless functions
-*/
+ * @title Permissionless functions
+ */
 abstract contract IncomeVaultOpen is
     IncomeVaultValidationCore,
     IncomeVaultSnapshotCore,
@@ -24,70 +23,70 @@ abstract contract IncomeVaultOpen is
     //////////////////////////////////////////////////////////////*/
     /* ============ State functions ============ */
     /**
-    * @notice claim your payment
-    * @param time provide the date where you want to receive your payment
-    */
+     * @notice claim your payment
+     * @param time provide the date where you want to receive your payment
+     */
     function claimDividend(uint256 time) public virtual nonReentrant {
         _claimDividend(_msgSender(), time);
     }
 
     /**
-    * @notice Claim on behalf of a token holder
-    * @dev
-    * Callable by the holder, or by an address the holder authorised through {setOperator}. The
-    * dividends always go to **the holder** — an operator pays the gas and chooses the moment, it can
-    * never redirect the payment. Every other rule is unchanged: the claim window, the
-    * already-claimed check and the transfer restrictions all apply exactly as for {claimDividend}.
-    * @param holder the token holder to claim for
-    * @param time provide the date of the payment
-    */
+     * @notice Claim on behalf of a token holder
+     * @dev
+     * Callable by the holder, or by an address the holder authorised through {setOperator}. The
+     * dividends always go to **the holder** — an operator pays the gas and chooses the moment, it can
+     * never redirect the payment. Every other rule is unchanged: the claim window, the
+     * already-claimed check and the transfer restrictions all apply exactly as for {claimDividend}.
+     * @param holder the token holder to claim for
+     * @param time provide the date of the payment
+     */
     function claimDividendFor(address holder, uint256 time) public virtual nonReentrant {
         _requireHolderOrOperator(holder);
         _claimDividend(holder, time);
     }
 
     /**
-    * @notice Batch version of {claimDividendFor}
-    * @param holder the token holder to claim for
-    * @param times provide the dates of the payments
-    */
+     * @notice Batch version of {claimDividendFor}
+     * @param holder the token holder to claim for
+     * @param times provide the dates of the payments
+     */
     function claimDividendBatchFor(address holder, uint256[] calldata times) public virtual nonReentrant {
         _requireHolderOrOperator(holder);
         _claimDividendBatch(holder, times);
     }
 
     /**
-    * @notice batch version of {claimDividend}
-    * @param times provide the dates where you want to receive your payment
-    * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
-    */
+     * @notice batch version of {claimDividend}
+     * @param times provide the dates where you want to receive your payment
+     * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
+     */
     function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant {
         _claimDividendBatch(_msgSender(), times);
     }
 
     /* ============ View functions ============ */
     /**
-    * @notice validate if a time is valid, return 0 if valid
-    * @param time the dividend time to check
-    * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
-    */
+     * @notice validate if a time is valid, return 0 if valid
+     * @param time the dividend time to check
+     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+     */
     function validateTimeCode(uint256 time) public view virtual returns (TIME_ERROR_CODE code) {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         return _timeCode($, time, $._timeLimitToWithdraw);
     }
 
     /**
-    * @notice validate if a time is valid, revert if invalid
-    * @param time the dividend time to check
-    */
+     * @notice validate if a time is valid, revert if invalid
+     * @param time the dividend time to check
+     */
     function validateTime(uint256 time) public view virtual {
         _revertOnInvalidTime(validateTimeCode(time));
     }
 
     /**
-    * @notice batch version of {validateTime}
-    * @param times the dividend times to check
-    */
+     * @notice batch version of {validateTime}
+     * @param times the dividend times to check
+     */
     function validateTimeBatch(uint256[] calldata times) public view virtual {
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // `_timeLimitToWithdraw` is the same slot for every element: read it once
@@ -102,10 +101,10 @@ abstract contract IncomeVaultOpen is
     //////////////////////////////////////////////////////////////*/
     /* ============ State functions ============ */
     /**
-    * @dev {claimDividend} for an explicit holder
-    * @param sender the token holder being paid
-    * @param time the dividend time
-    */
+     * @dev {claimDividend} for an explicit holder
+     * @param sender the token holder being paid
+     * @param time the dividend time
+     */
     function _claimDividend(address sender, uint256 time) internal virtual {
         validateTime(time);
         IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
@@ -131,10 +130,10 @@ abstract contract IncomeVaultOpen is
     }
 
     /**
-    * @dev {claimDividendBatch} for an explicit holder
-    * @param sender the token holder being paid
-    * @param times the dividend times
-    */
+     * @dev {claimDividendBatch} for an explicit holder
+     * @param sender the token holder being paid
+     * @param times the dividend times
+     */
     function _claimDividendBatch(address sender, uint256[] calldata times) internal virtual {
         // Check if the claim is activated for each times
         validateTimeBatch(times);

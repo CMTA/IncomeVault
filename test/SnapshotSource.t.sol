@@ -5,19 +5,19 @@ import "./HelperContract.sol";
 import {MinimalSnapshotSourceMock} from "./mocks/MinimalSnapshotSourceMock.sol";
 
 /**
-* @title The vault only requires what it calls — finding I-1
-*/
+ * @title The vault only requires what it calls — finding I-1
+ */
 contract SnapshotSourceTest is HelperContract {
     function setUp() public {
         _deployContracts();
     }
 
     /**
-    * @notice A source implementing only the three functions the vault calls is enough
-    * @dev The whole point of I-1: no `snapshotExists`, `snapshotBalanceOf`, `snapshotBalanceOfExact`,
-    * `snapshotTotalSupply` or `snapshotTotalSupplyExact` — five functions of `ISnapshotState` the
-    * vault never calls and no longer demands.
-    */
+     * @notice A source implementing only the three functions the vault calls is enough
+     * @dev The whole point of I-1: no `snapshotExists`, `snapshotBalanceOf`, `snapshotBalanceOfExact`,
+     * `snapshotTotalSupply` or `snapshotTotalSupplyExact` — five functions of `ISnapshotState` the
+     * vault never calls and no longer demands.
+     */
     function testAThreeFunctionSourceIsAccepted() public {
         MinimalSnapshotSourceMock minimal = new MinimalSnapshotSourceMock();
 
@@ -57,10 +57,10 @@ contract SnapshotSourceTest is HelperContract {
     }
 
     /**
-    * @notice The real `ISnapshotState` SnapshotEngine still satisfies the narrower interface
-    * @dev Signatures are copied verbatim from `ISnapshotState`, so narrowing the type rejects nothing
-    * that worked before. This is the compatibility half of I-1.
-    */
+     * @notice The real `ISnapshotState` SnapshotEngine still satisfies the narrower interface
+     * @dev Signatures are copied verbatim from `ISnapshotState`, so narrowing the type rejects nothing
+     * that worked before. This is the compatibility half of I-1.
+     */
     function testTheRealSnapshotEngineStillSatisfiesIt() public view {
         ISnapshotSource asSource = ISnapshotSource(address(snapshotEngine));
         assertEq(address(asSource), address(snapshotEngine));

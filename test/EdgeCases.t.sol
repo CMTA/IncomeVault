@@ -6,12 +6,12 @@ import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
-* @title Branch coverage of the guards and the unconfigured paths — finding B-2
-* @dev
-* These are the branches the behavioural suites never reach: the constructor guards, and the
-* "no RuleEngine configured" answers. Each asserts the observable consequence, not just that the
-* line executed.
-*/
+ * @title Branch coverage of the guards and the unconfigured paths — finding B-2
+ * @dev
+ * These are the branches the behavioural suites never reach: the constructor guards, and the
+ * "no RuleEngine configured" answers. Each asserts the observable consequence, not just that the
+ * line executed.
+ */
 contract EdgeCasesTest is HelperContract {
     function setUp() public {
         _deployContracts();
@@ -22,8 +22,13 @@ contract EdgeCasesTest is HelperContract {
         IncomeVault implementation = new IncomeVault(ZERO_ADDRESS);
         bytes memory data = abi.encodeCall(
             IncomeVault.initialize,
-            (ZERO_ADDRESS, IERC20(address(tokenPayment)),
-             ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+            (
+                ZERO_ADDRESS,
+                IERC20(address(tokenPayment)),
+                ISnapshotSource(address(snapshotEngine)),
+                IRuleEngine(ZERO_ADDRESS),
+                TIME_LIMIT_TO_WITHDRAW
+            )
         );
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_AdminWithAddressZeroNotAllowed.selector));
         new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
@@ -33,8 +38,13 @@ contract EdgeCasesTest is HelperContract {
         IncomeVaultOwnable2Step implementation = new IncomeVaultOwnable2Step(ZERO_ADDRESS);
         bytes memory data = abi.encodeCall(
             IncomeVaultOwnable2Step.initialize,
-            (ZERO_ADDRESS, IERC20(address(tokenPayment)),
-             ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+            (
+                ZERO_ADDRESS,
+                IERC20(address(tokenPayment)),
+                ISnapshotSource(address(snapshotEngine)),
+                IRuleEngine(ZERO_ADDRESS),
+                TIME_LIMIT_TO_WITHDRAW
+            )
         );
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_AdminWithAddressZeroNotAllowed.selector));
         new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
@@ -44,8 +54,13 @@ contract EdgeCasesTest is HelperContract {
         IncomeVault implementation = new IncomeVault(ZERO_ADDRESS);
         bytes memory data = abi.encodeCall(
             IncomeVault.initialize,
-            (DEFAULT_ADMIN_ADDRESS, IERC20(ZERO_ADDRESS),
-             ISnapshotSource(address(snapshotEngine)), IRuleEngine(ZERO_ADDRESS), TIME_LIMIT_TO_WITHDRAW)
+            (
+                DEFAULT_ADMIN_ADDRESS,
+                IERC20(ZERO_ADDRESS),
+                ISnapshotSource(address(snapshotEngine)),
+                IRuleEngine(ZERO_ADDRESS),
+                TIME_LIMIT_TO_WITHDRAW
+            )
         );
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_TokenPaymentWithAddressZeroNotAllowed.selector));
         new TransparentUpgradeableProxy(address(implementation), DEFAULT_ADMIN_ADDRESS, data);
@@ -53,10 +68,10 @@ contract EdgeCasesTest is HelperContract {
 
     /* ============ a holder with no tokens at the snapshot ============ */
     /**
-    * @notice Claiming with a zero snapshot balance is refused before any dividend is computed
-    * @dev Distinct from `IncomeVault_NoDividendToClaim`, which means "you held tokens but the
-    * computed share rounds to zero".
-    */
+     * @notice Claiming with a zero snapshot balance is refused before any dividend is computed
+     * @dev Distinct from `IncomeVault_NoDividendToClaim`, which means "you held tokens but the
+     * computed share rounds to zero".
+     */
     function testHolderWithNoTokensAtTheSnapshotCannotClaim() public {
         _performDeposit();
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -71,10 +86,10 @@ contract EdgeCasesTest is HelperContract {
 
     /* ============ no RuleEngine configured ============ */
     /**
-    * @notice With no RuleEngine, the ERC-1404 views answer "no restriction" rather than reverting
-    * @dev `_deployContracts()` wires no engine, so these are the unconfigured answers an integrator
-    * gets from a vault that relies on pause and freeze alone.
-    */
+     * @notice With no RuleEngine, the ERC-1404 views answer "no restriction" rather than reverting
+     * @dev `_deployContracts()` wires no engine, so these are the unconfigured answers an integrator
+     * gets from a vault that relies on pause and freeze alone.
+     */
     function testErc1404ViewsWithoutARuleEngine() public view {
         assertEq(address(incomeVault.ruleEngine()), ZERO_ADDRESS);
         assertEq(incomeVault.detectTransferRestriction(address(incomeVault), ADDRESS1, 100), 0);
@@ -88,8 +103,8 @@ contract EdgeCasesTest is HelperContract {
 
     /* ============ every TIME_ERROR_CODE arm ============ */
     /**
-    * @notice `validateTime` maps each code to its own error, and `validateTimeCode` reports it
-    */
+     * @notice `validateTime` maps each code to its own error, and `validateTimeCode` reports it
+     */
     function testEveryTimeErrorCodeArm() public {
         // 1. claims not activated
         assertEq(uint256(incomeVault.validateTimeCode(defaultSnapshotTime)), 1);
@@ -101,8 +116,7 @@ contract EdgeCasesTest is HelperContract {
 
         // 3. too early
         assertEq(uint256(incomeVault.validateTimeCode(defaultSnapshotTime)), 3);
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
         incomeVault.validateTime(defaultSnapshotTime);
 
         // 0. OK — inside the window, no revert
@@ -113,8 +127,7 @@ contract EdgeCasesTest is HelperContract {
         // 2. too late
         vm.warp(defaultSnapshotTime + TIME_LIMIT_TO_WITHDRAW + 1);
         assertEq(uint256(incomeVault.validateTimeCode(defaultSnapshotTime)), 2);
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
         incomeVault.validateTime(defaultSnapshotTime);
     }
 }

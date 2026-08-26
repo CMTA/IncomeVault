@@ -6,8 +6,8 @@ import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 
 /**
-* @title Batch deposit — finding E-2
-*/
+ * @title Batch deposit — finding E-2
+ */
 contract DepositBatchTest is HelperContract {
     uint256[] times;
     uint256[] amounts;
@@ -37,8 +37,8 @@ contract DepositBatchTest is HelperContract {
     }
 
     /**
-    * @notice One transfer for the batch, one event per entry
-    */
+     * @notice One transfer for the batch, one event per entry
+     */
     function testDepositBatchPullsTheTokenOnceAndEventsEachEntry() public {
         _approve(600);
         vm.recordLogs();
@@ -57,8 +57,8 @@ contract DepositBatchTest is HelperContract {
     }
 
     /**
-    * @notice Identical outcome to calling `deposit` once per entry
-    */
+     * @notice Identical outcome to calling `deposit` once per entry
+     */
     function testDepositBatchMatchesSeparateDeposits() public {
         _approve(600);
         vm.startPrank(DEFAULT_ADMIN_ADDRESS);
@@ -88,13 +88,15 @@ contract DepositBatchTest is HelperContract {
     }
 
     /**
-    * @notice A repeated time accumulates, exactly as two separate deposits would
-    */
+     * @notice A repeated time accumulates, exactly as two separate deposits would
+     */
     function testRepeatedTimeAccumulates() public {
         uint256[] memory t = new uint256[](2);
         uint256[] memory a = new uint256[](2);
-        t[0] = 500; t[1] = 500;
-        a[0] = 40;  a[1] = 60;
+        t[0] = 500;
+        t[1] = 500;
+        a[0] = 40;
+        a[1] = 60;
 
         _approve(100);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -105,7 +107,8 @@ contract DepositBatchTest is HelperContract {
     /* ============ guards ============ */
     function testCannotDepositBatchWithMismatchedLengths() public {
         uint256[] memory a = new uint256[](2);
-        a[0] = 1; a[1] = 2;
+        a[0] = 1;
+        a[1] = 2;
         _approve(600);
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_InvalidLengths.selector, 3, 2));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -114,7 +117,9 @@ contract DepositBatchTest is HelperContract {
 
     function testCannotDepositBatchWithAZeroAmount() public {
         uint256[] memory a = new uint256[](3);
-        a[0] = 100; a[1] = 0; a[2] = 300;
+        a[0] = 100;
+        a[1] = 0;
+        a[2] = 300;
         _approve(600);
         vm.expectRevert(abi.encodeWithSelector(IncomeVault_NoAmountSend.selector));
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -140,35 +145,36 @@ contract DepositBatchTest is HelperContract {
     }
 
     function testAttackerCannotDepositBatch() public {
-        vm.expectRevert(abi.encodeWithSelector(
-            AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DEPOSIT_ROLE));
+        vm.expectRevert(
+            abi.encodeWithSelector(AccessControlUnauthorizedAccount.selector, ATTACKER, INCOME_VAULT_DEPOSIT_ROLE)
+        );
         vm.prank(ATTACKER);
         incomeVault.depositBatch(times, amounts);
     }
 
     /* ============ what it actually saves ============ */
     /**
-    * @notice The batch is cheaper per *transaction*, not per call
-    * @dev
-    * Measured, and the naive framing is misleading: **inside a single transaction the batch costs
-    * more** than the separate calls, because decoding two dynamic `calldata` arrays outweighs what is
-    * saved by pulling the payment token once.
-    *
-    * The win is the intrinsic transaction cost. An issuer opening N periods sends **one** transaction
-    * instead of N, paying 21,000 gas of base cost once rather than N times. This test compares the
-    * totals a caller really pays.
-    */
+     * @notice The batch is cheaper per *transaction*, not per call
+     * @dev
+     * Measured, and the naive framing is misleading: **inside a single transaction the batch costs
+     * more** than the separate calls, because decoding two dynamic `calldata` arrays outweighs what is
+     * saved by pulling the payment token once.
+     *
+     * The win is the intrinsic transaction cost. An issuer opening N periods sends **one** transaction
+     * instead of N, paying 21,000 gas of base cost once rather than N times. This test compares the
+     * totals a caller really pays.
+     */
     /**
-    * @dev WARNING: run this **without** `--gas-report`. The assertions compare `gasleft()` deltas
-    * across a different number of external calls — one for the batch, three for the separate
-    * deposits — and Foundry's tracing charges each traced call. The overhead therefore lands roughly
-    * three times as heavily on the second measurement and flips the first assertion, which fails as
-    * `batch is expected to cost more in-call: 161275 <= 263423`. That is instrumentation, not a
-    * regression: the same test passes on the same bytecode under a plain `forge test`.
-    *
-    * No cheatcode reports whether tracing is active, and correcting for it would mean subtracting a
-    * measured per-call overhead — more fragile than the thing it protects. Documented instead.
-    */
+     * @dev WARNING: run this **without** `--gas-report`. The assertions compare `gasleft()` deltas
+     * across a different number of external calls — one for the batch, three for the separate
+     * deposits — and Foundry's tracing charges each traced call. The overhead therefore lands roughly
+     * three times as heavily on the second measurement and flips the first assertion, which fails as
+     * `batch is expected to cost more in-call: 161275 <= 263423`. That is instrumentation, not a
+     * regression: the same test passes on the same bytecode under a plain `forge test`.
+     *
+     * No cheatcode reports whether tracing is active, and correcting for it would mean subtracting a
+     * measured per-call overhead — more fragile than the thing it protects. Documented instead.
+     */
     function testBatchIsCheaperPerTransaction() public {
         uint256 intrinsic = 21_000;
 

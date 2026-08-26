@@ -5,8 +5,8 @@ import "./HelperContract.sol";
 import {SlotDerivation} from "@openzeppelin/contracts/utils/SlotDerivation.sol";
 
 /**
-* @title Per-period residue accounting — finding E-3
-*/
+ * @title Per-period residue accounting — finding E-3
+ */
 contract UnclaimedDividendTest is HelperContract {
     using SlotDerivation for string;
 
@@ -19,8 +19,10 @@ contract UnclaimedDividendTest is HelperContract {
         t1 = block.timestamp + 100;
         t2 = block.timestamp + 200;
 
-        vm.prank(CMTAT_ADMIN); snapshotEngine.scheduleSnapshot(t1);
-        vm.prank(CMTAT_ADMIN); snapshotEngine.scheduleSnapshot(t2);
+        vm.prank(CMTAT_ADMIN);
+        snapshotEngine.scheduleSnapshot(t1);
+        vm.prank(CMTAT_ADMIN);
+        snapshotEngine.scheduleSnapshot(t2);
 
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, 10_000);
     }
@@ -40,8 +42,10 @@ contract UnclaimedDividendTest is HelperContract {
     }
 
     function testUnclaimedFallsAsHoldersArePaid() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
         _deposit(t1, 1_000);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(t1, true);
@@ -57,21 +61,27 @@ contract UnclaimedDividendTest is HelperContract {
     }
 
     /**
-    * @notice The residue an issuer sweeps is exactly the rounding dust
-    * @dev Three holders sharing 1_000 each receive floor(1_000/3) = 333, leaving 1 behind.
-    */
+     * @notice The residue an issuer sweeps is exactly the rounding dust
+     * @dev Three holders sharing 1_000 each receive floor(1_000/3) = 333, leaving 1 behind.
+     */
     function testUnclaimedIsTheRoundingDustOnceEveryoneClaimed() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
         _deposit(t1, 1_000);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(t1, true);
         vm.warp(t1 + 10);
 
-        vm.prank(ADDRESS1); incomeVault.claimDividend(t1);
-        vm.prank(ADDRESS2); incomeVault.claimDividend(t1);
-        vm.prank(ADDRESS3); incomeVault.claimDividend(t1);
+        vm.prank(ADDRESS1);
+        incomeVault.claimDividend(t1);
+        vm.prank(ADDRESS2);
+        incomeVault.claimDividend(t1);
+        vm.prank(ADDRESS3);
+        incomeVault.claimDividend(t1);
 
         assertEq(incomeVault.paidDividend(t1), 999);
         assertEq(incomeVault.unclaimedDividend(t1), 1, "the dust is one wei of the payment token");
@@ -86,13 +96,14 @@ contract UnclaimedDividendTest is HelperContract {
 
     /* ============ the bug this closes ============ */
     /**
-    * @notice A fully-claimed period cannot be swept again into another period's funds
-    * @dev
-    * Before this change `segregatedDividend[t1]` still read 1_000 after the sole holder had taken all
-    * 1_000, so `withdraw(t1, 1_000)` succeeded and drained the money deposited for `t2`.
-    */
+     * @notice A fully-claimed period cannot be swept again into another period's funds
+     * @dev
+     * Before this change `segregatedDividend[t1]` still read 1_000 after the sole holder had taken all
+     * 1_000, so `withdraw(t1, 1_000)` succeeded and drained the money deposited for `t2`.
+     */
     function testCannotSweepAFullyClaimedPeriodIntoAnotherPeriod() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
         _deposit(t1, 1_000);
         _deposit(t2, 1_000);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
@@ -100,7 +111,7 @@ contract UnclaimedDividendTest is HelperContract {
         vm.warp(t1 + 10);
 
         vm.prank(ADDRESS1);
-        incomeVault.claimDividend(t1);           // takes all of t1
+        incomeVault.claimDividend(t1); // takes all of t1
 
         assertEq(incomeVault.segregatedDividend(t1), 1_000, "denominator unchanged, as designed");
         assertEq(incomeVault.unclaimedDividend(t1), 0, "but nothing is left for t1");
@@ -132,10 +143,11 @@ contract UnclaimedDividendTest is HelperContract {
     }
 
     /**
-    * @notice Distribution counts towards the paid total too, not just holder-initiated claims
-    */
+     * @notice Distribution counts towards the paid total too, not just holder-initiated claims
+     */
     function testDistributionCountsTowardsPaid() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
         _deposit(t1, 1_000);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(t1, true);
@@ -152,20 +164,23 @@ contract UnclaimedDividendTest is HelperContract {
 
     /* ============ over-drawn periods ============ */
     /**
-    * @notice A claim is never funded from another period's deposit
-    * @dev
-    * Deterministic reproduction of the sequence the invariant fuzzer found once: sweeping a period
-    * mid-window lowers the pro-rata denominator, so a holder claiming afterwards is priced against
-    * the reduced figure while the period no longer holds that much. Before the bound, the shortfall
-    * was silently taken from another period's money.
-    */
+     * @notice A claim is never funded from another period's deposit
+     * @dev
+     * Deterministic reproduction of the sequence the invariant fuzzer found once: sweeping a period
+     * mid-window lowers the pro-rata denominator, so a holder claiming afterwards is priced against
+     * the reduced figure while the period no longer holds that much. Before the bound, the shortfall
+     * was silently taken from another period's money.
+     */
     function testAClaimCannotBeFundedByAnotherPeriod() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS3, 1_000);
 
         _deposit(t1, 900);
-        _deposit(t2, 900);          // a second period, whose money must stay untouched
+        _deposit(t2, 900); // a second period, whose money must stay untouched
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(t1, true);
         vm.warp(t1 + 10);
@@ -193,20 +208,22 @@ contract UnclaimedDividendTest is HelperContract {
     }
 
     /**
-    * @notice `unclaimedDividend` reports zero rather than reverting on an over-drawn period
-    */
+     * @notice `unclaimedDividend` reports zero rather than reverting on an over-drawn period
+     */
     function testUnclaimedSaturatesInsteadOfUnderflowing() public {
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
-        vm.prank(CMTAT_ADMIN); CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, 1_000);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS2, 1_000);
         _deposit(t1, 1_000);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
         incomeVault.setStatusClaim(t1, true);
         vm.warp(t1 + 10);
 
         vm.prank(ADDRESS1);
-        incomeVault.claimDividend(t1);                  // paid 500
+        incomeVault.claimDividend(t1); // paid 500
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        incomeVault.withdraw(t1, 500, ADDRESS3);        // segregated down to 500
+        incomeVault.withdraw(t1, 500, ADDRESS3); // segregated down to 500
 
         assertEq(incomeVault.paidDividend(t1), 500);
         assertEq(incomeVault.segregatedDividend(t1), 500);
@@ -214,16 +231,16 @@ contract UnclaimedDividendTest is HelperContract {
     }
 
     /**
-    * @notice Truly over-drawn (`paid` strictly above `segregated`) still reports zero, not a panic
-    * @dev
-    * The test above reaches `paid == segregated`, where a saturating rule and a plain subtraction
-    * agree — so it does not actually pin the saturation. `paid > segregated` is **unreachable through
-    * the public API**: `withdraw` is bounded by `unclaimedDividend`, and `_transferDividend` refuses a
-    * payout larger than it, so neither can push `paid` past `segregated`. The branch is defensive,
-    * which is exactly why it needs `vm.store` to be covered at all.
-    *
-    * Without this, replacing the rule with `segregated - paid` passes the entire suite.
-    */
+     * @notice Truly over-drawn (`paid` strictly above `segregated`) still reports zero, not a panic
+     * @dev
+     * The test above reaches `paid == segregated`, where a saturating rule and a plain subtraction
+     * agree — so it does not actually pin the saturation. `paid > segregated` is **unreachable through
+     * the public API**: `withdraw` is bounded by `unclaimedDividend`, and `_transferDividend` refuses a
+     * payout larger than it, so neither can push `paid` past `segregated`. The branch is defensive,
+     * which is exactly why it needs `vm.store` to be covered at all.
+     *
+     * Without this, replacing the rule with `segregated - paid` passes the entire suite.
+     */
     function testUnclaimedSaturatesWhenTrulyOverDrawn() public {
         _deposit(t1, 1_000);
 

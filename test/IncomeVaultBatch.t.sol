@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "./HelperContract.sol";
 
 /**
-* @title Test for the batch functions of IncomeVault
-*/
+ * @title Test for the batch functions of IncomeVault
+ */
 contract IncomeVaultBatchTest is HelperContract {
     uint256 resUint256;
 
@@ -97,8 +97,7 @@ contract IncomeVaultBatchTest is HelperContract {
         incomeVault.setStatusClaim(defaultSnapshotTime, true);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_ClaimNotActivated.selector));
         vm.prank(ADDRESS1);
         incomeVault.claimDividendBatch(times);
     }
@@ -127,8 +126,7 @@ contract IncomeVaultBatchTest is HelperContract {
         incomeVault.setStatusClaim(newTime, true);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooLateToWithdraw.selector, block.timestamp));
         vm.prank(ADDRESS1);
         incomeVault.claimDividendBatch(times);
     }
@@ -157,8 +155,7 @@ contract IncomeVaultBatchTest is HelperContract {
         incomeVault.setStatusClaim(newTime, true);
 
         // Claim deposit
-        vm.expectRevert(
-        abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IncomeVault_TooEarlyToWithdraw.selector, block.timestamp));
         vm.prank(ADDRESS1);
         incomeVault.claimDividendBatch(times);
     }

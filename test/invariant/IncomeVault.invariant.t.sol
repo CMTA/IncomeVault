@@ -5,12 +5,12 @@ import "../HelperContract.sol";
 import {IncomeVaultHandler} from "./IncomeVaultHandler.sol";
 
 /**
-* @title Invariants of the dividend accounting — finding B-3
-* @dev
-* The example suites check named scenarios. These check properties that must hold across **every**
-* ordering of deposits, claims, batch claims, both distribution variants, withdrawals, freezes,
-* pauses and time warps.
-*/
+ * @title Invariants of the dividend accounting — finding B-3
+ * @dev
+ * The example suites check named scenarios. These check properties that must hold across **every**
+ * ordering of deposits, claims, batch claims, both distribution variants, withdrawals, freezes,
+ * pauses and time warps.
+ */
 contract IncomeVaultInvariantTest is HelperContract {
     IncomeVaultHandler handler;
 
@@ -45,19 +45,19 @@ contract IncomeVaultInvariantTest is HelperContract {
     bytes32 constant DEFAULT_ADMIN_ROLE_BYTES = bytes32(0);
 
     /**
-    * @notice The vault never pays out more than was deposited
-    * @dev The headline solvency property. `g_paid` is the sum of every balance increase actually
-    * observed on a holder, across all three payout paths.
-    */
+     * @notice The vault never pays out more than was deposited
+     * @dev The headline solvency property. `g_paid` is the sum of every balance increase actually
+     * observed on a holder, across all three payout paths.
+     */
     function invariant_neverPaysMoreThanWasDeposited() public view {
         assertLe(handler.g_paid(), handler.g_deposited(), "paid out more than was ever deposited");
     }
 
     /**
-    * @notice A holder is paid at most once per dividend time
-    * @dev Crosses all three payout paths: `claimDividend`, `claimDividendBatch` and both
-    * `distributeDividend` variants must not be combinable into a double payment.
-    */
+     * @notice A holder is paid at most once per dividend time
+     * @dev Crosses all three payout paths: `claimDividend`, `claimDividendBatch` and both
+     * `distributeDividend` variants must not be combinable into a double payment.
+     */
     function invariant_noHolderIsPaidTwiceForOneTime() public view {
         for (uint256 h = 0; h < 3; ++h) {
             address holder = handler.holders(h);
@@ -72,10 +72,10 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
-    * @notice `claimedDividend` is monotonic — once set it is never cleared
-    * @dev Checked by construction: nothing in the contract writes `false`, and the pay counter above
-    * would exceed one if a cleared flag ever allowed a second payment.
-    */
+     * @notice `claimedDividend` is monotonic — once set it is never cleared
+     * @dev Checked by construction: nothing in the contract writes `false`, and the pay counter above
+     * would exceed one if a cleared flag ever allowed a second payment.
+     */
     function invariant_claimedFlagIsMonotonic() public view {
         for (uint256 h = 0; h < 3; ++h) {
             address holder = handler.holders(h);
@@ -91,8 +91,8 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
-    * @notice Every payout is explained by a period becoming claimed
-    */
+     * @notice Every payout is explained by a period becoming claimed
+     */
     function invariant_noUnexplainedPayment() public view {
         assertEq(
             handler.g_unexplainedPayments(), 0, "a batch path paid a holder without any period transitioning to claimed"
@@ -100,11 +100,11 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
-    * @notice The vault's token balance always accounts for every deposit
-    * @dev balance == deposited - paid - withdrawn, where `paid` is measured as balance increases on
-    * the three holders. Value leaving to any *other* recipient breaks the identity, so this is a
-    * leakage check rather than a tautology.
-    */
+     * @notice The vault's token balance always accounts for every deposit
+     * @dev balance == deposited - paid - withdrawn, where `paid` is measured as balance increases on
+     * the three holders. Value leaving to any *other* recipient breaks the identity, so this is a
+     * leakage check rather than a tautology.
+     */
     function invariant_balanceAccountsForEveryDeposit() public view {
         assertEq(
             tokenPayment.balanceOf(address(incomeVault)),
@@ -114,13 +114,13 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
-    * @notice Every period's residue is actually backed by tokens the vault holds
-    * @dev
-    * The solvency property the earlier invariants missed. `sum(unclaimedDividend)` is what the vault
-    * still owes across periods; it must never exceed the balance, or one period's accounting is
-    * promising another period's money. Withdrawing from a fully-claimed period used to break exactly
-    * this.
-    */
+     * @notice Every period's residue is actually backed by tokens the vault holds
+     * @dev
+     * The solvency property the earlier invariants missed. `sum(unclaimedDividend)` is what the vault
+     * still owes across periods; it must never exceed the balance, or one period's accounting is
+     * promising another period's money. Withdrawing from a fully-claimed period used to break exactly
+     * this.
+     */
     function invariant_everyPeriodResidueIsBacked() public view {
         uint256 owed;
         for (uint256 t = 0; t < 3; ++t) {
@@ -134,10 +134,10 @@ contract IncomeVaultInvariantTest is HelperContract {
     }
 
     /**
-    * @notice The per-time accounting never exceeds what is still held
-    * @dev `segregatedDividend` is the pro-rata denominator and is deliberately *not* decremented on
-    * a payout, so it is a record of what was deposited for a period, reduced only by `withdraw`.
-    */
+     * @notice The per-time accounting never exceeds what is still held
+     * @dev `segregatedDividend` is the pro-rata denominator and is deliberately *not* decremented on
+     * a payout, so it is a record of what was deposited for a period, reduced only by `withdraw`.
+     */
     function invariant_segregatedNeverExceedsDeposits() public view {
         uint256 sum;
         for (uint256 t = 0; t < 3; ++t) {
