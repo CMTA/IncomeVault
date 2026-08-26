@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 """Fail if any DEPLOYABLE contract exceeds the EIP-170 runtime limit.
 
-`forge build --sizes` checks every compiled contract, including test mocks, and a mock
-over the limit fails the build for no reason. `--skip` cannot be used to exclude one:
-skipping any file makes the compilation partial, and the OpenZeppelin Upgrades plugin
-then rejects the build-info with "is not from a full compilation", which fails every
-test. So the build stays full and the size check is applied here instead, scoped to
-`src/` by reading each artifact's own compilationTarget.
+`forge build --sizes` checks every compiled contract, including the ones under `test/`,
+and fails the whole build if any is over. Today that is `test/mocks/CMTATDividendHostMock`
+at ~33 KB: a CMTAT with the distribution logic embedded, which exists only to prove that
+combination still compiles and is never deployed. Verify with:
+
+    forge build --sizes | awk -F'|' 'NF>3 {gsub(/[ ,]/,"",$3); if ($3+0>24576) print $2, $3}'
+
+`--skip` cannot exclude it: skipping any file makes the compilation partial, and the
+OpenZeppelin Upgrades plugin then rejects the build-info with "is not from a full
+compilation", which fails every test. So the build stays full and the size check is
+applied here instead, scoped to `src/` by reading each artifact's own compilationTarget.
+
+If that mock is ever removed and nothing else under `test/` exceeds the limit, this
+script stops being necessary and `forge build --sizes` can go back into the Makefile.
 """
 import json, pathlib, sys
 
