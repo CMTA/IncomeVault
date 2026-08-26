@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./storage/IncomeVaultRolesStorage.sol | 67a088ca0b5bb9915ee014a72fd2db0ed50a574c |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IncomeVaultRolesStorage** | Implementation |  |||
 
 
 ### Legend

@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./modules/ERC7741Module.sol | 115b1c10b576d6b8730fd072060bdc8e0aa4fc81 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **ERC7741Module** | Implementation | EIP712Upgradeable, ContextUpgradeable, IncomeVaultOperatorModule, IncomeVaultInternal, IERC7741 |||
+| └ | authorizeOperator | Public ❗️ | 🛑  |NO❗️ |
+| └ | invalidateNonce | Public ❗️ | 🛑  |NO❗️ |
+| └ | authorizations | Public ❗️ |   |NO❗️ |
+| └ | DOMAIN_SEPARATOR | Public ❗️ |   |NO❗️ |
+| └ | _getERC7741ModuleStorage | Internal 🔒 |   | |
 
 
 ### Legend

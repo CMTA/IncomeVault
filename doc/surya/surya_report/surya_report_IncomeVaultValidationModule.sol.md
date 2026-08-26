@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/IncomeVaultValidationModule.sol | d02cedab3be325aa3620d6ddc1afcf93c677361c |
+| ./modules/IncomeVaultValidationModule.sol | 21fe5f150b450330f495152879c605f96f6e7a8c |
 
 
 ### Contracts Description Table
@@ -15,15 +15,13 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultValidationModule** | Implementation | AccessControlModule, PauseModule, EnforcementModule, ValidationModuleRuleEngineInternal, IncomeVaultInvariantStorage |||
+| **IncomeVaultValidationModule** | Implementation | IncomeVaultValidationCore, PauseModule, EnforcementModule, ValidationModuleRuleEngineInternal, IncomeVaultInvariantStorage |||
 | └ | __IncomeVaultValidation_init_unchained | Internal 🔒 | 🛑  | onlyInitializing |
-| └ | setRuleEngine | Public ❗️ | 🛑  | onlyRole |
+| └ | setRuleEngine | Public ❗️ | 🛑  | onlyRuleEngineManager |
 | └ | canTransfer | Public ❗️ |   |NO❗️ |
 | └ | detectTransferRestriction | Public ❗️ |   |NO❗️ |
 | └ | messageForTransferRestriction | Public ❗️ |   |NO❗️ |
-| └ | _authorizePause | Internal 🔒 | 🛑  | onlyRole |
-| └ | _authorizeDeactivate | Internal 🔒 | 🛑  | onlyRole |
-| └ | _authorizeFreeze | Internal 🔒 | 🛑  | onlyRole |
+| └ | _authorizeRuleEngineManagement | Internal 🔒 |   | |
 | └ | _validateTransfer | Internal 🔒 |   | |
 
 

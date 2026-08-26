@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./modules/VersionModule.sol | 1d7eea441566b01bb3e33de60ee79ecbb793b030 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,8 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **VersionModule** | Implementation | IERC3643Version |||
+| └ | version | Public ❗️ |   |NO❗️ |
 
 
 ### Legend

@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./IncomeVaultBaseERC2771.sol | f1775c8181ab32711ccdb08885baaf57cdb888f7 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,11 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IncomeVaultBaseERC2771** | Implementation | IncomeVaultBase, ERC2771Module |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Module |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
 
 
 ### Legend

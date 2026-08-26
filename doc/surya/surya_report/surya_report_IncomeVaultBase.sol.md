@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./IncomeVaultBase.sol | f548d23beccd532a2efc0b506a226025ad5904de |
 
 
 ### Contracts Description Table
@@ -15,7 +15,8 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IncomeVaultBase** | Implementation | IncomeVaultValidationCore, Initializable, ContextUpgradeable, VersionModule, IncomeVaultSnapshotModule, IncomeVaultRestricted, IncomeVaultOpen |||
+| └ | __IncomeVaultBase_init_unchained | Internal 🔒 | 🛑  | onlyInitializing |
 
 
 ### Legend

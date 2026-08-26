@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./interfaces/ISnapshotSource.sol | 31c7fd11a246b8abc14abc7bb4ca429cb2d16a14 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **ISnapshotSource** | Interface |  |||
+| └ | snapshotInfo | External ❗️ |   |NO❗️ |
+| └ | snapshotInfoBatch | External ❗️ |   |NO❗️ |
+| └ | snapshotInfoBatch | External ❗️ |   |NO❗️ |
 
 
 ### Legend

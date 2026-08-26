@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./interfaces/IERC7741.sol | e66067dd0470fe3be485360fa267559830ec12aa |
 
 
 ### Contracts Description Table
@@ -15,7 +15,11 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IERC7741** | Interface |  |||
+| └ | authorizeOperator | External ❗️ | 🛑  |NO❗️ |
+| └ | invalidateNonce | External ❗️ | 🛑  |NO❗️ |
+| └ | authorizations | External ❗️ |   |NO❗️ |
+| └ | DOMAIN_SEPARATOR | External ❗️ |   |NO❗️ |
 
 
 ### Legend

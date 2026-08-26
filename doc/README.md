@@ -758,6 +758,18 @@ This matters beyond taste: **a trusted forwarder can name any `_msgSender()`**, 
 
 ![surya_inheritance_IncomeVault](./surya/surya_inheritance/surya_inheritance_IncomeVault.sol.png)
 
+#### IncomeVaultOwnable2Step
+
+The other deployment variant, for comparison: the same distribution logic under a single ERC-173 owner instead of roles.
+
+![surya_inheritance_IncomeVaultOwnable2Step](./surya/surya_inheritance/surya_inheritance_IncomeVaultOwnable2Step.sol.png)
+
+#### IncomeVaultBaseERC2771
+
+The base both deployments inherit. `IncomeVaultBase` sits below it and carries no meta-transaction policy at all.
+
+![surya_inheritance_IncomeVaultBaseERC2771](./surya/surya_inheritance/surya_inheritance_IncomeVaultBaseERC2771.sol.png)
+
 #### IncomeVaultValidationModule
 
 ![surya_inheritance_IncomeVaultValidationModule](./surya/surya_inheritance/surya_inheritance_IncomeVaultValidationModule.sol.png)
@@ -782,4 +794,4 @@ This matters beyond taste: **a trusted forwarder can name any `_msgSender()`**, 
 
 ### Report
 
-A markdown report per contract (functions, visibility, modifiers) is available in [doc/surya/surya_report](./surya/surya_report).
+A markdown report per contract (functions, visibility, modifiers) is available in [doc/surya/surya_report](./surya/surya_report) — one per file under `src/`, 21 in total. The call graphs and inheritance graphs in [doc/surya](./surya) cover the same 21; only a few are embedded above.

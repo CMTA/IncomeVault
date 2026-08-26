@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./modules/IncomeVaultOperatorModule.sol | 43916bbbde62208a7ab9b6799b22c23480498432 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IncomeVaultOperatorModule** | Implementation | ContextUpgradeable, IncomeVaultInvariantStorage, IERC7540Operator |||
+| └ | setOperator | Public ❗️ | 🛑  |NO❗️ |
+| └ | isOperator | Public ❗️ |   |NO❗️ |
+| └ | _setOperator | Internal 🔒 | 🛑  | |
+| └ | _requireHolderOrOperator | Internal 🔒 |   | |
+| └ | _getOperatorStorage | Internal 🔒 |   | |
 
 
 ### Legend

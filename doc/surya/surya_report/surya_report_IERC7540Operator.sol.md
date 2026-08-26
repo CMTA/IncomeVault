@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./storage/IncomeVaultInvariantStorage.sol | d3b1b609b486de6f09a3b65fbcb15607afe99479 |
+| ./interfaces/IERC7540Operator.sol | ca5ad35fa4f6215e0e25ee27376384c488a2e08b |
 
 
 ### Contracts Description Table
@@ -15,7 +15,9 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultInvariantStorage** | Implementation |  |||
+| **IERC7540Operator** | Interface |  |||
+| └ | setOperator | External ❗️ | 🛑  |NO❗️ |
+| └ | isOperator | External ❗️ |   |NO❗️ |
 
 
 ### Legend

@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./deployment/IncomeVault.sol | 13f4d611a5dac650aae2720df488e06e8bf1290c |
+| ./deployment/IncomeVaultOwnable2Step.sol | f3b2b1bd3aa3b3c493521a48a0089cd874355001 |
 
 
 ### Contracts Description Table
@@ -15,22 +15,22 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVault** | Implementation | IncomeVaultValidationModule, IncomeVaultBaseERC2771, AccessControlModule, IncomeVaultRolesStorage |||
+| **IncomeVaultOwnable2Step** | Implementation | IncomeVaultValidationModule, IncomeVaultBaseERC2771, Ownable2StepUpgradeable, Ownable2StepERC165Module |||
 | └ | <Constructor> | Public ❗️ | 🛑  | IncomeVaultBaseERC2771 |
 | └ | initialize | Public ❗️ | 🛑  | initializer |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
-| └ | _authorizeDeposit | Internal 🔒 |   | onlyRole |
-| └ | _authorizeWithdraw | Internal 🔒 |   | onlyRole |
-| └ | _authorizeDistribute | Internal 🔒 |   | onlyRole |
-| └ | _authorizeOperator | Internal 🔒 |   | onlyRole |
-| └ | _authorizeSnapshotSourceManagement | Internal 🔒 |   | onlyRole |
-| └ | _authorizeRuleEngineManagement | Internal 🔒 |   | onlyRole |
-| └ | _authorizePause | Internal 🔒 |   | onlyRole |
-| └ | _authorizeDeactivate | Internal 🔒 |   | onlyRole |
-| └ | _authorizeFreeze | Internal 🔒 |   | onlyRole |
+| └ | _authorizeDeposit | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeWithdraw | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeDistribute | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeOperator | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeSnapshotSourceManagement | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeRuleEngineManagement | Internal 🔒 |   | onlyOwner |
+| └ | _authorizePause | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeDeactivate | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeFreeze | Internal 🔒 |   | onlyOwner |
 
 
 ### Legend
