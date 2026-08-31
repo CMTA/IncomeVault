@@ -89,15 +89,9 @@ A specification that permits both should say which of the two it means, since th
 
 ## Holding the deposit in an ERC-4626 vault
 
-Functionality 29 has the issuer send the deposit, and 30 has holders claim it later. Between those two the settlement tokens sit idle in the contract — for a coupon with a long claim period, potentially months. An implementation could hold that float as shares of an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault and redeem on each payout, so undistributed funds earn yield instead of nothing.
+Between functionality 29 and functionality 30 the settlement tokens sit idle, potentially for months. An implementation could hold that float as [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) shares and redeem on each payout, so undistributed funds earn yield instead of nothing — but the obligation recorded at `deposit` is a fixed nominal amount and shares are not, so the naive version can leave the contract unable to pay what it recorded. A separate case is the settlement token *being* a vault share, which leaves "amount to be distributed" ambiguous between shares and assets.
 
-The specification says nothing about this, and it should, because the naive version is unsafe.
-
-**The obligation is a fixed nominal amount; 4626 shares are not.** At `deposit` the issuer records an amount owed per holder. Shares carry share-price risk, so a loss in the underlying vault leaves the contract unable to pay what it recorded. A bookkeeping contract becomes one that can be short, and the holders who claim last absorb it. Doing this safely needs a buffer policy and an explicit rule for who covers a shortfall — a materially larger design than section 3.2.4 describes. `IncomeVault` deliberately does not implement it; the reasoning is in [`doc/README.md`](../README.md#comparison-with-erc-4626--erc-7540-vaults).
-
-**A separate case: the settlement token *is* a vault share.** Nothing stops an issuer distributing a yield-bearing token — `DebtInstrument.currencyContract` can point at an ERC-4626 vault, and functionality 27's settlement token has no constraint. Then "amount to be distributed" is ambiguous: shares or assets? A share-denominated obligation is fixed in shares and floats in value; an asset-denominated one is the reverse, and requires converting at some moment the specification would have to name. Rounding direction matters here too, since 4626 rounds in the vault's favour by design and a claim rounds in the issuer's. This is amendment **C-9**.
-
-**What is worth stating either way:** whether the deposit for a distribution must be held as the settlement token itself, or may be held in another form and converted at payout. The answer decides whether a shortfall is possible at all, and it is invisible to a holder reading the contract.
+The specification says nothing about either, and it should. The full question, with the specification text and the ERC-4626 requirements that decide it, is in [`CMTAT-Distribution-ERC4626.md`](./CMTAT-Distribution-ERC4626.md); the proposal it supports is amendment **C-9**. `IncomeVault` deliberately implements neither.
 
 ## Changes we would propose to the standard
 
@@ -133,4 +127,4 @@ The three additions — A-1 to A-3 — are in [`CMTAT-Distribution-Additions.md`
 | A-2 | A push counterpart to the pull claim of 30 |
 | A-3 | Delegated claiming: who may claim on a holder's behalf |
 
-Neither list is a defect report against an implementation: the amendments say where two conforming implementations may legitimately disagree, the additions say where the specification stops short of what an issuer needs to discharge a real obligation. The reasoning for each id is in the linked documents.
+Neither list is a defect report against an implementation: the amendments say where two conforming implementations may legitimately disagree, the additions say what the specification leaves unanswered although an issuer must answer it to discharge a real obligation. The reasoning for each id is in the linked documents.
