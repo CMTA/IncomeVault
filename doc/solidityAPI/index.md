@@ -422,15 +422,16 @@ function _authorizeFreeze() internal view virtual
 
 The operator subset of [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540), verbatim.
 @dev
-ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — see
-"Comparison with ERC-4626 / ERC-7540 vaults" in `doc/README.md` — but its claim delegation is
-exactly the operator mechanism that standard specifies, so the signatures are reused rather than
-invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
+ERC-7540 defines asynchronous ERC-4626 vaults. The {IncomeVault} is **not** one — a 4626 share
+entitles whoever holds it now, while a dividend is allocated by record date — but its claim
+delegation is exactly the operator mechanism that standard specifies, so the signatures are reused
+rather than invented. A custodian or wallet already written against ERC-7540 operators works here unchanged.
 
 ERC-7540 assigns this subset the ERC-165 identifier **`0xe3bc4e65`**, described there as
 "the operator methods that all ERC-7540 Vaults implement". Because this interface inherits nothing,
 `type(IERC7540Operator).interfaceId` is exactly the XOR of the two selectors below and equals that
-value — asserted in `test/Operator.t.sol`, which is what pins these signatures to the standard.
+value. That equality is what pins these signatures to the standard: change either one and the id no
+longer matches what ERC-7540 assigns.
 
 ### OperatorSet
 
@@ -504,8 +505,9 @@ custodian or relayer can submit the authorisation and pay the gas. It complement
 {IERC7540Operator}, whose `setOperator` requires the holder to transact.
 
 The standard assigns this interface the ERC-165 identifier **`0xa9e50872`**. It inherits nothing,
-so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value —
-asserted in `test/OperatorAuthorization.t.sol`.
+so `type(IERC7741).interfaceId` is the XOR of the four selectors below and equals that value. Adding
+or changing a selector here changes the id, and the vault would then advertise one the standard does
+not define.
 
 ### authorizeOperator
 
@@ -1375,7 +1377,7 @@ Delay, after the dividend time, during which a claim is still accepted
 ### _transferDividend
 
 ```solidity
-function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal
+function _transferDividend(uint256 time, address tokenHolder, uint256 tokenHolderDividend) internal virtual
 ```
 
 Records the claim then sends the dividends to the token holder
@@ -1420,6 +1422,36 @@ _reverts if `timeLimitToWithdraw_` is zero — see {IncomeVault_TimeLimitToWithd
 | ---- | ---- | ----------- |
 | timeLimitToWithdraw_ | uint256 | the delay in seconds, must be greater than zero |
 
+### _deposit
+
+```solidity
+function _deposit(struct IncomeVaultInternal.IncomeVaultInternalStorage $, address sender, uint256 time, uint256 amount) internal virtual
+```
+
+Records a deposit against a dividend time
+@dev
+The single writer of `_segregatedDividend`, and the only place `newDeposit` is emitted. Both
+funding paths go through it — {IncomeVaultRestricted-deposit} once,
+{IncomeVaultRestricted-depositBatch} once per element — so validating, writing and announcing a
+deposit cannot come apart. Each path carrying its own copy is what lets them diverge, so a new
+funding path must call this rather than repeat it.
+
+The ERC-20 transfer is deliberately **not** here. `depositBatch` makes a single
+`safeTransferFrom` for the whole batch, which is the reason it exists; folding the transfer in
+would turn that back into one transfer per element.
+
+Takes the storage pointer rather than fetching it, as {_timeCode} does, so a batch acquires it
+once instead of once per element.
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| $ | struct IncomeVaultInternal.IncomeVaultInternalStorage | the ERC-7201 storage of the vault |
+| sender | address | the account funding the deposit, reported by the event |
+| time | uint256 | the dividend time the deposit is segregated under |
+| amount | uint256 | the amount of payment token, which may not be zero |
+
 ### _setStatusClaim
 
 ```solidity
@@ -1435,10 +1467,40 @@ Opens or closes the claims for a dividend time
 | time | uint256 | the dividend time |
 | status | bool | true when the token holders can claim |
 
+### _unclaimed
+
+```solidity
+function _unclaimed(uint256 segregated, uint256 paid) internal pure virtual returns (uint256)
+```
+
+_How much of a period's deposit is still held, given the two figures that decide it.
+
+Saturating, not a plain subtraction. Withdrawing mid-period lowers the denominator, so a claim
+made afterwards is priced against the reduced figure and can push `paid` above `segregated`. That
+state means the period is over-drawn and nothing is left to sweep — this must report zero, never
+revert.
+
+One `pure` rule because both callers must agree on it: {unclaimedDividend} reports it, and
+{_transferDividend} enforces it as the bound on a payout. Were they to diverge, a payout could be
+funded from another period's deposit._
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| segregated | uint256 | the amount deposited for the period, the pro-rata denominator |
+| paid | uint256 | the amount already paid out of that period |
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount still attributable to the period, or zero when it is over-drawn |
+
 ### _computeDividendBatch
 
 ```solidity
-function _computeDividendBatch(uint256 time, address[] tokenHolders, uint256[] tokenHoldersBalance, uint256 tokenTotalSupply) internal view returns (uint256[] tokenHolderDividend)
+function _computeDividendBatch(uint256 time, address[] tokenHolders, uint256[] tokenHoldersBalance, uint256 tokenTotalSupply) internal view virtual returns (uint256[] tokenHolderDividend)
 ```
 
 Computes the dividends owed to several token holders for a given time
@@ -1461,7 +1523,7 @@ Computes the dividends owed to several token holders for a given time
 ### _computeDividend
 
 ```solidity
-function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply) internal view returns (uint256 tokenHolderDividend)
+function _computeDividend(uint256 time, uint256 senderBalance, uint256 tokenTotalSupply) internal view virtual returns (uint256 tokenHolderDividend)
 ```
 
 Computes the dividends owed to a single token holder for a given time
@@ -1877,6 +1939,57 @@ host contract, when the dividend logic is embedded in one._
 
 ## IncomeVaultValidationModule
 
+### TEXT_TRANSFER_OK
+
+```solidity
+string TEXT_TRANSFER_OK
+```
+
+_Human-readable answers for {messageForTransferRestriction}. The strings are CMTAT's
+(`ValidationModuleERC1404`) verbatim, so an operator console written against a CMTAT reads a
+payout refusal exactly as it reads a transfer refusal. The codes are CMTAT's
+`REJECTED_CODE_BASE`, for the same reason._
+
+### TEXT_UNKNOWN_CODE
+
+```solidity
+string TEXT_UNKNOWN_CODE
+```
+
+_Returned when no configured source claims the code_
+
+### TEXT_TRANSFER_REJECTED_PAUSED
+
+```solidity
+string TEXT_TRANSFER_REJECTED_PAUSED
+```
+
+_The vault is paused_
+
+### TEXT_TRANSFER_REJECTED_DEACTIVATED
+
+```solidity
+string TEXT_TRANSFER_REJECTED_DEACTIVATED
+```
+
+_The vault has been permanently deactivated_
+
+### TEXT_TRANSFER_REJECTED_FROM_FROZEN
+
+```solidity
+string TEXT_TRANSFER_REJECTED_FROM_FROZEN
+```
+
+_The paying address is frozen_
+
+### TEXT_TRANSFER_REJECTED_TO_FROZEN
+
+```solidity
+string TEXT_TRANSFER_REJECTED_TO_FROZEN
+```
+
+_The receiving token holder is frozen_
+
 ### onlyRuleEngineManager
 
 ```solidity
@@ -1949,10 +2062,15 @@ Returns true if the vault is allowed to pay `value` to `to`.
 function detectTransferRestriction(address from, address to, uint256 value) public view virtual returns (uint8)
 ```
 
-ERC-1404 restriction code returned by the RuleEngine for a payout from the vault.
+ERC-1404 restriction code for a payout from the vault, or `0` when it would be accepted.
 
-_Returns `0` (no restriction) when no RuleEngine is set. The pause and freeze states are
-not reflected here, only the rules: use {canTransfer} for the complete answer._
+_Answers for the **whole** payout decision, in the same order {canTransfer} evaluates it:
+deactivation, pause, either party frozen, then the RuleEngine. The codes are CMTAT's
+`REJECTED_CODE_BASE`, so a caller written against a CMTAT reads them unchanged.
+
+This returns `0` exactly when {canTransfer} returns true, and the two must not be allowed to
+drift apart: consulting only the RuleEngine here would report a paused vault or a frozen holder as
+unrestricted, and the claim would then revert._
 
 #### Parameters
 

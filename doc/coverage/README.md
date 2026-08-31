@@ -11,10 +11,6 @@ make coverage            # summary table in the terminal, no extra tooling
 
 This report is **committed**, so it is only as trustworthy as its last run: regenerate it in the same commit as any change under `src/`. A tracked report describing a different codebase is worse than no report at all.
 
-## Coverage does work here
-
-An older note in the agent guides said `forge coverage` did not work on this project because the tests deploy through a proxy. That is **no longer true** — the whole suite runs under coverage and the report above is real output from it. If you hit a failure, it is far more likely to be the `build` prerequisite than coverage itself.
-
 ## Reading the numbers
 
 Two files report **0%** and that is expected, not a gap: `IncomeVaultSnapshotCore` and `IncomeVaultValidationCore` declare hooks with **no bodies**. There is no code in them to execute, so nothing can cover them. They exist to be inherited and answered elsewhere.
