@@ -6,10 +6,6 @@ lib/
 out/
 docOut/
 lcov.info
-# generated coverage report — regenerate with `make coverage-report`.
-# A committed one goes stale on the next contract change, which is how this repo
-# ended up carrying another project's coverage output for months.
-doc/coverage/
 cache/
 .~lock.test.odt#
 nethereum-gen.settings

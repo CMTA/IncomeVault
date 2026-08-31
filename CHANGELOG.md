@@ -41,7 +41,7 @@ forge lint
 ```
 
 - Documentation
-  - Perform a code coverage: `make coverage-report`. The output lands in `doc/coverage/` and is **git-ignored** — regenerate it, do not commit it
+  - Perform a code coverage: `make coverage-report`. The output lands in `doc/coverage/`, which is committed — regenerate it and include it in the release commit
   - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/audits/tools](./doc/audits/tools)
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script)
   - Update changelog

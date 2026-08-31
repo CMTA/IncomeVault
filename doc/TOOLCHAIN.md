@@ -154,7 +154,7 @@ make coverage           # summary table in the terminal
 make coverage-report    # HTML in doc/coverage (needs lcov + genhtml)
 ```
 
-`doc/coverage/` is **generated and git-ignored**. It is not committed on purpose: a coverage report goes stale on the next contract change, and this repository already carried another project's coverage output — `RuleEngine.sol`, `RuleWhitelist.sol`, `RuleSanctionList.sol` — for long enough that it read as authoritative. A report describing the wrong codebase is worse than no report. `make coverage-report` also drops a `README.md` into that directory, copied from `doc/script/coverage-README.md`, since genhtml recreates the directory each run.
+`doc/coverage/` is **generated and committed**. Because it is generated, it is only as good as the last run: regenerate it with `make coverage-report` in the same commit as any change under `src/`. This repository already carried another project's coverage output — `RuleEngine.sol`, `RuleWhitelist.sol`, `RuleSanctionList.sol` — for long enough that it read as authoritative, and a report describing the wrong codebase is worse than no report; keeping the tracked one current is what prevents that, not ignoring it. `make coverage-report` also drops a `README.md` into that directory, copied from `doc/script/coverage-README.md`, since genhtml recreates the directory each run.
 
 Coverage **does** work here, contrary to an older note in the agent guides: the suite runs under it despite deploying through a proxy. Current figures are roughly 96% of lines and 98% of branches.
 
