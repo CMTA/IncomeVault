@@ -8,8 +8,6 @@ _Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schem
 
 > This project has not undergone an audit and is provided as-is without any warranties.
 
-> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).
-
 ## Introduction
 
 The dividends are deposited in a Vault. Once the claims are open, a token holder can then perform a claim to get his dividends for a given period.
@@ -144,24 +142,23 @@ See also the test framework's [official documentation](https://book.getfoundry.s
 
 #### Coverage
 
-> Unfortunately, tests are performed with a proxy deployment and the coverage command does not work currently in this configuration.
-
-* Perform a code coverage
-
 ```
-forge coverage --ffi
+make coverage         # summary table in the terminal
+make coverage-report  # HTML in doc/coverage, needs lcov + genhtml
 ```
 
-* Generate LCOV report
+Both targets do the full build first, for the same reason `make test` does, and scope the measurement to `src/` — tests, mocks and `script/` are excluded:
 
 ```
-forge coverage --ffi --report lcov
+forge coverage --ffi --exclude-tests --no-match-coverage '(test|mocks?|script)/'
 ```
 
-- Generate `index.html`
+`doc/coverage/` is committed, so regenerate it in the same commit as any change under `src/`. `make coverage-report` deletes and recreates that directory each run.
 
-```bash
-forge coverage --ffi --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
-```
+Two files report 0% and that is expected rather than a gap: `IncomeVaultSnapshotCore` and `IncomeVaultValidationCore` declare hooks with no bodies, so there is nothing in them to execute.
 
 See [Solidity Coverage in VS Code with Foundry](https://mirror.xyz/devanon.eth/RrDvKPnlD-pmpuW7hQeR5wWdVjklrpOgPCOA-PJkWFU) & [Foundry forge coverage](https://www.rareskills.io/post/foundry-forge-coverage)
+
+## Tooling
+
+> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).

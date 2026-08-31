@@ -1,7 +1,5 @@
 # IncomeVault — Specification and technical choice
 
-> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).
-
 <!-- toc -->
 
 - [Introduction](#introduction)
@@ -665,6 +663,8 @@ In summary, when you have opened the claim, you should not deposit new dividends
 In this case, the whole transaction is reverted, and the smart contract still considers that dividends have not been claimed by the token holder (sender).
 
 ## Technical choice
+
+> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).
 
 ### Functionality
 
