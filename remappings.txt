@@ -1,4 +1,10 @@
-CMTAT/=lib/CMTAT/contracts
+CMTAT/=lib/CMTAT/contracts/
 RuleEngine/=lib/RuleEngine/src/
+SnapshotEngine/=lib/SnapshotEngine/contracts/
 OZ/=lib/openzeppelin-contracts/contracts/
+OZUpgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src/
 solidity-stringutils/=lib/openzeppelin-foundry-upgrades/lib/solidity-stringutils/
+forge-std/=lib/forge-std/src/

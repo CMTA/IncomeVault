@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./public/IncomeVaultOpen.sol | a9a9489512e617a87179a89b1c0eb4743ff68917 |
+| ./public/IncomeVaultOpen.sol | 24be5507a7317b47d4f480911a6330568595427e |
 
 
 ### Contracts Description Table
@@ -15,12 +15,16 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVaultOpen** | Implementation | ReentrancyGuardUpgradeable, ValidationModule, IncomeVaultInternal |||
+| **IncomeVaultOpen** | Implementation | IncomeVaultValidationCore, IncomeVaultSnapshotCore, ERC7741Module, ReentrancyGuardTransient |||
+| └ | claimDividend | Public ❗️ | 🛑  | nonReentrant |
+| └ | claimDividendFor | Public ❗️ | 🛑  | nonReentrant |
+| └ | claimDividendBatchFor | Public ❗️ | 🛑  | nonReentrant |
+| └ | claimDividendBatch | Public ❗️ | 🛑  | nonReentrant |
 | └ | validateTimeCode | Public ❗️ |   |NO❗️ |
 | └ | validateTime | Public ❗️ |   |NO❗️ |
 | └ | validateTimeBatch | Public ❗️ |   |NO❗️ |
-| └ | claimDividend | Public ❗️ | 🛑  | nonReentrant |
-| └ | claimDividendBatch | Public ❗️ | 🛑  | nonReentrant |
+| └ | _claimDividend | Internal 🔒 | 🛑  | |
+| └ | _claimDividendBatch | Internal 🔒 | 🛑  | |
 
 
 ### Legend

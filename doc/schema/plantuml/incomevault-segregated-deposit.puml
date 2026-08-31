@@ -1,0 +1,33 @@
+@startuml
+title IncomeVault — segregated deposit
+
+skinparam shadowing false
+skinparam NoteBackgroundColor #FDF6E3
+skinparam NoteBorderColor #B58900
+
+database "IncomeVault\npayment-token balance" as VAULT #FDF6E3
+
+map "segregatedDividend" as SD #EEF5FF {
+ timeX => amountX
+ timeY => amountY
+ timeZ => amountZ
+}
+
+VAULT -down-> SD : split per dividend time
+
+note right of SD
+  amountX + amountY + amountZ
+  equals
+  ERC20TokenPayment.balanceOf(IncomeVault)
+end note
+
+note bottom of SD
+  Each deposit is segregated in its dividend time:
+  deposit(timeY, x) increases amountY only,
+  withdraw(timeY, x) decreases amountY only.
+
+  A claim or a withdraw for one time never
+  touches the amount held for another.
+end note
+
+@enduml

@@ -1,0 +1,23 @@
+{
+  "lib/CMTAT": {
+    "rev": "23a1e59f913d079d0c09d32fafbd95ab2d426093"
+  },
+  "lib/RuleEngine": {
+    "rev": "a5516c930c3868f142dece919851ce0c94a18f5a"
+  },
+  "lib/SnapshotEngine": {
+    "tag": {
+      "name": "v0.5.0",
+      "rev": "aa089353605cd1b0e555d22b62aa4fbeaae7df25"
+    }
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "723f8cab09cdae1aca9ec9cc1cfa040c2d4b06c1"
+  },
+  "lib/openzeppelin-foundry-upgrades": {
+    "rev": "7c669276d1c6a8b79f9d7591b9a994ab30abe450"
+  }
+}

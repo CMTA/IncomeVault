@@ -1,114 +1,157 @@
 // SPDX-License-Identifier: MPL-2.0
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
+/* ==== OpenZeppelin === */
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+/* ==== IncomeVault === */
+import {IncomeVaultValidationCore} from "../modules/IncomeVaultValidationCore.sol";
+import {IncomeVaultSnapshotCore} from "../modules/IncomeVaultSnapshotCore.sol";
+import {ERC7741Module} from "../modules/ERC7741Module.sol";
 
-import "lib/CMTAT/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
-import "../libraries/IncomeVaultInternal.sol";
-import "CMTAT/modules/wrapper/controllers/ValidationModule.sol";
 /**
-* @title public function
-*/
-abstract contract IncomeVaultOpen is ReentrancyGuardUpgradeable,  ValidationModule , IncomeVaultInternal  {
-    enum TIME_ERROR_CODE {OK, CLAIM_NOT_ACTIVATED, TOO_LATE_TO_WITHDRAW, TOO_EARLY_TO_WITHDRAW}
-    
+ * @title Permissionless functions
+ */
+abstract contract IncomeVaultOpen is
+    IncomeVaultValidationCore,
+    IncomeVaultSnapshotCore,
+    ERC7741Module,
+    ReentrancyGuardTransient
+{
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC/EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /* ============ State functions ============ */
     /**
-    * @notice validate if a time is valid, return 0 if valid
-    */
-    function validateTimeCode(uint256 time) public view returns(TIME_ERROR_CODE code){
-        if(!segregatedClaim[time]){
-            return TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED;
-        }
-        if(block.timestamp > timeLimitToWithdraw + time){
-            return TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW;
-        }
-        if(block.timestamp < time){
-            return TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW;
-        }
-        return TIME_ERROR_CODE.OK;
-    }
-    
-    /**
-    * @notice validate if a time is valid, revert if invalid
+     * @notice claim your payment
+     * @param time provide the date where you want to receive your payment
      */
-    function validateTime(uint256 time) public view{
-        TIME_ERROR_CODE code = validateTimeCode(time);
-         if(code == TIME_ERROR_CODE.OK){
-            return;
-        }else if(code == TIME_ERROR_CODE.CLAIM_NOT_ACTIVATED){
-            revert IncomeVault_ClaimNotActivated();
-        }
-        else if(code == TIME_ERROR_CODE.TOO_LATE_TO_WITHDRAW){
-            revert IncomeVault_TooLateToWithdraw(block.timestamp);
-        }else if (code == TIME_ERROR_CODE.TOO_EARLY_TO_WITHDRAW){
-            revert IncomeVault_TooEarlyToWithdraw(block.timestamp);
-        }
+    function claimDividend(uint256 time) public virtual nonReentrant {
+        _claimDividend(_msgSender(), time);
     }
 
     /**
-    * @notice batch version of {validateTime}
-    */
-    function validateTimeBatch(uint256[] memory times) public view{
-        for(uint256 i = 0; i < times.length; ++i){
-           validateTime(times[i]);
+     * @notice Claim on behalf of a token holder
+     * @dev
+     * Callable by the holder, or by an address the holder authorised through {setOperator}. The
+     * dividends always go to **the holder** — an operator pays the gas and chooses the moment, it can
+     * never redirect the payment. Every other rule is unchanged: the claim window, the
+     * already-claimed check and the transfer restrictions all apply exactly as for {claimDividend}.
+     * @param holder the token holder to claim for
+     * @param time provide the date of the payment
+     */
+    function claimDividendFor(address holder, uint256 time) public virtual nonReentrant {
+        _requireHolderOrOperator(holder);
+        _claimDividend(holder, time);
+    }
+
+    /**
+     * @notice Batch version of {claimDividendFor}
+     * @param holder the token holder to claim for
+     * @param times provide the dates of the payments
+     */
+    function claimDividendBatchFor(address holder, uint256[] calldata times) public virtual nonReentrant {
+        _requireHolderOrOperator(holder);
+        _claimDividendBatch(holder, times);
+    }
+
+    /**
+     * @notice batch version of {claimDividend}
+     * @param times provide the dates where you want to receive your payment
+     * @dev Don't check if the dividends have been already claimed before external call to the snapshot source.
+     */
+    function claimDividendBatch(uint256[] calldata times) public virtual nonReentrant {
+        _claimDividendBatch(_msgSender(), times);
+    }
+
+    /* ============ View functions ============ */
+    /**
+     * @notice validate if a time is valid, return 0 if valid
+     * @param time the dividend time to check
+     * @return code the reason the time is invalid, or `TIME_ERROR_CODE.OK`
+     */
+    function validateTimeCode(uint256 time) public view virtual returns (TIME_ERROR_CODE code) {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        return _timeCode($, time, $._timeLimitToWithdraw);
+    }
+
+    /**
+     * @notice validate if a time is valid, revert if invalid
+     * @param time the dividend time to check
+     */
+    function validateTime(uint256 time) public view virtual {
+        _revertOnInvalidTime(validateTimeCode(time));
+    }
+
+    /**
+     * @notice batch version of {validateTime}
+     * @param times the dividend times to check
+     */
+    function validateTimeBatch(uint256[] calldata times) public view virtual {
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        // `_timeLimitToWithdraw` is the same slot for every element: read it once
+        uint256 timeLimit = $._timeLimitToWithdraw;
+        for (uint256 i = 0; i < times.length; ++i) {
+            _revertOnInvalidTime(_timeCode($, times[i], timeLimit));
         }
     }
-    
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL/PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /* ============ State functions ============ */
     /**
-    * @notice claim your payment
-    * @param time provide the date where you want to receive your payment
-    */
-    function claimDividend(uint256 time) public nonReentrant() {
+     * @dev {claimDividend} for an explicit holder
+     * @param sender the token holder being paid
+     * @param time the dividend time
+     */
+    function _claimDividend(address sender, uint256 time) internal virtual {
         validateTime(time);
-        address sender = _msgSender();
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
         // At the beginning since no external call to do
-        if (claimedDividend[sender][time]){
+        if ($._claimedDividend[sender][time]) {
             revert IncomeVault_DividendAlreadyClaimed();
         }
 
-        // External call to the CMTAT to retrieve the total supply and the sender balance
-        (uint256 senderBalance, uint256 TokenTotalSupply) = CMTAT_TOKEN.snapshotInfo(time, sender);
-        if (senderBalance == 0){
+        // External call to the snapshot source to retrieve the total supply and the sender balance
+        (uint256 senderBalance, uint256 TokenTotalSupply) = _snapshotInfo(time, sender);
+        if (senderBalance == 0) {
             revert IncomeVault_TokenBalanceIsZero();
         }
 
         uint256 senderDividend = _computeDividend(time, senderBalance, TokenTotalSupply);
-        if (senderDividend == 0){
+        if (senderDividend == 0) {
             revert IncomeVault_NoDividendToClaim();
         }
 
         // Transfer restriction
-        if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
-            revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);
-        }
+        _validateTransfer(address(this), sender, senderDividend);
         _transferDividend(time, sender, senderDividend);
     }
 
     /**
-    * @notice batch version of {claimDividend}
-    * @param times provide the dates where you want to receive your payment
-    * @dev Don't check if the dividends have been already claimed before external call to CMTAT.
-    */
-    function claimDividendBatch(uint256[] memory times) public nonReentrant() {
+     * @dev {claimDividendBatch} for an explicit holder
+     * @param sender the token holder being paid
+     * @param times the dividend times
+     */
+    function _claimDividendBatch(address sender, uint256[] calldata times) internal virtual {
         // Check if the claim is activated for each times
         validateTimeBatch(times);
-        address sender = _msgSender();
         address[] memory senders = new address[](1);
         senders[0] = sender;
-        // External call to the CMTAT to retrieve the total supply and the sender balance
-        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = CMTAT_TOKEN.snapshotInfoBatch(times, senders);
-        for(uint256 i = 0; i < times.length; ++i){
-            if (!claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0 )){
+        IncomeVaultInternalStorage storage $ = _getIncomeVaultInternalStorage();
+        // External call to the snapshot source to retrieve the total supply and the sender balance
+        (uint256[][] memory senderBalances, uint256[] memory TokenTotalSupplys) = _snapshotInfoBatch(times, senders);
+        for (uint256 i = 0; i < times.length; ++i) {
+            if (!$._claimedDividend[sender][times[i]] && (senderBalances[i][0] > 0)) {
                 uint256 senderDividend = _computeDividend(times[i], senderBalances[i][0], TokenTotalSupplys[i]);
                 // Transfer restriction
-                // External Call
-                if (!ValidationModule._operateOnTransfer(address(this), sender, senderDividend)) {
-                    revert Errors.CMTAT_InvalidTransfer(address(this), sender, senderDividend);
-                }
+                _validateTransfer(address(this), sender, senderDividend);
                 // internal call performing an ERC-20 external call
                 _transferDividend(times[i], sender, senderDividend);
             }
         }
-    } 
-    uint256[50] private __gap;
+    }
+
+    /* ============ View functions ============ */
 }

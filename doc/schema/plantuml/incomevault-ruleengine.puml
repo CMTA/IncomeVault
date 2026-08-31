@@ -1,0 +1,45 @@
+@startuml
+title Contracts called when a token holder claims a dividend
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam ComponentBackgroundColor #EEF5FF
+skinparam ComponentBorderColor #4A6FA5
+skinparam ActorBorderColor #4A6FA5
+skinparam NoteBackgroundColor #FDF6E3
+skinparam NoteBorderColor #B58900
+
+actor "Token holder" as HOLDER
+
+component "IncomeVault" as VAULT
+component "SnapshotEngine\n<<ISnapshotState>>" as SNAPSHOT
+component "RuleEngine\n<<IRuleEngine>>" as RULE
+component "Rules\nallowlist, blocklist,\nsanction list, ..." as RULES #FFF6E5
+component "Payment token\n<<ERC-20>>" as PAYMENT #FFF6E5
+
+' solid = call, dashed = return value
+HOLDER   -right-> VAULT    : 1. claimDividend(time)
+VAULT    -down->  SNAPSHOT : 2. snapshotInfo(time, holder)
+SNAPSHOT ..>      VAULT    : 3. (holderBalance, totalSupply)
+VAULT    -up->    RULE     : 4. canTransfer(vault, holder, dividend)
+RULE     -left->  RULES    : 5. detectTransferRestriction(...)
+RULE     ..>      VAULT    : 6. true / false
+VAULT    -down->  PAYMENT  : 7. safeTransfer(holder, dividend)
+
+note bottom of VAULT
+  Before step 4 the vault checks its own
+  pause state and the frozen status of the
+  holder. A false at step 6 reverts the claim
+  with IncomeVault_InvalidTransfer.
+end note
+
+note right of RULE
+  Steps 4 to 6 are a **view** call.
+  The vault is not a token bound to the
+  engine, so it never calls transferred():
+  a payout moves the payment token, not
+  the security token, and must not update
+  the stateful rules.
+end note
+
+@enduml

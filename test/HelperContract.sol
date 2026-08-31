@@ -1,23 +1,39 @@
 //SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "CMTAT/CMTAT_STANDALONE.sol";
-import "../src/IncomeVault.sol";
-import "RuleEngine/RuleEngine.sol";
-import "RuleEngine/rules/validation/RuleWhitelist.sol";
-import {Upgrades,  Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {Test} from "forge-std/Test.sol";
+/* ==== CMTAT === */
+import {CMTATStandaloneSnapshot} from "CMTAT/deployment/snapshot/CMTATStandaloneSnapshot.sol";
+import {ICMTATConstructor} from "CMTAT/interfaces/technical/ICMTATConstructor.sol";
+import {IERC1643CMTAT} from "CMTAT/interfaces/tokenization/draft-IERC1643CMTAT.sol";
+import {IRuleEngine} from "CMTAT/interfaces/engine/IRuleEngine.sol";
+import {ISnapshotEngine} from "CMTAT/interfaces/engine/ISnapshotEngine.sol";
+/* ==== SnapshotEngine === */
+import {SnapshotEngine} from "SnapshotEngine/deployment/SnapshotEngine.sol";
+import {IERC20SnapshotCompatible} from "SnapshotEngine/interface/IERC20SnapshotCompatible.sol";
+import {ISnapshotState} from "SnapshotEngine/interface/ISnapshotState.sol";
+import {ISnapshotSource} from "../src/interfaces/ISnapshotSource.sol";
+/* ==== OpenZeppelin === */
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+/* ==== IncomeVault === */
+import {IncomeVault} from "../src/deployment/IncomeVault.sol";
+import {IncomeVaultOwnable2Step} from "../src/deployment/IncomeVaultOwnable2Step.sol";
+import {IncomeVaultInvariantStorage} from "../src/storage/IncomeVaultInvariantStorage.sol";
+import {IncomeVaultRolesStorage} from "../src/storage/IncomeVaultRolesStorage.sol";
+import {ERC20PaymentMock} from "./mocks/ERC20PaymentMock.sol";
+
 /**
-* @title Constants used by the tests
-*/
-abstract contract HelperContract is IncomeVaultInvariantStorage {
+ * @title Constants and shared deployment used by the tests
+ */
+abstract contract HelperContract is Test, IncomeVaultInvariantStorage, IncomeVaultRolesStorage {
     // EOA to perform tests
     address constant ZERO_ADDRESS = address(0);
     address constant DEFAULT_ADMIN_ADDRESS = address(1);
     // Operator
-    address constant DEBT_VAULT_OPERATOR_ADDRESS = address(2);
-    address constant DEBT_VAULT_DEPOSIT_OPERATOR_ADDRESS = address(3);
-    address constant DEBT_VAULT_WITHDRAW_OPERATOR_ADDRESS = address(8);
+    address constant INCOME_VAULT_OPERATOR_ADDRESS = address(2);
+    address constant INCOME_VAULT_DEPOSIT_OPERATOR_ADDRESS = address(3);
+    address constant INCOME_VAULT_WITHDRAW_OPERATOR_ADDRESS = address(8);
     // Other
     address constant ATTACKER = address(4);
     address constant ADDRESS1 = address(5);
@@ -25,42 +41,147 @@ abstract contract HelperContract is IncomeVaultInvariantStorage {
     address constant ADDRESS3 = address(7);
     address constant TOKEN_PAYMENT_ADMIN = address(8);
     address constant CMTAT_ADMIN = address(9);
-    // role string
-    string constant RULE_ENGINE_ROLE_HASH =
-        "0x774b3c5f4a8b37a7da21d72b7f2429e4a6d49c4de0ac5f2b831a1a539d0f0fd2";
-    string constant WHITELIST_ROLE_HASH =
-        "0xdc72ed553f2544c34465af23b847953efeb813428162d767f9ba5f4013be6760";
-    string constant DEFAULT_ADMIN_ROLE_HASH =
-        "0x0000000000000000000000000000000000000000000000000000000000000000";
-    
-    // contract
-    CMTAT_STANDALONE CMTAT_CONTRACT;
+    /// @dev owner of the {IncomeVaultOwnable2Step} deployment
+    address constant OWNER = address(11);
 
-    //bytes32 public constant RULE_ENGINE_ROLE = keccak256("RULE_ENGINE_ROLE");
+    string constant DEFAULT_ADMIN_ROLE_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
     uint8 constant NO_ERROR = 0;
 
     // Forwarder
-    string ERC2771ForwarderDomain = 'ERC2771ForwarderDomain';
+    string ERC2771ForwarderDomain = "ERC2771ForwarderDomain";
 
-    uint256 TIME_LIMIT_TO_WITHDRAW = 365 days;
-
+    uint256 constant TIME_LIMIT_TO_WITHDRAW = 365 days;
 
     // Contracts
-    CMTAT_STANDALONE tokenPayment;
-    IncomeVault debtVault;
+    /// @dev security token, source of the holder balances
+    CMTATStandaloneSnapshot CMTAT_CONTRACT;
+    /// @dev external snapshot engine bound to `CMTAT_CONTRACT`, implements {ISnapshotState}
+    SnapshotEngine snapshotEngine;
+    /// @dev ERC-20 used to pay the dividends
+    ERC20PaymentMock tokenPayment;
+    IncomeVault incomeVault;
+    /// @dev the single-owner deployment variant, only built by {_deployOwnableVault}
+    IncomeVaultOwnable2Step ownableVault;
+
     // CMTAT value
-    uint256 FLAG = 5;
-    uint8 DECIMALS = 0;
-    uint256 ADDRESS1_INITIAL_AMOUNT = 5000;
-    uint256 CMTAT_ADMIN_INITIAL_AMOUNT = 5000;
+    uint8 constant DECIMALS = 0;
+    uint256 constant ADDRESS1_INITIAL_AMOUNT = 5000;
 
-    
     uint256 defaultSnapshotTime = block.timestamp + 50;
-    uint256 defaultDepositAmount = 2000;
+    uint256 constant defaultDepositAmount = 2000;
+    // Payment token minted to the deposit account
+    uint256 constant tokenBalance = 5000;
 
-
-    // Custom error openZeppelin
+    // Custom error OpenZeppelin
     error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);
-    constructor() {}
+
+    /**
+     * @dev Deploys the CMTAT, the external SnapshotEngine bound to it, the payment token and the
+     * IncomeVault behind a transparent proxy. The vault reads the balances through {ISnapshotSource},
+     * so the snapshot engine — not the token — is what it is wired to.
+     */
+    function _deployContracts(IRuleEngine ruleEngine_) internal {
+        // Security token
+        CMTAT_CONTRACT = new CMTATStandaloneSnapshot(
+            ZERO_ADDRESS,
+            CMTAT_ADMIN,
+            ICMTATConstructor.ERC20Attributes("CMTA Token", "CMTAT", DECIMALS),
+            ICMTATConstructor.ExtraInformationAttributes(
+                "CMTAT_ISIN", IERC1643CMTAT.DocumentInfo("", "", 0x00), "CMTAT_info"
+            ),
+            ICMTATConstructor.Engine(IRuleEngine(ZERO_ADDRESS))
+        );
+
+        // Snapshot engine bound to the security token
+        snapshotEngine = new SnapshotEngine(IERC20SnapshotCompatible(address(CMTAT_CONTRACT)), CMTAT_ADMIN);
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.setSnapshotEngine(ISnapshotEngine(address(snapshotEngine)));
+
+        // Payment token
+        tokenPayment = new ERC20PaymentMock("Payment Token", "PAY");
+
+        // IncomeVault, deployed behind a transparent proxy
+        Options memory opts;
+        opts.constructorData = abi.encode(ZERO_ADDRESS);
+        address proxy = Upgrades.deployTransparentProxy(
+            "IncomeVault.sol",
+            DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(
+                IncomeVault.initialize,
+                (
+                    DEFAULT_ADMIN_ADDRESS,
+                    IERC20(address(tokenPayment)),
+                    ISnapshotSource(address(snapshotEngine)),
+                    ruleEngine_,
+                    TIME_LIMIT_TO_WITHDRAW
+                )
+            ),
+            opts
+        );
+        incomeVault = IncomeVault(proxy);
+
+        tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, tokenBalance);
+    }
+
+    function _deployContracts() internal {
+        _deployContracts(IRuleEngine(ZERO_ADDRESS));
+    }
+
+    /**
+     * @dev Deploys the single-owner variant behind its own proxy, against the payment token and
+     * snapshot engine already built by {_deployContracts}. Call it after `_deployContracts()`.
+     * Kept here rather than repeated per suite — five test files used to carry a copy.
+     */
+    function _deployOwnableVault() internal {
+        _deployOwnableVault(IRuleEngine(ZERO_ADDRESS));
+    }
+
+    /// @dev {_deployOwnableVault} with an explicit RuleEngine
+    function _deployOwnableVault(IRuleEngine ruleEngine_) internal {
+        Options memory opts;
+        opts.constructorData = abi.encode(ZERO_ADDRESS);
+        address proxy = Upgrades.deployTransparentProxy(
+            "IncomeVaultOwnable2Step.sol",
+            DEFAULT_ADMIN_ADDRESS,
+            abi.encodeCall(
+                IncomeVaultOwnable2Step.initialize,
+                (
+                    OWNER,
+                    IERC20(address(tokenPayment)),
+                    ISnapshotSource(address(snapshotEngine)),
+                    ruleEngine_,
+                    TIME_LIMIT_TO_WITHDRAW
+                )
+            ),
+            opts
+        );
+        ownableVault = IncomeVaultOwnable2Step(proxy);
+    }
+
+    /* ============ Shared arrange helpers ============ */
+    function _performOnlyDeposit() internal {
+        _performOnlyDeposit(defaultSnapshotTime, defaultDepositAmount);
+    }
+
+    function _performOnlyDeposit(uint256 time, uint256 amount) internal {
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        tokenPayment.approve(address(incomeVault), amount);
+        vm.prank(DEFAULT_ADMIN_ADDRESS);
+        incomeVault.deposit(time, amount);
+    }
+
+    /// @dev schedule the snapshot on the engine, then mint the security token
+    function _mintCMTATTokens() internal {
+        vm.prank(CMTAT_ADMIN);
+        snapshotEngine.scheduleSnapshot(defaultSnapshotTime);
+
+        vm.prank(CMTAT_ADMIN);
+        CMTAT_CONTRACT.mint(ADDRESS1, ADDRESS1_INITIAL_AMOUNT);
+    }
+
+    function _performDeposit() internal {
+        _performOnlyDeposit();
+        _mintCMTATTokens();
+    }
 }
