@@ -152,7 +152,7 @@ Tests deploy the vault through `Upgrades` (openzeppelin-foundry-upgrades), which
 | `doc/audits/tools/v2.0.0/CLAUDE_ANALYSIS.md` | Code-quality review (not a security audit). Findings carry stable ids (`A-1`, `H-2`, …) — cite them in commits and in the other docs, never in a contract comment, and read the Outstanding table before re-opening anything |
 | `script/` | Deployment scripts, one per variant. Excluded from the style check and from coverage; their `require` messages are deliberate. Tested by `test/script/Deploy.t.sol` |
 | `Makefile` | The task definitions — `make help` lists them. npm scripts and CI both delegate here, so there is one definition. Every compiling target does a **full** build because the Upgrades plugin rejects an incremental one — which is also why `--sizes` is not used: it fails on a test mock, and `--skip` would make the build partial. `doc/script/check_sizes.py` runs the EIP-170 check afterwards, scoped to `src/` |
-| `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, `forge clean && forge build --sizes`, `forge test -vvv --ffi` |
+| `.github/workflows/ci.yml` | CI: recursive checkout, `npm install`, then `make test` — the same target a contributor runs, so CI and local cannot drift. It does **not** use `--sizes` or a verbosity flag |
 
 ## Dependencies (tested versions)
 

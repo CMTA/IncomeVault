@@ -165,34 +165,34 @@ contract DepositBatchTest is HelperContract {
      * totals a caller really pays.
      */
     /**
-     * @dev WARNING: run this **without** `--gas-report`. The assertions compare `gasleft()` deltas
-     * across a different number of external calls — one for the batch, three for the separate
-     * deposits — and Foundry's tracing charges each traced call. The overhead therefore lands roughly
-     * three times as heavily on the second measurement and flips the first assertion, which fails as
-     * `batch is expected to cost more in-call: 161275 <= 263423`. That is instrumentation, not a
-     * regression: the same test passes on the same bytecode under a plain `forge test`.
+     * @dev Only the per-transaction total is asserted. The in-call figures are printed, not checked:
+     * the two sides are measured across a different number of external calls — one for the batch,
+     * three for the separate deposits — and Foundry's instrumentation charges per call, so under
+     * `--gas-report` (what `make gas` runs) the overhead lands three times as heavily on the second
+     * measurement and reverses the comparison on bytecode that has not changed. Asserting a
+     * direction that the measurement mode decides would fail the suite for the wrong reason.
      *
-     * No cheatcode reports whether tracing is active, and correcting for it would mean subtracting a
-     * measured per-call overhead — more fragile than the thing it protects. Documented instead.
+     * Gas is read with `vm.lastCallGas()`, the EVM's own accounting, rather than from `gasleft()`
+     * deltas around the calls, which also count what the harness spends between them.
      */
     function testBatchIsCheaperPerTransaction() public {
         uint256 intrinsic = 21_000;
 
         _approve(600);
         vm.prank(DEFAULT_ADMIN_ADDRESS);
-        uint256 g0 = gasleft();
         incomeVault.depositBatch(times, amounts);
-        uint256 batchCall = g0 - gasleft();
+        uint256 batchCall = vm.lastCallGas().gasTotalUsed;
 
         _deployContracts();
         tokenPayment.mint(DEFAULT_ADMIN_ADDRESS, 10_000);
         _approve(600);
         vm.startPrank(DEFAULT_ADMIN_ADDRESS);
-        uint256 g1 = gasleft();
         incomeVault.deposit(times[0], amounts[0]);
+        uint256 separateCalls = vm.lastCallGas().gasTotalUsed;
         incomeVault.deposit(times[1], amounts[1]);
+        separateCalls += vm.lastCallGas().gasTotalUsed;
         incomeVault.deposit(times[2], amounts[2]);
-        uint256 separateCalls = g1 - gasleft();
+        separateCalls += vm.lastCallGas().gasTotalUsed;
         vm.stopPrank();
 
         uint256 batchTotal = batchCall + intrinsic;
@@ -203,9 +203,8 @@ contract DepositBatchTest is HelperContract {
         console.log("total    depositBatch(3):", batchTotal);
         console.log("total    3 x deposit:   ", separateTotal);
 
-        // in-call the batch is the more expensive of the two
-        assertGt(batchCall, separateCalls, "batch is expected to cost more in-call");
-        // but a caller sending one transaction instead of three still comes out ahead
+        // a caller sending one transaction instead of three comes out ahead, which is the point of
+        // the batch: the saving is the intrinsic cost paid once, not a cheaper deposit
         assertLt(batchTotal, separateTotal, "batch should win once the per-transaction cost is counted");
     }
 }
