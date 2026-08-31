@@ -125,10 +125,12 @@ The nine amendments — C-1 to C-9, each naming the functionality it changes —
 
 ### Additions — behaviour the specification does not describe at all
 
-| id | Proposal | Why — what implementing it exposed |
-| --- | --- | --- |
-| A-1 | **Recovery of what is not claimed**, once the claim period has closed | The specification never says where unclaimed funds end up. Rounding residue and the shares of holders who never claim would otherwise stay locked in the contract permanently. Pairs with C-2, which is what makes "closed" meaningful, and with C-3, which makes the residue a known quantity. `IncomeVault` bounds recovery per period by `unclaimedDividend(time)`. |
-| A-2 | **A push counterpart to the pull claim of 30** | Functionality 30 is pull-only, which strands holders who never transact — custodied positions, dormant addresses, holders without gas. A distribution mechanism that requires every beneficiary to act is not one an issuer can rely on to discharge an obligation. |
-| A-3 | **Delegated claiming: who may claim on a holder's behalf** | Follows from A-2. A holder who cannot pay gas, or cannot transact at all, still has to be paid. `IncomeVault` uses ERC-7540's `setOperator` and ERC-7741's signed authorisation, with the payout always going to the holder rather than the operator. The specification names no mechanism, so every implementation invents one and none of them interoperate. |
+The three additions — A-1 to A-3 — are in [`CMTAT-Distribution-Additions.md`](./CMTAT-Distribution-Additions.md), so a reader taking them to the specification is not carrying the whole comparison with them. In short:
 
-The three additions are not defects in an implementation — they are places where the specification stops short of what an issuer needs to discharge a real obligation.
+| id | Proposal |
+| --- | --- |
+| A-1 | Recovery of what is not claimed, once the claim period has closed |
+| A-2 | A push counterpart to the pull claim of 30 |
+| A-3 | Delegated claiming: who may claim on a holder's behalf |
+
+Neither list is a defect report against an implementation: the amendments say where two conforming implementations may legitimately disagree, the additions say where the specification stops short of what an issuer needs to discharge a real obligation. The reasoning for each id is in the linked documents.

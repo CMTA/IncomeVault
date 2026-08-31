@@ -10,6 +10,41 @@ The companion **additions** — behaviour with no counterpart in section 3.2.4 a
 
 One earlier proposal is split across the two documents: capping the claim period amends functionality 30 and is C-2 below, while recovering what is left after that cap is a new operation and is A-1 there.
 
+## The specification text these refer to
+
+Quoted from section 3.2.4 of [`cmtat-framework-functional-specifications-june-2026.pdf`](./cmtat-framework-functional-specifications-june-2026.pdf) so a proposal can be read without opening it. The PDF remains authoritative; square brackets are the specification's own.
+
+> **3.2.4 Distribution module**
+>
+> Issuers may be required to make distributions to holders of securities (e.g. dividend payments for equity securities or interest payments for debt securities). Issuers may wish to carry out distributions off-chain (i.e. by transferring fiat currencies to the securities' holders' bank account). However, if the issuer intends to carry out such distributions on-chain, this may require the distribution of new tokens to existing token holders, on the basis of a snapshot carried out at the moment the legal entitlement to the distribution arises as not all token holders may be eligible for distributions.
+>
+> Distribution events are typically performed according to a predefined schedule, and according to the token distribution at a given time, which can be determined by a snapshot performed with the Snapshot module.
+>
+> **Functionalities**
+>
+> 27. **Distribution create parameters**: Define settlement token (i.e. the token that is to be distributed), identify a (past or future) block time/height for distribution snapshot, and amount to be distributed.
+> 28. **Distribution set eligibility**: Flag a given users' tokens as being eligible or non-eligible to receive distributions (default: eligible).
+> 29. **Distribution set deposit**: Send deposit amount for claiming settlement tokens to token holders flagged as eligible.
+> 30. **Distribution claim deposit**: Allow token holders to claim their share of a deposit, identified by a deposit Identification, according to the token balance at the snapshot created at the defined time/height.
+>
+> Additional use cases for tokens representing debt instruments:
+>
+> 31. **Distribution schedule**: Define a schedule for interest payments [and repayment of the par value at maturity], based on the token attributes.
+> 32. **Distribution unschedule**: Cancel the previously set schedule for interest payments [and repayment of the principal amount at maturity].
+
+C-6 and C-8 refer to the token attributes rather than to a functionality. Those are in section 3.1.1, under *Additional attributes applicable to tokens used for debt securities*:
+
+> - Currency of payments (if applicable)
+> - Par value (principal amount) (if applicable)
+> - Maturity date (if applicable)
+> - Interest rate (if applicable)
+> - Coupon payment frequency (if applicable)
+> - Interest schedule format (if applicable). The purpose of the interest schedule is to set, in the parameters of the smart contract, the dates on which the interest payments accrue.
+>   - Format A: start date/end date/period
+>   - Format B: start date/end date/day of period (e.g. quarter or year)
+>   - Format C: date 1/date 2/date 3/…
+> - Interest payment date (if different from the date on which the interest payment accrues)
+
 ## The amendments
 
 | id | Amends | Proposal | Why — what implementing it exposed |

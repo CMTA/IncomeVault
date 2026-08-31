@@ -1,4 +1,6 @@
-# IncomeVault — Specification and technical choice
+# IncomeVault — Specification
+
+The `IncomeVault` is a prototype to perform coupon-payment dividend with a token supporting on-chain snapshots, typically a [CMTAT](https://github.com/CMTA/CMTAT) bound to a [SnapshotEngine](https://github.com/CMTA/SnapshotEngine).
 
 <!-- toc -->
 
@@ -85,7 +87,7 @@ Beyond the specification, the vault adds a **claim window**, **issuer recovery**
 
 Functionalities 31 and 32 would need **no new state** if specified: the record dates already exist as `uint256[]` in the Snapshot module (`getNextSnapshots()`), and the terms already exist in the Debt module (`couponPaymentFrequency`, `interestScheduleFormat`, `currencyContract`) — though as strings, so a contract cannot act on them.
 
-> **The full comparison lives in [`doc/cmtat-standard/CMTAT-Distribution-impl.md`](./cmtat-standard/CMTAT-Distribution-impl.md)**: the functionality-by-functionality table, what the vault adds and why, the analysis of 31/32, and **twelve changes we would propose to the specification**, split into nine amendments to functionalities that already exist and three additions the specification does not describe at all. It also argues that the specification should stay snapshot-*oriented* without being snapshot-*only* — balances pinned off-chain at a block height fix a record date just as well — and asks what the specification should say about holding a deposit as ERC-4626 shares.
+> **The full comparison lives in [`doc/cmtat-standard/CMTAT-Distribution-impl.md`](./cmtat-standard/CMTAT-Distribution-impl.md)**: the functionality-by-functionality table, what the vault adds and why, the analysis of 31/32, and **twelve changes we would propose to the specification**. Those have their own files, so they can be taken to the specification without the implementation comparison attached and with the relevant specification text quoted in place: nine amendments to functionalities that already exist in [`CMTAT-Distribution-Amendments.md`](./cmtat-standard/CMTAT-Distribution-Amendments.md), and three additions the specification does not describe at all in [`CMTAT-Distribution-Additions.md`](./cmtat-standard/CMTAT-Distribution-Additions.md). It also argues that the specification should stay snapshot-*oriented* without being snapshot-*only* — balances pinned off-chain at a block height fix a record date just as well — and asks what the specification should say about holding a deposit as ERC-4626 shares.
 
 ## Snapshot source
 
