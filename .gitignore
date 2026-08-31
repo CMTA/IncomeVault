@@ -5,6 +5,7 @@ broadcast/
 lib/
 out/
 docOut/
+lcov.info
 cache/
 .~lock.test.odt#
 nethereum-gen.settings
@@ -14,3 +15,4 @@ cache_hardhat/
 #drawio
 *.bkp
 *.dtmp
+history

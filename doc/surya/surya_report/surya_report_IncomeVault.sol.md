@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./IncomeVault.sol | 32ca196e65692ae173ccb00988a492e5b8e942ed |
+| ./deployment/IncomeVault.sol | 13f4d611a5dac650aae2720df488e06e8bf1290c |
 
 
 ### Contracts Description Table
@@ -15,13 +15,22 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IncomeVault** | Implementation | Initializable, ContextUpgradeable, IncomeVaultRestricted, IncomeVaultOpen, MetaTxModule |||
-| └ | <Constructor> | Public ❗️ | 🛑  | MetaTxModule |
+| **IncomeVault** | Implementation | IncomeVaultValidationModule, IncomeVaultBaseERC2771, AccessControlModule, IncomeVaultRolesStorage |||
+| └ | <Constructor> | Public ❗️ | 🛑  | IncomeVaultBaseERC2771 |
 | └ | initialize | Public ❗️ | 🛑  | initializer |
-| └ | __IncomeVault_init | Internal 🔒 | 🛑  | onlyInitializing |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
+| └ | _authorizeDeposit | Internal 🔒 |   | onlyRole |
+| └ | _authorizeWithdraw | Internal 🔒 |   | onlyRole |
+| └ | _authorizeDistribute | Internal 🔒 |   | onlyRole |
+| └ | _authorizeOperator | Internal 🔒 |   | onlyRole |
+| └ | _authorizeSnapshotSourceManagement | Internal 🔒 |   | onlyRole |
+| └ | _authorizeRuleEngineManagement | Internal 🔒 |   | onlyRole |
+| └ | _authorizePause | Internal 🔒 |   | onlyRole |
+| └ | _authorizeDeactivate | Internal 🔒 |   | onlyRole |
+| └ | _authorizeFreeze | Internal 🔒 |   | onlyRole |
 
 
 ### Legend

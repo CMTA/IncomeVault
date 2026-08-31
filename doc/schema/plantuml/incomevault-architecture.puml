@@ -1,0 +1,36 @@
+@startuml
+title IncomeVault — architecture at a glance
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam ComponentBackgroundColor #EEF5FF
+skinparam ComponentBorderColor #4A6FA5
+skinparam ActorBorderColor #4A6FA5
+skinparam NoteBackgroundColor #FDF6E3
+skinparam NoteBorderColor #B58900
+
+actor "Issuer" as ISSUER
+actor "Token holder" as HOLDER
+
+component "IncomeVault" as VAULT
+
+component "Security token\nCMTAT or any ERC-20" as TOKEN #FFF6E5
+component "Snapshot source\n<<ISnapshotState>>" as SNAPSHOT #FFF6E5
+component "RuleEngine\noptional" as RULE #FFF6E5
+component "Payment token\nERC-20, e.g. USDC" as PAYMENT #FFF6E5
+
+ISSUER --> VAULT    : deposits the dividends,\nopens the claims
+HOLDER --> VAULT    : claims a dividend
+HOLDER ..> TOKEN    : holds
+TOKEN  --> SNAPSHOT : records who held\nhow much, and when
+VAULT  --> SNAPSHOT : reads the balances\nat the dividend date
+VAULT  --> RULE     : may this holder\nbe paid?
+VAULT  --> PAYMENT  : pays the holder
+
+note bottom of VAULT
+  The vault never talks to the security token.
+  It reads balances through <<ISnapshotState>>,
+  so any token exposing that interface works.
+end note
+
+@enduml

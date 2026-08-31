@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - src/IncomeVaultBase.sol</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - IncomeVaultBase.sol<span style="font-size: 80%;"> (source / <a href="IncomeVaultBase.sol.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2026-08-31 13:21:44</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : // SPDX-License-Identifier: MPL-2.0</a>
+<a name="2"><span class="lineNum">       2 </span>                :            : </a>
+<a name="3"><span class="lineNum">       3 </span>                :            : pragma solidity ^0.8.24;</a>
+<a name="4"><span class="lineNum">       4 </span>                :            : </a>
+<a name="5"><span class="lineNum">       5 </span>                :            : /* ==== OpenZeppelin === */</a>
+<a name="6"><span class="lineNum">       6 </span>                :            : import {Initializable} from &quot;@openzeppelin/contracts/proxy/utils/Initializable.sol&quot;;</a>
+<a name="7"><span class="lineNum">       7 </span>                :            : import {ContextUpgradeable} from &quot;@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol&quot;;</a>
+<a name="8"><span class="lineNum">       8 </span>                :            : import {IERC20} from &quot;@openzeppelin/contracts/token/ERC20/IERC20.sol&quot;;</a>
+<a name="9"><span class="lineNum">       9 </span>                :            : /* ==== CMTAT === */</a>
+<a name="10"><span class="lineNum">      10 </span>                :            : /* ==== Snapshot === */</a>
+<a name="11"><span class="lineNum">      11 </span>                :            : import {ISnapshotSource} from &quot;./interfaces/ISnapshotSource.sol&quot;;</a>
+<a name="12"><span class="lineNum">      12 </span>                :            : /* ==== IncomeVault === */</a>
+<a name="13"><span class="lineNum">      13 </span>                :            : import {IncomeVaultValidationCore} from &quot;./modules/IncomeVaultValidationCore.sol&quot;;</a>
+<a name="14"><span class="lineNum">      14 </span>                :            : import {IncomeVaultSnapshotModule} from &quot;./modules/IncomeVaultSnapshotModule.sol&quot;;</a>
+<a name="15"><span class="lineNum">      15 </span>                :            : import {IncomeVaultRestricted} from &quot;./public/IncomeVaultRestricted.sol&quot;;</a>
+<a name="16"><span class="lineNum">      16 </span>                :            : import {IncomeVaultOpen} from &quot;./public/IncomeVaultOpen.sol&quot;;</a>
+<a name="17"><span class="lineNum">      17 </span>                :            : import {VersionModule} from &quot;./modules/VersionModule.sol&quot;;</a>
+<a name="18"><span class="lineNum">      18 </span>                :            : </a>
+<a name="19"><span class="lineNum">      19 </span>                :            : /**</a>
+<a name="20"><span class="lineNum">      20 </span>                :            :  * @title Income Vault to distribute dividends — logic shared by every deployment variant</a>
+<a name="21"><span class="lineNum">      21 </span>                :            :  * @dev</a>
+<a name="22"><span class="lineNum">      22 </span>                :            :  * The vault is not bound to a specific token implementation: the holder balances and the total</a>
+<a name="23"><span class="lineNum">      23 </span>                :            :  * supply are read through the {ISnapshotSource} interface, which is implemented by the CMTA</a>
+<a name="24"><span class="lineNum">      24 </span>                :            :  * `SnapshotEngine` as well as by any token embedding an equivalent snapshot module.</a>
+<a name="25"><span class="lineNum">      25 </span>                :            :  *</a>
+<a name="26"><span class="lineNum">      26 </span>                :            :  * This contract holds **what** the vault does. It deliberately declares neither an access-control</a>
+<a name="27"><span class="lineNum">      27 </span>                :            :  * policy nor a transfer-restriction policy: the `_authorize*` hooks and</a>
+<a name="28"><span class="lineNum">      28 </span>                :            :  * {IncomeVaultValidationCore-_validateTransfer} are left abstract and answered by the deployment</a>
+<a name="29"><span class="lineNum">      29 </span>                :            :  * contract, so the same logic ships role-based ({IncomeVault}) or single-owner</a>
+<a name="30"><span class="lineNum">      30 </span>                :            :  * ({IncomeVaultOwnable2Step}) — and can be embedded in a host that answers them from its own modules.</a>
+<a name="31"><span class="lineNum">      31 </span>                :            :  *</a>
+<a name="32"><span class="lineNum">      32 </span>                :            :  * It also declares **no meta-transaction policy**. Gasless support is a deployment decision, exactly</a>
+<a name="33"><span class="lineNum">      33 </span>                :            :  * like the access-control model: {IncomeVaultBaseERC2771} adds the ERC-2771 context on top of this</a>
+<a name="34"><span class="lineNum">      34 </span>                :            :  * contract, and the two shipped deployments inherit that. A deployment that does not want a trusted</a>
+<a name="35"><span class="lineNum">      35 </span>                :            :  * forwarder inherits this contract directly and pays for none of it. Finding M-8.</a>
+<a name="36"><span class="lineNum">      36 </span>                :            :  */</a>
+<a name="37"><span class="lineNum">      37 </span>                :            : abstract contract IncomeVaultBase is</a>
+<a name="38"><span class="lineNum">      38 </span>                :            :     IncomeVaultValidationCore,</a>
+<a name="39"><span class="lineNum">      39 </span>                :            :     Initializable,</a>
+<a name="40"><span class="lineNum">      40 </span>                :            :     ContextUpgradeable,</a>
+<a name="41"><span class="lineNum">      41 </span>                :            :     VersionModule,</a>
+<a name="42"><span class="lineNum">      42 </span>                :            :     IncomeVaultSnapshotModule,</a>
+<a name="43"><span class="lineNum">      43 </span>                :            :     IncomeVaultRestricted,</a>
+<a name="44"><span class="lineNum">      44 </span>                :            :     IncomeVaultOpen</a>
+<a name="45"><span class="lineNum">      45 </span>                :            : {</a>
+<a name="46"><span class="lineNum">      46 </span>                :            :     /* ============  Initializer Function ============ */</a>
+<a name="47"><span class="lineNum">      47 </span>                :            :     /**</a>
+<a name="48"><span class="lineNum">      48 </span>                :            :      * @dev calls the initialize functions of the policy-agnostic modules</a>
+<a name="49"><span class="lineNum">      49 </span>                :            :      * @param ERC20TokenPayment_ ERC20 token used to perform the payment</a>
+<a name="50"><span class="lineNum">      50 </span>                :            :      * @param snapshotSource_ contract implementing {ISnapshotSource}, source of the holder balances</a>
+<a name="51"><span class="lineNum">      51 </span>                :            :      * @param timeLimitToWithdraw_ delay, after the dividend time, during which a claim is accepted</a>
+<a name="52"><span class="lineNum">      52 </span>                :            :      */</a>
+<a name="53"><span class="lineNum">      53 </span>                :<span class="lineCov">        288 :     function __IncomeVaultBase_init_unchained(</span></a>
+<a name="54"><span class="lineNum">      54 </span>                :            :         IERC20 ERC20TokenPayment_,</a>
+<a name="55"><span class="lineNum">      55 </span>                :            :         ISnapshotSource snapshotSource_,</a>
+<a name="56"><span class="lineNum">      56 </span>                :            :         uint256 timeLimitToWithdraw_</a>
+<a name="57"><span class="lineNum">      57 </span>                :            :     ) internal onlyInitializing {</a>
+<a name="58"><span class="lineNum">      58 </span>                :<span class="lineCov">        288 :         _setERC20TokenPayment(ERC20TokenPayment_);</span></a>
+<a name="59"><span class="lineNum">      59 </span>                :<span class="lineCov">        287 :         _setDividendSnapshotSource(snapshotSource_);</span></a>
+<a name="60"><span class="lineNum">      60 </span>                :            : </a>
+<a name="61"><span class="lineNum">      61 </span>                :            :         // EIP-712 domain for the ERC-7741 signed operator authorisations. The version stays &quot;1&quot;</a>
+<a name="62"><span class="lineNum">      62 </span>                :            :         // across releases on purpose: bumping it would invalidate every signature already issued.</a>
+<a name="63"><span class="lineNum">      63 </span>                :<span class="lineCov">        286 :         __EIP712_init_unchained(&quot;IncomeVault&quot;, &quot;1&quot;);</span></a>
+<a name="64"><span class="lineNum">      64 </span>                :<span class="lineCov">        286 :         __IncomeVaultRestricted_init_unchained(timeLimitToWithdraw_);</span></a>
+<a name="65"><span class="lineNum">      65 </span>                :            :     }</a>
+<a name="66"><span class="lineNum">      66 </span>                :            : </a>
+<a name="67"><span class="lineNum">      67 </span>                :            :     /*//////////////////////////////////////////////////////////////</a>
+<a name="68"><span class="lineNum">      68 </span>                :            :                             INTERNAL/PRIVATE FUNCTIONS</a>
+<a name="69"><span class="lineNum">      69 </span>                :            :     //////////////////////////////////////////////////////////////*/</a>
+<a name="70"><span class="lineNum">      70 </span>                :            : }</a>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 1.16</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
