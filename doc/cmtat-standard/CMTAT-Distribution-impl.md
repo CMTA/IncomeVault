@@ -107,17 +107,21 @@ Old proposal 2 is split across the two tables: capping the claim period amends f
 
 ### Amendments to functionalities already in the specification
 
-| id | Amends | Proposal | Why — what implementing it exposed |
-| --- | --- | --- | --- |
-| C-1 | **27, 30** | **Require a distribution's record date to resolve against a balance source that has already fixed those balances**, and require implementations to reject one that has not | A snapshot lookup for a time that was never scheduled does not fail — `SnapshotEngine` returns the holder's **live balance** (`_snapshotBalanceOf` ends `return snapshotted ? value : ownerBalance`). A distribution funded against a mistyped date therefore pays out pro-rata to balances *at claim time*, which anyone can change by acquiring tokens before claiming. The requirement is that the balances are **fixed at the record date and cannot change afterwards**, not that a snapshot exists — an off-chain pinning at a block height satisfies it equally. Phrasing it against a snapshot would forbid the alternatives in *Eligibility without a snapshot*; phrasing it against a free timestamp permits the failure above. |
-| C-2 | **30** | **Cap the claim period** — a deadline after which a claim is refused | Functionality 30 says holders may claim; it never says until when. Without a deadline a distribution is an open liability forever, and the issuer can never close its books on a period. `IncomeVault` adds `timeLimitToWithdraw`. |
-| C-3 | **30** | **State the rounding direction** for a holder's share | Pro-rata division always leaves dust. The specification is silent, so two conforming implementations can disagree on who gets it. State that shares round **down**, which makes the residue a known quantity rather than an accident. |
-| C-4 | **28** | **Say whether eligibility is per distribution or per address, and when it is evaluated** | A flag set in advance and a check performed at payout behave differently: an address frozen between the record date and the claim is eligible under one reading and not the other. `IncomeVault` evaluates at payout, through the same pause / freeze / RuleEngine path a transfer takes. |
-| C-5 | **29** | **Forbid, or define, topping up a distribution whose claiming is already open** | Nothing in 29 prevents a second deposit after holders have begun claiming. Those who already claimed took their share of the smaller amount; those who had not take a share of the larger. The specification should either forbid it or define the accounting. |
-| C-6 | **27** + debt attributes | **Reconcile the settlement token: per distribution, or per instrument?** | Functionality 27 puts it per distribution; `DebtInstrument.currencyContract` puts it per instrument, and is already an `address` rather than a string. These are two different data models for the same thing, in one framework. |
-| C-7 | **31, 32** | **Specify them as derived from the Snapshot and Debt modules**, not as a store of their own | The dates already exist as `uint256[]` in the Snapshot module and the terms as strings in the Debt module. Saying so keeps one source of truth for record dates; implying a third store invites a schedule that disagrees with the snapshots the balances are actually read from. |
-| C-8 | Debt attributes | **Give the schedule fields a machine-readable form**, alongside the descriptive strings | `couponPaymentFrequency`, `interestScheduleFormat` and `interestPaymentDate` are prose. Any automation — a keeper funding coupons, a contract asserting the next payment date — must parse them off-chain and be trusted. An optional structured form would make 31 executable without removing the human-readable one. |
-| C-9 | **27, 29** | **Say whether the deposit must be held as the settlement token**, and what `amount` means when that token is itself a vault share | Nothing constrains an implementation to hold the deposit idle, or the settlement token to be a plain ERC-20. Holding the float as ERC-4626 shares turns a fixed nominal obligation into one that can fall short; distributing a vault share leaves "amount" ambiguous between shares and assets, with opposite rounding conventions on the two sides. See *Holding the deposit in an ERC-4626 vault*. |
+The nine amendments — C-1 to C-9, each naming the functionality it changes — are in [`CMTAT-Distribution-Amendments.md`](./CMTAT-Distribution-Amendments.md), so a reader taking them to the specification is not carrying the whole comparison with them. In short:
+
+| id | Amends | Proposal |
+| --- | --- | --- |
+| C-1 | 27, 30 | Require a record date to resolve against balances that are already fixed, and reject one that is not |
+| C-2 | 30 | Cap the claim period with a deadline after which a claim is refused |
+| C-3 | 30 | State the rounding direction for a holder's share |
+| C-4 | 28 | Say whether eligibility is per distribution or per address, and when it is evaluated |
+| C-5 | 29 | Forbid, or define, topping up a distribution whose claiming is already open |
+| C-6 | 27 + debt attributes | Reconcile the settlement token: per distribution, or per instrument? |
+| C-7 | 31, 32 | Specify them as derived from the Snapshot and Debt modules, not as a store of their own |
+| C-8 | Debt attributes | Give the schedule fields a machine-readable form alongside the descriptive strings |
+| C-9 | 27, 29 | Say whether the deposit must be held as the settlement token, and what `amount` means when that token is itself a vault share |
+
+**C-1 and C-5 can cause value to move incorrectly**; the other seven leave a question open. The reasoning for each is in the linked document.
 
 ### Additions — behaviour the specification does not describe at all
 
@@ -127,4 +131,4 @@ Old proposal 2 is split across the two tables: capping the claim period amends f
 | A-2 | **A push counterpart to the pull claim of 30** | Functionality 30 is pull-only, which strands holders who never transact — custodied positions, dormant addresses, holders without gas. A distribution mechanism that requires every beneficiary to act is not one an issuer can rely on to discharge an obligation. |
 | A-3 | **Delegated claiming: who may claim on a holder's behalf** | Follows from A-2. A holder who cannot pay gas, or cannot transact at all, still has to be paid. `IncomeVault` uses ERC-7540's `setOperator` and ERC-7741's signed authorisation, with the payout always going to the holder rather than the operator. The specification names no mechanism, so every implementation invents one and none of them interoperate. |
 
-**C-1 and C-5 can cause value to move incorrectly**; the other amendments leave a question open. The three additions are not defects in an implementation — they are places where the specification stops short of what an issuer needs to discharge a real obligation.
+The three additions are not defects in an implementation — they are places where the specification stops short of what an issuer needs to discharge a real obligation.
