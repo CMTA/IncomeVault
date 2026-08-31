@@ -6,10 +6,6 @@ The CMTA framework functional specifications (June 2026) describe an optional **
 
 This document holds the **amendments**: changes to functionalities the specification already defines. Each one constrains or clarifies existing text, so a conforming implementation may already satisfy it — the specification simply does not say so, which is what lets two conforming implementations disagree.
 
-The companion **additions** — behaviour with no counterpart in section 3.2.4 at all, where no implementation can be conforming or non-conforming today — stay in [`CMTAT-Distribution-impl.md`](./CMTAT-Distribution-impl.md), together with the functionality-by-functionality comparison these proposals came out of. Read that document first if you want the evidence behind a row here.
-
-One earlier proposal is split across the two documents: capping the claim period amends functionality 30 and is C-2 below, while recovering what is left after that cap is a new operation and is A-1 there.
-
 ## The specification text these refer to
 
 Quoted from section 3.2.4 of [`cmtat-framework-functional-specifications-june-2026.pdf`](./cmtat-framework-functional-specifications-june-2026.pdf) so a proposal can be read without opening it. The PDF remains authoritative; square brackets are the specification's own.

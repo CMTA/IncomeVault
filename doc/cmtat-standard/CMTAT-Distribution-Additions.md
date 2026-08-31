@@ -1,14 +1,8 @@
 # Additions to the CMTAT Distribution module
 
-> The contracts are **NOT audited**. Do not use them in production without an audit.
-
 The CMTA framework functional specifications (June 2026) describe an optional **Distribution module** in section 3.2.4, with functionalities numbered 27 to 32 — see [`cmtat-framework-functional-specifications-june-2026.pdf`](./cmtat-framework-functional-specifications-june-2026.pdf).
 
-This document holds the **additions**: behaviour with no counterpart in section 3.2.4 at all. No implementation can be conforming or non-conforming on these today, because the specification says nothing about them — each is a gap every implementer has had to fill privately, and privately means incompatibly.
-
-The companion **amendments** — changes to functionalities the specification already defines, where a conforming implementation may already satisfy the proposal — are in [`CMTAT-Distribution-Amendments.md`](./CMTAT-Distribution-Amendments.md). The functionality-by-functionality comparison both came out of is in [`CMTAT-Distribution-impl.md`](./CMTAT-Distribution-impl.md).
-
-One earlier proposal is split across the two documents: capping the claim period amends functionality 30 and is C-2 there, while recovering what is left after that cap is a new operation and is A-1 below.
+This document holds the **additions**: behaviour with no counterpart in section 3.2.4 at all.
 
 ## The specification text these refer to
 

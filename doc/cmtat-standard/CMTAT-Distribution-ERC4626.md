@@ -1,12 +1,10 @@
 # Holding a distribution deposit in an ERC-4626 vault
 
-> The contracts are **NOT audited**. Do not use them in production without an audit.
-
 Between functionality 29 (the issuer sends the deposit) and functionality 30 (holders claim it), the settlement tokens sit idle in the contract — for a coupon with a long claim period, potentially months. Whether an implementation may put that float to work, and what happens if it does, is a question the CMTA framework functional specifications (June 2026) do not answer.
 
-This document is that question in full. It is the evidence behind amendment **C-9** in [`CMTAT-Distribution-Amendments.md`](./CMTAT-Distribution-Amendments.md); the functionality-by-functionality comparison it came out of is [`CMTAT-Distribution-impl.md`](./CMTAT-Distribution-impl.md), and the three additions the specification does not describe at all are in [`CMTAT-Distribution-Additions.md`](./CMTAT-Distribution-Additions.md).
+This document is that question in full. It is the evidence behind amendment **C-9** in `CMTAT-Distribution-Amendments`; ,the three additions the specification does not describe at all are in `CMTAT-Distribution-Additions`
 
-Why `IncomeVault` is not itself an ERC-4626 vault is a different question, answered in [*Comparison with ERC-4626 / ERC-7540 vaults*](../README.md#comparison-with-erc-4626--erc-7540-vaults). This document is only about what the **deposit** is held as.
+Why `IncomeVault` is not itself an ERC-4626 vault is a different question, answered in IncomeVault specification. This document is only about what the **deposit** is held as.
 
 ## The specification text this refers to
 
