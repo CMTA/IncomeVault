@@ -8,6 +8,8 @@ _Diagram source: [doc/schema/plantuml/incomevault-architecture.puml](./doc/schem
 
 > This project has not undergone an audit and is provided as-is without any warranties.
 
+> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).
+
 ## Introduction
 
 The dividends are deposited in a Vault. Once the claims are open, a token holder can then perform a claim to get his dividends for a given period.

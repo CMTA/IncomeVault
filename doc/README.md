@@ -1,5 +1,7 @@
 # IncomeVault — Specification and technical choice
 
+> Parts of this project were written with the help of AI coding assistants, principally Claude Code (Anthropic).
+
 <!-- toc -->
 
 - [Introduction](#introduction)
