@@ -367,7 +367,7 @@ Dividends round down, so a period keeps a residue: the rounding dust plus whatev
 
 **`segregatedDividend` is not that number.** It is the pro-rata denominator and stays fixed at the deposit for the whole period, otherwise each claim would shrink the share of the next claimant. Only `unclaimedDividend` tells you what remains.
 
-`withdraw` is bounded by `unclaimedDividend`, so a sweep can never reach another period's funds. Before this bound existed, a period whose holders had all claimed still reported its full deposit in `segregatedDividend`, and sweeping it drained the money deposited for a different period — leaving that period's holders unpayable with no error raised.
+`withdraw` is bounded by `unclaimedDividend`, so a sweep cannot take another period's funds. Before this bound existed, a period whose holders had all claimed still reported its full deposit in `segregatedDividend`, and sweeping it drained the money deposited for a different period — leaving that period's holders unpayable with no error raised.
 
 > The bound stops the damage spreading between periods. It does **not** make an early sweep safe: withdrawing before the claim window closes takes money the remaining holders of *that* period are entitled to, and lowers `segregatedDividend`, re-pricing every claim that has not happened yet. A claim that the period can no longer fund now **reverts** with `IncomeVault_NotEnoughAmount` rather than being paid out of another period's deposit. The holder is not silently short-changed and the other periods stay whole, but the swept period is genuinely unable to pay — the sweep, not the revert, is the mistake.
 
@@ -428,7 +428,7 @@ Choose between the two by what a partial payout means for you:
 
 **A skipped holder is left completely untouched.** The payout is attempted through an external self-call wrapped in `try`/`catch`, which gives per-holder atomicity: either the holder is marked claimed *and* paid, or neither. A holder who was skipped is not marked as claimed and can still claim themselves, or be included in a later distribution.
 
-> The helper that call targets, `transferDividendSelf`, carries no access control of its own — it reverts `IncomeVault_OnlySelfCall` for every caller other than the vault. That check is what stands between it and an unauthorized payout, and it deliberately reads `msg.sender` rather than `_msgSender()` so an ERC-2771 forwarder can never present itself as the vault. `catch` also cannot distinguish a refused payout from an out-of-gas failure. The only contracts that can consume gas there — the payment token and the RuleEngine — are admin-set and already trusted.
+> The helper that call targets, `transferDividendSelf`, carries no access control of its own — it reverts `IncomeVault_OnlySelfCall` for every caller other than the vault. That check is its only protection against an unauthorized payout, and it deliberately reads `msg.sender` rather than `_msgSender()` so an ERC-2771 forwarder can never present itself as the vault. `catch` also cannot distinguish a refused payout from an out-of-gas failure. The only contracts that can consume gas there — the payment token and the RuleEngine — are admin-set and already trusted.
 
 ## Comparison with ERC-4626 / ERC-7540 vaults
 
@@ -448,7 +448,7 @@ The `IncomeVault` is called a vault, but it is **not** an [ERC-4626](https://eip
 
 Four of those rows are not preferences, they are blockers:
 
-1. **There is no record date in ERC-4626.** Entitlement follows the share. A buyer who acquires the token *after* the record date but before the payout would capture the dividend, and a seller who sold after the record date would lose it. That inverts the corporate-action semantics a coupon or dividend is meant to have — which is precisely what the snapshot exists to pin down.
+1. **There is no record date in ERC-4626.** Entitlement follows the share. A buyer who acquires the token *after* the record date but before the payout would capture the dividend, and a seller who sold after the record date would lose it. That inverts the corporate-action semantics a coupon or dividend is meant to have — which is what the snapshot exists to pin down.
 2. **The security token would have to *be* the share.** ERC-4626's share is the vault contract's own ERC-20. A CMTAT is already issued, with its own register, transfer restrictions and identifier; its supply is set by the issuer, not by deposits. Making it 4626-compliant is not possible, and the alternative — holders depositing the CMTAT to receive vault shares — puts a *different* token into circulation and splits the register.
 3. **A dividend is not a redemption.** ERC-4626 offers exactly one way to extract value, and it burns shares. Paying a coupon must not reduce the holder's stake in the instrument. The standard has no operation for "pay out without reducing the claim".
 4. **Two different tokens.** `asset()` is the single token shares are redeemed for. The vault pays USDC to holders of a CMTAT — shares of X, paid in Y — which is outside the standard's model.
